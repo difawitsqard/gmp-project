@@ -17,9 +17,9 @@ return new class extends Migration
             $table->bigInteger('sub_total'); // Sub total harga pesanan
             $table->bigInteger('total'); // Total harga pesanan
             $table->enum('payment_method', ['cash', 'transfer_bank', 'credit_card', 'other'])->default('cash');
-            $table->enum('status', ['pending', 'completed', 'canceled'])->default('pending'); // Status pesanan
+            $table->enum('status', ['pending', 'processing', 'completed', 'cancelled'])->default('pending');
             $table->enum('payment_status', ['unpaid', 'paid', 'failed'])->default('unpaid');
-            $table->foreignId('user_id')->constrained('users')->onDelete('restrict'); // Foreign key ke tabel users
+            // $table->foreignId('user_id')->constrained('users')->onDelete('restrict'); // Foreign key ke tabel users
             $table->timestamps();
         });
     }

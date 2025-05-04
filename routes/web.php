@@ -4,7 +4,10 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Application;
 use App\Http\Controllers\UnitController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\NixtlaTestController;
 use App\Http\Controllers\ProductCategoryController;
 
 Route::get('/', function () {
@@ -38,4 +41,14 @@ Route::middleware([
 
     Route::resource('units', UnitController::class)
         ->only(['index', 'store', 'show', 'update', 'destroy']);
+
+    Route::resource('orders', OrderController::class)
+        ->only(['index', 'create', 'store', 'show', 'update', 'destroy']);
 });
+
+// nixtla test
+Route::get('/nixtla-test', [NixtlaTestController::class, 'forecast'])
+    ->name('nixtla.test.forecast');
+
+Route::post('/midtrans/webhook', [PaymentController::class, 'midtransCallback'])
+    ->name('midtrans.webhook');

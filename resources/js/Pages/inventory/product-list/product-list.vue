@@ -121,7 +121,7 @@
                         <a-table
                             class="table datanew table-hover table-center mb-0"
                             :columns="columns"
-                            :data-source="filteredProducts"
+                            :data-source="data"
                             :row-selection="{}"
                         >
                             <template #bodyCell="{ column, record }">
@@ -227,7 +227,6 @@
     <product-list-modal></product-list-modal>
 </template>
 <script>
-import Swal from "sweetalert2";
 import { Head, Link, router, usePage } from "@inertiajs/vue3";
 export default {
     components: {
@@ -241,7 +240,7 @@ export default {
         },
     },
     mounted() {
-        this.filteredProducts = this.products;
+        this.data = this.products;
         this.CategroyFilter = [
             ...new Set(this.products.map((product) => product.category.name)),
         ];
@@ -257,12 +256,12 @@ export default {
         //         ];
         //     } else {
         //         // Filter kategori berdasarkan produk yang sesuai dengan nama
-        //         const filteredProducts = this.products.filter(
+        //         const data = this.products.filter(
         //             (product) => product.name === newValue
         //         );
         //         this.CategroyFilter = [
         //             ...new Set(
-        //                 filteredProducts.map((product) => product.stock)
+        //                 data.map((product) => product.stock)
         //             ),
         //         ];
         //     }
@@ -279,8 +278,8 @@ export default {
             Sortby: ["Sort by Date", "14 09 23", "11 09 23"],
             searchFilter: null,
             CategroyFilter: [],
-            selectedCategory: null, // Nilai default
-            filteredProducts: [], // Produk yang difilter
+            selectedCategory: null,
+            data: [],
             columns: [
                 {
                     title: "Product",
@@ -384,7 +383,7 @@ export default {
             });
         },
         filterProducts(search = null) {
-            this.filteredProducts = this.products.filter((product) => {
+            this.data = this.products.filter((product) => {
                 // Filter berdasarkan nama produk
 
                 if (search instanceof PointerEvent) {
@@ -413,7 +412,7 @@ export default {
         },
         resetFilter() {
             this.selectedCategory = null; // Reset kategori
-            this.filteredProducts = this.products; // Tampilkan semua produk
+            this.data = this.products; // Tampilkan semua produk
             this.searchFilter = null; // Reset pencarian
         },
         deleteProduct(id) {
@@ -421,6 +420,10 @@ export default {
                 onSuccess: () => {
                     const flash = usePage().props.flash;
                     if (flash.success) {
+                        this.data = this.data.filter(
+                            (product) => product.id !== id
+                        );
+
                         Swal.fire({
                             icon: "success",
                             title: "Deleted!",

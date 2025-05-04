@@ -15,3 +15,9 @@ window.bootstrap = bootstrap;
 //sweetalert2
 import swal from "sweetalert2";
 window.Swal = swal;
+
+// dayjs
+import dayjs from "dayjs";
+import "dayjs/locale/id";
+dayjs.locale("id");
+window.dayjs = dayjs;

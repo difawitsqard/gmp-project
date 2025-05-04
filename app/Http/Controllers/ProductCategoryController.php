@@ -10,9 +10,40 @@ class ProductCategoryController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+
+        $perPage = is_numeric($request->perPage) ? $request->perPage :  10;
+
+        $productCategories = ProductCategory::filter()
+            ->with(['products'])
+            ->orderBy('name', 'asc')
+            ->paginate($perPage);
+        $productCategories->appends(['search' => $request->search]);
+
+
+        if (!empty($request->search) && $request->search != '')
+            $productCategories->appends(['search' => $request->search]);
+
+        $productCategories->appends(['perPage' => $perPage]);
+
+        $productCategories->getCollection()->transform(function ($category) {
+            return [
+                'id' => $category->id,
+                'name' => $category->name,
+                'slug' => $category->slug,
+                'description' => $category->description,
+                'status' => $category->status,
+                'items' => $category->products->count(),
+                'created_at' => $category->created_at,
+
+            ];
+        });
+
+        return inertia('inventory/category-list', [
+            'productCategories' => $productCategories,
+            'filters' => $request->only('search', 'page', 'per_page'),
+        ]);
     }
 
     /**

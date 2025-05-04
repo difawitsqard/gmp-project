@@ -33,16 +33,48 @@ class DatabaseSeeder extends Seeder
         }
 
         $ProductCategories = [
-            ['name' => 'VALVE'],
-            ['name' => 'PIPA'],
-            ['name' => 'KATUP'],
-            ['name' => 'UMUM'],
-            ['name' => 'PLAT'],
-            ['name' => 'FITTING'],
+            [
+                'name' => 'VALVE',
+                'slug' => 'valve',
+                'description' => 'Valve',
+                'status' => true,
+            ],
+            [
+                'name' => 'PIPA',
+                'slug' => 'pipa',
+                'description' => 'Pipa',
+                'status' => true,
+            ],
+            [
+                'name' => 'KATUP',
+                'slug' => 'katup',
+                'description' => 'Katup',
+                'status' => true,
+            ],
+            [
+                'name' => 'UMUM',
+                'slug' => 'umum',
+                'description' => 'Umum',
+                'status' => true,
+            ],
+            [
+                'name' => 'PLAT',
+                'slug' => 'plat',
+                'description' => 'Plat',
+                'status' => true,
+            ],
+            [
+                'name' => 'FITTING',
+                'slug' => 'fitting',
+                'description' => 'Fitting',
+                'status' => true,
+            ],
         ];
         foreach ($ProductCategories as $category) {
             ProductCategory::create($category);
         }
+
+        ProductCategory::factory(50)->create();
 
         Product::factory(30)->recycle([
             ProductCategory::all(),

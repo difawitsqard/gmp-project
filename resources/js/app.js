@@ -1,8 +1,10 @@
 import "./bootstrap";
-// import "../css/app.css";
+import "../css/app.css";
 
-import { createApp, h } from "vue";
-import { createInertiaApp } from "@inertiajs/vue3";
+import { isPreloading, skipNextPreload } from "./stores/preload";
+
+import { createApp, h, ref } from "vue";
+import { createInertiaApp, router } from "@inertiajs/vue3";
 import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 import { ZiggyVue } from "../../vendor/tightenco/ziggy";
 
@@ -21,6 +23,8 @@ import VueFormWizard from "vue3-form-wizard";
 import VueEasyLightbox from "vue-easy-lightbox";
 // import ThemifyIcon from "vue-themify-icons";
 // import SimpleLineIcons from "vue-simple-line";
+
+import LoadingOverlay from "@/components/LoadingOverlay.vue";
 
 /********* Layout component**********/
 import Header from "@/Layouts/pos-header.vue";
@@ -135,7 +139,24 @@ createInertiaApp({
             import.meta.glob("./Pages/**/*.vue")
         ),
     setup({ el, App, props, plugin }) {
-        const app = createApp({ render: () => h(App, props) })
+        router.on("start", () => {
+            if (!skipNextPreload.value) {
+                isPreloading.value = true;
+            }
+        });
+
+        router.on("finish", () => {
+            isPreloading.value = false;
+            skipNextPreload.value = false;
+        });
+
+        const app = createApp({
+            render: () =>
+                h("div", [
+                    h(LoadingOverlay, { visible: isPreloading.value }),
+                    h(App, props),
+                ]),
+        })
             .use(plugin)
             .use(ZiggyVue);
 
@@ -243,7 +264,5 @@ createInertiaApp({
 
         app.mount(el);
     },
-    progress: {
-        color: "#4B5563",
-    },
+    progress: false,
 });

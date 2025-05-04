@@ -19,7 +19,7 @@ class ProductFactory extends Factory
         return [
             'product_categories_id' => \App\Models\ProductCategory::factory(),
             'name' => fake()->word(),
-            'sku' => fake()->unique()->word(),
+            'sku' => 'SKU' . fake()->unique()->numberBetween(1000, 9999),
             'qty' => fake()->numberBetween(0, 100),
             'min_stock' => fake()->numberBetween(0, 20),
             'unit_id' => \App\Models\Unit::factory(),
