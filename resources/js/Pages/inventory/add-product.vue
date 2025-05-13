@@ -7,8 +7,8 @@
             <div class="page-header">
                 <div class="add-item d-flex">
                     <div class="page-title">
-                        <h4>New Product</h4>
-                        <h6>Create new product</h6>
+                        <h4>Produk Baru</h4>
+                        <h6>Buat produk baru</h6>
                     </div>
                 </div>
                 <ul class="table-top-head">
@@ -21,7 +21,7 @@
                                     type="arrow-left"
                                     class="me-2"
                                 ></vue-feather
-                                >Back to Product</Link
+                                >Kembali ke produk</Link
                             >
                         </div>
                     </li>
@@ -49,9 +49,7 @@
                                                     type="info"
                                                     class="add-info"
                                                 ></vue-feather
-                                                ><span
-                                                    >Product Information</span
-                                                >
+                                                ><span>Informasi Produk</span>
                                             </h5>
                                             <a href="javascript:void(0);"
                                                 ><vue-feather
@@ -73,13 +71,23 @@
                                             <div class="col-lg-6 col-12">
                                                 <div class="mb-3 add-product">
                                                     <label class="form-label"
-                                                        >Product Name</label
+                                                        >Nama Produk</label
                                                     >
                                                     <input
                                                         type="text"
                                                         class="form-control"
                                                         v-model="form.name"
+                                                        :class="{
+                                                            'is-invalid':
+                                                                errors.name,
+                                                        }"
                                                     />
+                                                    <div
+                                                        v-if="errors.name"
+                                                        class="invalid-feedback"
+                                                    >
+                                                        {{ errors.name }}
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div class="col-lg-6 col-12">
@@ -92,7 +100,17 @@
                                                         class="form-control list"
                                                         placeholder="Enter SKU"
                                                         v-model="form.sku"
+                                                        :class="{
+                                                            'is-invalid':
+                                                                errors.sku,
+                                                        }"
                                                     />
+                                                    <div
+                                                        v-if="errors.name"
+                                                        class="invalid-feedback"
+                                                    >
+                                                        {{ errors.name }}
+                                                    </div>
                                                     <button
                                                         @click.prevent="
                                                             generateSku()
@@ -100,7 +118,7 @@
                                                         type="button"
                                                         class="btn btn-primaryadd"
                                                     >
-                                                        Generate Code
+                                                        Hasilkan Kode
                                                     </button>
                                                 </div>
                                             </div>
@@ -117,7 +135,7 @@
                                                         >
                                                             <label
                                                                 class="form-label"
-                                                                >Unit</label
+                                                                >Satuan</label
                                                             >
                                                             <a
                                                                 href="javascript:void(0);"
@@ -129,8 +147,8 @@
                                                                     class="plus-down-add"
                                                                 ></vue-feather
                                                                 ><span
-                                                                    >Add
-                                                                    New</span
+                                                                    >Tambahkan
+                                                                    Baru</span
                                                                 ></a
                                                             >
                                                         </div>
@@ -143,7 +161,19 @@
                                                             v-model="
                                                                 form.unit_id
                                                             "
+                                                            :class="{
+                                                                'is-invalid':
+                                                                    errors.unit_id,
+                                                            }"
                                                         />
+                                                        <div
+                                                            v-if="
+                                                                errors.unit_id
+                                                            "
+                                                            class="invalid-feedback"
+                                                        >
+                                                            {{ errors.unit_id }}
+                                                        </div>
                                                     </div>
                                                 </div>
 
@@ -151,7 +181,7 @@
                                                     <div class="add-newplus">
                                                         <label
                                                             class="form-label"
-                                                            >Category</label
+                                                            >Kategori</label
                                                         >
                                                         <a
                                                             href="javascript:void(0);"
@@ -163,7 +193,8 @@
                                                                 class="plus-down-add"
                                                             ></vue-feather
                                                             ><span
-                                                                >Add New</span
+                                                                >Tambahkan
+                                                                Baru</span
                                                             ></a
                                                         >
                                                     </div>
@@ -173,11 +204,24 @@
                                                         "
                                                         id="chooseCategory"
                                                         placeholder="Choose"
-                                                        class="mb-3"
                                                         v-model="
                                                             form.product_categories_id
                                                         "
+                                                        :class="{
+                                                            'is-invalid':
+                                                                errors.product_categories_id,
+                                                        }"
                                                     />
+                                                    <div
+                                                        v-if="
+                                                            errors.product_categories_id
+                                                        "
+                                                        class="invalid-feedback"
+                                                    >
+                                                        {{
+                                                            errors.product_categories_id
+                                                        }}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -186,14 +230,24 @@
                                             <div
                                                 class="input-blocks summer-description-box transfer mb-3"
                                             >
-                                                <label>Description</label>
+                                                <label>Deskripsi</label>
                                                 <textarea
                                                     class="form-control h-100"
                                                     rows="5"
+                                                    :class="{
+                                                        'is-invalid':
+                                                            errors.description,
+                                                    }"
                                                 ></textarea>
                                                 <p class="mt-1">
-                                                    Maximum 60 Characters
+                                                    Maksimum 60 Karakter
                                                 </p>
+                                                <div
+                                                    v-if="errors.description"
+                                                    class="invalid-feedback"
+                                                >
+                                                    {{ errors.description }}
+                                                </div>
                                             </div>
                                         </div>
                                         <!-- /Editor -->
@@ -204,15 +258,15 @@
 
                         <div
                             class="accordion-card-one accordion"
-                            id="accordionExample2"
+                            id="accordionStockAndPrice"
                         >
                             <div class="accordion-item">
                                 <div class="accordion-header" id="headingTwo">
                                     <div
                                         class="accordion-button"
                                         data-bs-toggle="collapse"
-                                        data-bs-target="#collapseTwo"
-                                        aria-controls="collapseTwo"
+                                        data-bs-target="#collapseStockAndPrice"
+                                        aria-controls="collapseStockAndPrice"
                                     >
                                         <div class="text-editor add-list">
                                             <div
@@ -223,9 +277,7 @@
                                                         type="life-buoy"
                                                         class="add-info"
                                                     ></vue-feather
-                                                    ><span
-                                                        >Pricing & Stocks</span
-                                                    >
+                                                    ><span>Harga & Stok</span>
                                                 </h5>
                                                 <a href="javascript:void(0);"
                                                     ><vue-feather
@@ -238,10 +290,10 @@
                                     </div>
                                 </div>
                                 <div
-                                    id="collapseTwo"
+                                    id="collapseStockAndPrice"
                                     class="accordion-collapse collapse show"
                                     aria-labelledby="headingTwo"
-                                    data-bs-parent="#accordionExample2"
+                                    data-bs-parent="#accordionStockAndPrice"
                                 >
                                     <div class="accordion-body">
                                         <div
@@ -262,7 +314,7 @@
                                                             class="input-blocks add-product"
                                                         >
                                                             <label
-                                                                >Quantity</label
+                                                                >Kuantitas</label
                                                             >
                                                             <input
                                                                 type="text"
@@ -270,7 +322,19 @@
                                                                 v-model="
                                                                     form.qty
                                                                 "
+                                                                :class="{
+                                                                    'is-invalid':
+                                                                        errors.qty,
+                                                                }"
                                                             />
+                                                            <div
+                                                                v-if="
+                                                                    errors.qty
+                                                                "
+                                                                class="invalid-feedback"
+                                                            >
+                                                                {{ errors.qty }}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                     <div
@@ -280,8 +344,8 @@
                                                             class="input-blocks add-product"
                                                         >
                                                             <label
-                                                                >Quantity
-                                                                Alert</label
+                                                                >Peringatan
+                                                                Quantitas</label
                                                             >
                                                             <input
                                                                 type="text"
@@ -289,7 +353,21 @@
                                                                 v-model="
                                                                     form.min_stock
                                                                 "
+                                                                :class="{
+                                                                    'is-invalid':
+                                                                        errors.min_stock,
+                                                                }"
                                                             />
+                                                            <div
+                                                                v-if="
+                                                                    errors.min_stock
+                                                                "
+                                                                class="invalid-feedback"
+                                                            >
+                                                                {{
+                                                                    errors.min_stock
+                                                                }}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                     <div
@@ -298,14 +376,28 @@
                                                         <div
                                                             class="input-blocks add-product"
                                                         >
-                                                            <label>Price</label>
+                                                            <label>Harga</label>
                                                             <input
                                                                 type="text"
                                                                 class="form-control"
                                                                 v-model="
                                                                     form.price
                                                                 "
+                                                                :class="{
+                                                                    'is-invalid':
+                                                                        errors.price,
+                                                                }"
                                                             />
+                                                            <div
+                                                                v-if="
+                                                                    errors.price
+                                                                "
+                                                                class="invalid-feedback"
+                                                            >
+                                                                {{
+                                                                    errors.price
+                                                                }}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -313,121 +405,100 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
 
-                                <div
-                                    class="accordion-card-one accordion"
-                                    id="accordionExample3"
-                                >
-                                    <div class="accordion-item">
-                                        <div
-                                            class="accordion-header"
-                                            id="headingThree"
-                                        >
-                                            <div
-                                                class="accordion-button"
-                                                data-bs-toggle="collapse"
-                                                data-bs-target="#collapseThree"
-                                                aria-controls="collapseThree"
-                                            >
-                                                <div
-                                                    class="addproduct-icon list"
-                                                >
-                                                    <h5>
-                                                        <vue-feather
-                                                            type="image"
-                                                            class="add-info"
-                                                        ></vue-feather
-                                                        ><span>Images</span>
-                                                    </h5>
-                                                    <a
-                                                        href="javascript:void(0);"
-                                                        ><vue-feather
-                                                            type="chevron-down"
-                                                            class="chevron-down-add"
-                                                        ></vue-feather
-                                                    ></a>
-                                                </div>
-                                            </div>
+                        <div
+                            class="accordion-card-one accordion"
+                            id="accordionImagesProduct"
+                        >
+                            <div class="accordion-item">
+                                <div class="accordion-header" id="headingThree">
+                                    <div
+                                        class="accordion-button"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#collapseImagesProduct"
+                                        aria-controls="collapseImagesProduct"
+                                    >
+                                        <div class="addproduct-icon list">
+                                            <h5>
+                                                <vue-feather
+                                                    type="image"
+                                                    class="add-info"
+                                                ></vue-feather
+                                                ><span>Gambar</span>
+                                            </h5>
+                                            <a href="javascript:void(0);"
+                                                ><vue-feather
+                                                    type="chevron-down"
+                                                    class="chevron-down-add"
+                                                ></vue-feather
+                                            ></a>
                                         </div>
-                                        <div
-                                            id="collapseThree"
-                                            class="accordion-collapse collapse show"
-                                            aria-labelledby="headingThree"
-                                            data-bs-parent="#accordionExample3"
-                                        >
-                                            <div class="accordion-body">
-                                                <div
-                                                    class="text-editor add-list add"
-                                                >
-                                                    <div class="col-lg-12">
+                                    </div>
+                                </div>
+                                <div
+                                    id="collapseImagesProduct"
+                                    class="accordion-collapse collapse show"
+                                    aria-labelledby="headingThree"
+                                    data-bs-parent="#accordionImagesProduct"
+                                >
+                                    <div class="accordion-body">
+                                        <div class="text-editor add-list add">
+                                            <div class="col-lg-12">
+                                                <div class="add-choosen">
+                                                    <div class="input-blocks">
                                                         <div
-                                                            class="add-choosen"
+                                                            class="image-upload"
                                                         >
-                                                            <div
-                                                                class="input-blocks"
-                                                            >
-                                                                <div
-                                                                    class="image-upload"
-                                                                >
-                                                                    <input
-                                                                        type="file"
-                                                                    />
-                                                                    <div
-                                                                        class="image-uploads"
-                                                                    >
-                                                                        <i
-                                                                            data-feather="plus-circle"
-                                                                            class="plus-down-add me-0"
-                                                                        ></i>
-                                                                        <h4>
-                                                                            Add
-                                                                            Images
-                                                                        </h4>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            <div
-                                                                class="phone-img"
-                                                                v-if="isVisible"
-                                                            >
-                                                                <img
-                                                                    src="@/assets/img/products/phone-add-2.png"
-                                                                    alt="image"
-                                                                />
-                                                                <a
-                                                                    href="javascript:void(0);"
-                                                                    @click="
-                                                                        hideProduct
-                                                                    "
-                                                                    ><vue-feather
-                                                                        type="x"
-                                                                        class="x-square-add remove-product"
-                                                                    ></vue-feather
-                                                                ></a>
-                                                            </div>
-                                                            <div
-                                                                class="phone-img"
-                                                                v-if="
-                                                                    isVisible1
+                                                            <input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                @change="
+                                                                    handleImageUpload
                                                                 "
+                                                                :disabled="
+                                                                    form.images
+                                                                        .length >=
+                                                                    3
+                                                                "
+                                                            />
+                                                            <div
+                                                                class="image-uploads"
                                                             >
-                                                                <img
-                                                                    src="@/assets/img/products/phone-add-1.png"
-                                                                    alt="image"
+                                                                <vue-feather
+                                                                    type="plus-circle"
+                                                                    class="plus-down-add"
                                                                 />
-                                                                <a
-                                                                    href="javascript:void(0);"
-                                                                    @click="
-                                                                        hideProduct1
-                                                                    "
-                                                                    ><vue-feather
-                                                                        type="x"
-                                                                        class="x-square-add remove-product"
-                                                                    ></vue-feather
-                                                                ></a>
+
+                                                                <h4>
+                                                                    Tambah
+                                                                    Gambar
+                                                                </h4>
                                                             </div>
                                                         </div>
+                                                    </div>
+
+                                                    <div
+                                                        v-for="(
+                                                            image, index
+                                                        ) in form.images"
+                                                        :key="index"
+                                                        class="phone-img"
+                                                    >
+                                                        <img
+                                                            :src="image"
+                                                            alt="Uploaded Image"
+                                                        />
+                                                        <a
+                                                            href="javascript:void(0);"
+                                                            @click="
+                                                                removeImage(
+                                                                    index
+                                                                )
+                                                            "
+                                                            >x</a
+                                                        >
                                                     </div>
                                                 </div>
                                             </div>
@@ -440,11 +511,14 @@
                 </div>
                 <div class="col-lg-12">
                     <div class="btn-addproduct mb-4 pb-4">
-                        <button type="button" class="btn btn-cancel me-2">
+                        <Link
+                            :href="route('products.index')"
+                            class="btn btn-cancel me-2"
+                        >
                             Cancel
-                        </button>
+                        </Link>
                         <button type="submit" class="btn btn-submit">
-                            Save Product
+                            Tambahkan Produk
                         </button>
                     </div>
                 </div>
@@ -452,11 +526,24 @@
             <!-- /add -->
         </div>
     </div>
-    <add-product-modal
-        ref="productModal"
-        @category-added="addCategoryToList"
-        @unit-added="addUnitToList"
+
+    <!-- modal -->
+    <units-modal
+        ref="unitsModal"
+        modal-id="units-modal"
+        @units-submit="addUnitToList"
     />
+    <product-category-modal
+        ref="categoryModal"
+        modal-id="add-product-category"
+        @product-category-submit="addCategoryToList"
+    />
+
+    <!-- <cropperjs-modal
+        ref="cropperModal"
+        modal-id="cropper-modal"
+        @image-cropped="handleImageCropped"
+    /> -->
 </template>
 <script>
 import { ref } from "vue";
@@ -464,11 +551,18 @@ const currentDate = ref(new Date());
 const currentDateOne = ref(new Date());
 import Vue3TagsInput from "vue3-tags-input";
 import { Head, Link, useForm } from "@inertiajs/vue3";
+import UnitsModal from "@/components/modal/units-modal.vue";
+import ProductCategoryModal from "@/components/modal/product-category-modal.vue";
+// import CropperjsModal from "@/components/modal/cropperjs-modal.vue";
+
 export default {
     components: {
         Vue3TagsInput,
         Link,
         Head,
+        UnitsModal,
+        ProductCategoryModal,
+        // CropperjsModal,
     },
     props: {
         categories: {
@@ -498,6 +592,11 @@ export default {
         };
     },
     mounted() {
+        const savedImages = localStorage.getItem("uploadedImages");
+        if (savedImages) {
+            this.form.images = JSON.parse(savedImages);
+        }
+
         this.ChooseCategory = this.categories.map((category) => ({
             id: category.id,
             text: category.name,
@@ -513,33 +612,109 @@ export default {
             ChooseCategory: [{ label: "Choose", value: "" }],
             ChooseUnit: [{ label: "Choose", value: "" }],
 
+            cropper: {
+                ref: null,
+                previewImage: null,
+                croppedImage: null,
+            },
+
             isVisible: true,
             isVisible1: true,
             startdate: currentDate,
             startdateOne: currentDateOne,
             dateFormat: "dd-MM-yyyy",
+            errors: {},
         };
     },
     methods: {
+        // openCropper(imageFile) {
+        //     const reader = new FileReader();
+        //     reader.onload = (e) => {
+        //         const imageUrl = e.target.result;
+        //         this.$refs.cropperModal.showModal(imageUrl);
+        //     };
+        //     reader.readAsDataURL(imageFile);
+        // },
+        // onCropped(dataUrl) {
+        //     this.cropper.croppedImage = dataUrl;
+        //     console.log("Gambar hasil crop:", dataUrl);
+        // },
         openModalAddCategory() {
-            this.$refs.productModal.showModalAddCategory();
+            this.$refs.categoryModal.showModal();
         },
         openModalAddUnit() {
-            this.$refs.productModal.showModalAddUnit();
+            this.$refs.unitsModal.showModal();
         },
-        hideProduct() {
-            this.isVisible = false;
+        // handleImageCropped() {
+        //     this.isVisible = true;
+        //     this.isVisible1 = true;
+        //     this.$refs.cropperModal.closeModal();
+        // },
+
+        handleImageUpload(event) {
+            const files = event.target.files;
+
+            if (!files || files.length === 0) return;
+
+            if (this.form.images.length >= 3) {
+                alert("You can only upload up to 3 images.");
+                return;
+            }
+
+            Array.from(files).forEach((file) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    if (this.form.images.length < 3) {
+                        this.form.images.push(e.target.result); // add
+                        localStorage.setItem(
+                            "uploadedImages",
+                            JSON.stringify(this.form.images)
+                        );
+                    } else {
+                        alert("You can only upload up to 3 images.");
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+
+            event.target.value = null;
         },
-        hideProduct1() {
-            this.isVisible1 = false;
+        removeImage(index) {
+            this.form.images.splice(index, 1);
+            localStorage.setItem(
+                "uploadedImages",
+                JSON.stringify(this.form.images)
+            );
         },
-        addCategoryToList(newCategory) {
-            this.ChooseCategory.push(newCategory);
-            this.form.category = newCategory;
+        resetImages() {
+            this.form.images = [];
+            localStorage.removeItem("uploadedImages");
         },
-        addUnitToList(newUnit) {
-            this.ChooseUnit.push(newUnit);
-            this.form.unit = newUnit;
+
+        addCategoryToList(response) {
+            console.log(response);
+            if (response.status) {
+                const newCategory = {
+                    text: response.data.name,
+                    id: response.data.id,
+                };
+
+                this.ChooseCategory.push(newCategory);
+                this.form.product_categories_id = newCategory.id;
+            }
+        },
+        addUnitToList(response) {
+            if (response.status) {
+                const newUnit = {
+                    text: response.data.short_name
+                        ? `${response.data.name} (${response.data.short_name})`
+                        : response.data.name,
+                    id: response.data.id,
+                };
+
+                this.ChooseUnit.push(newUnit);
+                this.form.unit_id = newUnit.id;
+            }
         },
         generateSku() {
             const randomSku = Math.random().toString(36).substring(2, 8);
@@ -548,10 +723,11 @@ export default {
         submitForm() {
             this.form.post(this.route("products.store"), {
                 onSuccess: () => {
+                    resetImages();
                     this.$inertia.visit(this.route("products.index"));
                 },
                 onError: (errors) => {
-                    console.error(errors);
+                    this.errors = errors;
                 },
             });
         },

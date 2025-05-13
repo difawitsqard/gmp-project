@@ -51,20 +51,30 @@ class ProductCategoryController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        $validate = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:255',
+            'status' => 'boolean',
         ]);
 
-        $category = ProductCategory::create([
-            'name' => $request->name,
-            'description' => $request->description,
-        ]);
+        $category = ProductCategory::create(
+            [
+                'name' => $validate['name'],
+                'description' => $validate['description'],
+                'status' => $validate['status'] ?? 1,
+            ]
+        );
 
-        return response()->json([
-            'category' => $category,
-            'message' => 'Category created successfully',
-        ]);
+        if ($request->wantsJson()) {
+            return response()->json([
+                'status' => true,
+                'code' => 200,
+                'message' => "Kategori '{$category->name}' berhasil ditambahkan.",
+                'data' => $category,
+            ], 200);
+        }
+
+        return redirect()->back()->with('success', "Kategori '{$category->name}' berhasil ditambahkan.");
     }
 
     /**
@@ -80,7 +90,32 @@ class ProductCategoryController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $category = ProductCategory::find($id);
+
+        $validate = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:255',
+            'status' => 'boolean',
+        ]);
+
+        $category->update(
+            [
+                'name' => $validate['name'],
+                'description' => $validate['description'],
+                'status' => $validate['status'] ?? 1,
+            ]
+        );
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'status' => true,
+                'code' => 200,
+                'message' => "Kategori '{$category->name}' berhasil diperbarui.",
+                'data' => $category,
+            ], 200);
+        }
+
+        return redirect()->back()->with('success', "Kategori '{$category->name}' berhasil diperbarui.");
     }
 
     /**
@@ -88,6 +123,13 @@ class ProductCategoryController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $category =  ProductCategory::find($id);
+        if ($category) {
+            $category->delete();
+            return redirect()->back()->with('success', "Kategori {$category->name} berhasil dihapus");
+        }
+        return back()->withErrors([
+            'error' => 'Product not found'
+        ]);
     }
 }

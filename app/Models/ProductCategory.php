@@ -13,6 +13,8 @@ class ProductCategory extends Model
     //fillable
     protected $fillable = [
         'name',
+        'description',
+        'status',
     ];
 
     //relation

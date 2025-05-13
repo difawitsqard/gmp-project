@@ -11,6 +11,7 @@ class NixtlaService
   protected string $apiKey;
   protected string $endpoint;
 
+  // Default values for the forecast
   protected const DEFAULT_MODEL = 'timegpt-1';
   protected const DEFAULT_FREQ = 'D';
   protected const DEFAULT_H = 7;
@@ -21,37 +22,47 @@ class NixtlaService
     $this->endpoint = 'https://api.nixtla.io/v2/forecast';
   }
 
-  public function forecast(array $rawSeriesWithFeatures, array $options = []): array
+  public function forecast(array $seriesGrouped, array $options = []): array
   {
-    $this->validateInput($rawSeriesWithFeatures, $options);
+    $this->validateInput($seriesGrouped, $options);
 
     $model = $options['model'] ?? self::DEFAULT_MODEL;
     $freq = $options['freq'] ?? self::DEFAULT_FREQ;
     $h = $options['h'] ?? self::DEFAULT_H;
+    $X = $options['X'] ?? null;
+    $X_future = $options['X_future'] ?? null;
 
-    // Build structured data
-    [$y, $X, $sizes, $lastTimestamps] = $this->extractSeriesAndFeatures($rawSeriesWithFeatures);
+    // === Step 1: Build Request Payload ===
+    [$payload, $uids, $lastTimestamps] = $this->buildRequest($seriesGrouped, $h, $freq, $model);
 
-    // Auto-generate X_future from built-in callbacks if X exists
-    $X_future = null;
-    if (!empty($X)) {
-      $X_future = $this->generateXFutureForGroupedSeries($lastTimestamps, $h, [
-        fn($date) => $date->dayOfWeek,
-        fn($date) => $date->month,
-        fn($date) => (int) $date->isWeekend(),
-      ]);
+    // === Step 2: Call API ===
+    $response = $this->sendRequest($payload);
+
+    // === Step 3: Reconstruct Forecast Result ===
+    return $this->buildForecast($response, $uids, $lastTimestamps, $h, $freq);
+  }
+
+  protected function buildRequest(array $seriesGrouped, int $h, string $freq, string $model): array
+  {
+    $y = [];
+    $sizes = [];
+    $lastTimestamps = [];
+
+    ksort($seriesGrouped);
+
+    foreach ($seriesGrouped as $uid => $series) {
+      ksort($series);
+      $sizes[] = count($series);
+      $y = array_merge($y, array_values($series));
+      $lastTimestamps[$uid] = Carbon::parse(array_key_last($series));
     }
-
-    $featureContributions = $options['feature_contributions'] ?? (!empty($X) && !empty($X_future));
-
-    dd($X_future);
 
     $payload = [
       'series' => [
         'y' => $y,
         'sizes' => $sizes,
-        'X' => !empty($X) ? $X : null,
-        'X_future' => !empty($X_future) ? $X_future : null
+        'X' => null,
+        'X_future' => null
       ],
       'model' => $model,
       'h' => $h,
@@ -59,58 +70,13 @@ class NixtlaService
       'clean_ex_first' => true,
       'level' => [80, 95],
       'finetune_steps' => 0,
-      'finetune_depth' => 1,
+      'finetune_depth' => 3,
       'finetune_loss' => 'default',
       'finetuned_model_id' => null,
-      'feature_contributions' => $featureContributions
+      'feature_contributions' => false
     ];
 
-    dd($payload);
-
-    // $response = $this->sendRequest($payload);
-
-    if (!empty($options['raw'])) {
-      return $response;
-    }
-
-    return $this->buildForecast($response, array_keys($rawSeriesWithFeatures), $lastTimestamps, $h, $freq);
-  }
-
-  protected function extractSeriesAndFeatures(array $input): array
-  {
-    $y = [];
-    $X = [];
-    $sizes = [];
-    $lastTimestamps = [];
-
-    ksort($input);
-
-    foreach ($input as $uid => $series) {
-      ksort($series);
-      $seriesY = [];
-      $seriesX = [];
-
-      foreach ($series as $ds => $data) {
-        if (is_array($data)) {
-          $seriesY[] = $data['y'];
-          $features = array_filter($data, fn($key) => $key !== 'y', ARRAY_FILTER_USE_KEY);
-          $seriesX[] = array_values($features);
-        } else {
-          $seriesY[] = $data;
-        }
-
-        $lastTimestamps[$uid] = Carbon::parse($ds);
-      }
-
-      $sizes[] = count($seriesY);
-      $y = array_merge($y, $seriesY);
-
-      if (!empty($seriesX)) {
-        $X = array_merge($X, $seriesX);
-      }
-    }
-
-    return [$y, $X, $sizes, $lastTimestamps];
+    return [$payload, array_keys($seriesGrouped), $lastTimestamps];
   }
 
   protected function sendRequest(array $payload): array
@@ -131,32 +97,63 @@ class NixtlaService
     return $response->json();
   }
 
+  // protected function buildForecast(array $response, array $uids, array $lastTimestamps, int $h, string $freq): array
+  // {
+  //   $forecast = [];
+  //   $mean = $response['mean'] ?? [];
+  //   $index = 0;
+
+  //   foreach ($uids as $uid) {
+  //     $last = $lastTimestamps[$uid];
+
+  //     for ($i = 0; $i < $h; $i++) {
+  //       if (!isset($mean[$index])) break;
+
+  //       // Hitung tanggal berdasarkan frekuensi
+  //       $ds = match (strtoupper($freq)) {
+  //         'H' => $last->copy()->addHours($i + 1)->format('Y-m-d H:00:00'),
+  //         'D' => $last->copy()->addDays($i + 1)->format('Y-m-d'),
+  //         'W' => $last->copy()->addWeeks($i + 1)->startOfWeek()->format('Y-m-d'),
+  //         'M' => $last->copy()->addMonths($i + 1)->startOfMonth()->format('Y-m-d'),
+  //         default => $last->copy()->addDays($i + 1)->format('Y-m-d'),
+  //       };
+
+  //       $forecast[] = [
+  //         'unique_id' => $uid,
+  //         'ds' => $ds,
+  //         'TimeGPT' => $mean[$index],
+  //       ];
+
+  //       $index++;
+  //     }
+  //   }
+
+  //   return $forecast;
+  // }
+
   protected function buildForecast(array $response, array $uids, array $lastTimestamps, int $h, string $freq): array
   {
     $forecast = [];
     $mean = $response['mean'] ?? [];
-    $lo80 = $response['intervals']['lo-80'] ?? [];
-    $hi95 = $response['intervals']['hi-95'] ?? [];
     $index = 0;
 
     foreach ($uids as $uid) {
       $last = $lastTimestamps[$uid];
+      $forecast[$uid] = [];
 
       for ($i = 0; $i < $h; $i++) {
         if (!isset($mean[$index])) break;
 
-        $ds = match ($freq) {
-          'H' => $last->copy()->addHours($i + 1)->format('Y-m-d H:i:s'),
-          default => $last->copy()->addDays($i + 1)->format('Y-m-d')
+        // Hitung tanggal berdasarkan frekuensi
+        $ds = match (strtoupper($freq)) {
+          'H' => $last->copy()->addHours($i + 1)->format('Y-m-d H:00:00'),
+          'D' => $last->copy()->addDays($i + 1)->format('Y-m-d'),
+          'W' => $last->copy()->addWeeks($i + 1)->startOfWeek()->format('Y-m-d'),
+          'M' => $last->copy()->addMonths($i + 1)->startOfMonth()->format('Y-m-d'),
+          default => $last->copy()->addDays($i + 1)->format('Y-m-d'),
         };
 
-        $forecast[] = [
-          'unique_id' => $uid,
-          'ds' => $ds,
-          'mean' => round($mean[$index], 2),
-          'lo_80' => round($lo80[$index] ?? 0, 2),
-          'hi_95' => round($hi95[$index] ?? 0, 2)
-        ];
+        $forecast[$uid][$ds] = (string) $mean[$index];
 
         $index++;
       }
@@ -165,15 +162,16 @@ class NixtlaService
     return $forecast;
   }
 
-  protected function validateInput(array $input, array $options): void
+
+  protected function validateInput(array $seriesGrouped, array $options): void
   {
-    if (empty($input)) {
-      throw new \InvalidArgumentException("Input data cannot be empty.");
+    if (empty($seriesGrouped)) {
+      throw new \InvalidArgumentException("The seriesGrouped array cannot be empty.");
     }
 
-    foreach ($input as $uid => $series) {
+    foreach ($seriesGrouped as $uid => $series) {
       if (!is_array($series)) {
-        throw new \InvalidArgumentException("Each series must be an array.");
+        throw new \InvalidArgumentException("Each series in seriesGrouped must be an array.");
       }
     }
 
@@ -182,7 +180,60 @@ class NixtlaService
     }
   }
 
-  public function generateXFutureFromDates(string $lastDate, int $horizon, array $featureCallbacks): array
+  /**
+   * Validasi apakah produk layak untuk forecast berdasarkan time series-nya.
+   *
+   * @param array $series ['2024-01-01' => 10, '2024-01-02' => 0, ...]
+   * @param float $minRatio Rasio minimum non-zero agar layak forecast
+   * @param int $maxGap Jarak maksimum antar titik non-zero
+   * @param string $freq 'H' (hour), 'D' (day), 'W' (week), 'M' (month)
+   * @return array ['valid' => bool, 'reason' => string|null]
+   */
+  public function validate(array $series, float $minRatio = 0.2, int $maxGap = 5, string $freq = 'D'): array
+  {
+    $dates = array_keys($series);
+    $total = count($series);
+
+    if ($total < 8) {
+      return ['valid' => false, 'reason' => 'Data terlalu sedikit'];
+    }
+
+    $nonZeroDates = collect($series)->filter(fn($v) => $v > 0)->keys()->all();
+    $nonZeroCount = count($nonZeroDates);
+    $ratio = $nonZeroCount / $total;
+
+    if ($ratio < $minRatio) {
+      return ['valid' => false, 'reason' => 'Rasio data non-zero terlalu kecil'];
+    }
+
+    // Hitung jarak antar titik non-zero berdasarkan freq
+    $gapUnits = [];
+    for ($i = 1; $i < count($nonZeroDates); $i++) {
+      $start = Carbon::parse($nonZeroDates[$i - 1]);
+      $end = Carbon::parse($nonZeroDates[$i]);
+
+      $gap = match ($freq) {
+        'H' => $start->diffInHours($end),
+        'D' => $start->diffInDays($end),
+        'W' => $start->diffInWeeks($end),
+        'M' => $start->diffInMonths($end),
+        default => $start->diffInDays($end),
+      };
+
+      $gapUnits[] = $gap;
+    }
+
+    $maxDetectedGap = count($gapUnits) ? max($gapUnits) : 0;
+
+    if ($maxDetectedGap > $maxGap) {
+      return ['valid' => false, 'reason' => "Jarak antar titik terlalu jauh ($maxDetectedGap $freq)"];
+    }
+
+    return ['valid' => true, 'reason' => null];
+  }
+
+
+  function generateXFutureFromDates(string $lastDate, int $horizon, array $featureCallbacks): array
   {
     $result = [];
     $start = Carbon::parse($lastDate);
@@ -196,18 +247,6 @@ class NixtlaService
       }
 
       $result[] = $featureRow;
-    }
-
-    return $result;
-  }
-
-  public function generateXFutureForGroupedSeries(array $lastTimestamps, int $horizon, array $featureCallbacks): array
-  {
-    $result = [];
-
-    foreach ($lastTimestamps as $uid => $lastDate) {
-      $xFuture = $this->generateXFutureFromDates($lastDate->format('Y-m-d'), $horizon, $featureCallbacks);
-      $result = array_merge($result, $xFuture);
     }
 
     return $result;

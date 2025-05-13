@@ -64,24 +64,21 @@ const onSubmit = async () => {
                 <div class="container">
                     <div class="login-content user-login">
                         <div class="login-logo">
-                            <img src="@/assets/img/logo.png" alt="img" />
+                            <img src="@/assets/img/logo-small.png" alt="img" />
                             <Link :href="'/'" class="login-logo logo-white">
-                                <img src="@/assets/img/logo-white.png" alt="" />
+                                <img src="@/assets/img/logo-small.png" alt="" />
                             </Link>
                         </div>
                         <form @submit.prevent="onSubmit">
                             <div class="login-userset">
                                 <div class="login-userheading">
-                                    <h3>Sign In</h3>
+                                    <h3>Masuk</h3>
                                     <h4>
-                                        Access the panel using your email and
-                                        passcode.
+                                        Akses menggunakan email dan kata sandi.
                                     </h4>
                                 </div>
                                 <div class="form-login">
-                                    <label class="form-label"
-                                        >Email Address</label
-                                    >
+                                    <label class="form-label">Email</label>
                                     <div class="form-addons">
                                         <TextInput
                                             name="email"
@@ -166,7 +163,7 @@ const onSubmit = async () => {
                                                     <span
                                                         class="checkmarks"
                                                     ></span
-                                                    >Remember me
+                                                    >ingat saya
                                                 </label>
                                             </div>
                                         </div>
@@ -178,23 +175,23 @@ const onSubmit = async () => {
                                                 "
                                                 class="forgot-link"
                                             >
-                                                Forgot Password?
+                                                Lupa kata sandi?
                                             </Link>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="form-login">
                                     <button class="btn btn-login" type="submit">
-                                        Sign In
+                                        Masuk
                                     </button>
                                 </div>
                                 <div class="signinform">
                                     <h4>
-                                        New on our platform?<Link
+                                        Belum punya akun ?<Link
                                             :href="route('register')"
                                             class="hover-a"
                                         >
-                                            Create an account</Link
+                                            Buat akun</Link
                                         >
                                     </h4>
                                 </div>

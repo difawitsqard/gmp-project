@@ -28,6 +28,7 @@
         "vue-svg-loader": "^0.16.0"
     },
     "dependencies": {
+        "@fontsource/montserrat": "^5.2.5",
         "@fortawesome/fontawesome-free": "^6.5.1",
         "@fullcalendar/daygrid": "^6.1.11",
         "@fullcalendar/interaction": "^6.1.11",
@@ -59,11 +60,13 @@
         "vee-validate": "^4.12.6",
         "vue": "^3.4.21",
         "vue-clipboard2": "^0.3.3",
+        "vue-cropperjs": "^5.0.0",
         "vue-draggable-next": "^2.2.1",
         "vue-easy-lightbox": "^1.19.0",
         "vue-feather": "^2.0.0",
         "vue-flag-icon": "^2.1.0",
         "vue-form-wizard": "^0.8.4",
+        "vue-multiselect": "^3.2.0",
         "vue-router": "^4.3.0",
         "vue-simple-line": "^1.1.1",
         "vue-star-rating": "^1.7.0",

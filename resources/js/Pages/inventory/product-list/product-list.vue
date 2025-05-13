@@ -133,9 +133,11 @@
                                         >
                                             <img
                                                 :src="
-                                                    getImageUrl(
-                                                        `../../../assets/img/products/stock-img-01.png`
-                                                    )
+                                                    record.image
+                                                        ? $helpers.getImageUrl(
+                                                              record.image
+                                                          )
+                                                        : `/uploads/images/placeholder-image.webp`
                                                 "
                                                 alt="product"
                                             />
@@ -163,9 +165,11 @@
                                         >
                                             <img
                                                 :src="
-                                                    getImageUrl(
-                                                        `../../../assets/img/products/stock-img-01.png`
-                                                    )
+                                                    record.image
+                                                        ? $helpers.getImageUrl(
+                                                              record.image
+                                                          )
+                                                        : `/uploads/images/placeholder-image.webp`
                                                 "
                                                 alt="product"
                                             />
@@ -443,9 +447,6 @@ export default {
                     }
                 },
             });
-        },
-        getImageUrl(imageName) {
-            return new URL(`${imageName}`, import.meta.url).href;
         },
     },
 };

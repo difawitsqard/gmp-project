@@ -1,5 +1,5 @@
 <template>
-    <Head title="Product Category List" />
+    <Head title="Kategori Produk" />
     <layout-header></layout-header>
     <layout-sidebar></layout-sidebar>
     <div class="page-wrapper">
@@ -7,8 +7,8 @@
             <div class="page-header">
                 <div class="add-item d-flex">
                     <div class="page-title">
-                        <h4>Category</h4>
-                        <h6>Manage your categories</h6>
+                        <h4>Kategori</h4>
+                        <h6>Kelola kategori</h6>
                     </div>
                 </div>
                 <ul class="table-top-head">
@@ -69,13 +69,12 @@
                     <a
                         href="javascript:void(0);"
                         class="btn btn-added"
-                        data-bs-toggle="modal"
-                        data-bs-target="#add-category"
+                        @click="addCategory"
                         ><vue-feather
                             type="plus-circle"
                             class="me-2"
                         ></vue-feather
-                        >Add New Category</a
+                        >Tambah Kategori Baru</a
                     >
                 </div>
             </div>
@@ -91,11 +90,12 @@
                                     class="dark-input"
                                     v-model="filters.search"
                                 />
-                                <a href="" class="btn btn-searchset"
-                                    ><i
-                                        data-feather="search"
-                                        class="feather-search"
-                                    ></i
+                                <a
+                                    href="javascript:void(0);"
+                                    v-show="filters.search"
+                                    class="btn btn-searchset"
+                                    @click="reset"
+                                    ><i data-feather="x" class="feather-x"></i
                                 ></a>
                             </div>
                         </div>
@@ -103,7 +103,8 @@
                             <a
                                 class="btn btn-filter"
                                 id="filter_search"
-                                @click="filter = !filter"
+                                v-on:click="filter = !filter"
+                                :class="{ setclose: filter }"
                             >
                                 <vue-feather
                                     type="filter"
@@ -212,9 +213,7 @@
                                         <div class="edit-delete-action">
                                             <a
                                                 class="me-2 p-2"
-                                                href="javascript:void(0);"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#edit-category"
+                                                @click="editCategory(record.id)"
                                             >
                                                 <i
                                                     data-feather="edit"
@@ -226,7 +225,6 @@
                                                 @click="
                                                     showConfirmation(record.id)
                                                 "
-                                                href="javascript:void(0);"
                                             >
                                                 <i
                                                     data-feather="trash-2"
@@ -244,12 +242,24 @@
             <!-- /product list -->
         </div>
     </div>
-    <category-list-modal></category-list-modal>
+    <product-category-modal
+        ref="categoryModal"
+        :is-edit="modalCategory.isEdit"
+        :model="{
+            id: modalCategory.id,
+            name: modalCategory.name,
+            description: modalCategory.description,
+            status: modalCategory.status,
+        }"
+        modal-id="category-modal"
+        @product-category-submit="handleCategorySubmit"
+    />
 </template>
 <script>
 import { ref } from "vue";
 import { Head, Link, router, usePage } from "@inertiajs/vue3";
 import { useInertiaFiltersDynamic } from "@/composables/useInertiaFiltersDynamic";
+import ProductCategoryModal from "@/components/modal/product-category-modal.vue";
 
 const currentDate = ref(new Date());
 
@@ -266,6 +276,7 @@ export default {
     components: {
         Head,
         Link,
+        ProductCategoryModal,
     },
     props: {
         productCategories: {
@@ -286,6 +297,13 @@ export default {
                 { id: 0, text: "Inactive" },
             ],
             filterByDate: [],
+            modalCategory: {
+                isEdit: false,
+                id: null,
+                name: null,
+                description: null,
+                status: true,
+            },
             columns: [
                 {
                     title: "Category",
@@ -366,15 +384,51 @@ export default {
             this.reset();
         },
 
+        addCategory() {
+            this.modalCategory.isEdit = false;
+            this.modalCategory.id = null;
+            this.modalCategory.name = null;
+            this.modalCategory.description = null;
+            this.modalCategory.status = true;
+            this.$refs.categoryModal.showModal();
+        },
+
+        editCategory(id) {
+            const category = this.productCategories.data.find(
+                (category) => category.id === id
+            );
+
+            if (category) {
+                this.modalCategory.isEdit = true;
+                this.modalCategory.id = category.id;
+                this.modalCategory.name = category.name;
+                this.modalCategory.description = category.description;
+                this.modalCategory.status = category.status;
+                this.$refs.categoryModal.showModal();
+            }
+        },
+
+        handleCategorySubmit(response) {
+            if (response.status) {
+                Swal.fire({
+                    icon: "success",
+                    title: "Sukses!",
+                    text: response.message,
+                });
+
+                this.fetch();
+            }
+        },
+
         showConfirmation(id) {
             Swal.fire({
-                title: "Are you sure?",
-                text: "You won't be able to revert this!",
+                title: "Apa kamu yakin ?",
+                text: "Tindakan ini bersifat permanen dan tidak dapat dibatalkan!",
                 icon: "warning",
                 showCancelButton: true,
                 confirmButtonColor: "#3085d6",
                 cancelButtonColor: "#d33",
-                confirmButtonText: "Yes, delete it!",
+                confirmButtonText: "Ya, hapus!",
                 confirmButtonClass: "btn btn-primary",
                 cancelButtonClass: "btn btn-danger ml-1",
                 buttonsStyling: false,
@@ -386,13 +440,10 @@ export default {
         },
 
         deleteData(id) {
-            router.delete(`products/${id}`, {
+            router.delete(route("product-categories.destroy", { id }), {
                 onSuccess: () => {
                     const flash = usePage().props.flash;
                     if (flash.success) {
-                        this.data = this.data.filter(
-                            (product) => product.id !== id
-                        );
                         Swal.fire({
                             icon: "success",
                             title: "Deleted!",

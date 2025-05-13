@@ -7,6 +7,7 @@ use App\Http\Controllers\UnitController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ForecastController;
 use App\Http\Controllers\NixtlaTestController;
 use App\Http\Controllers\ProductCategoryController;
 
@@ -33,6 +34,7 @@ Route::middleware([
         ]);
     })->name('dashboard');
 
+    Route::get('/products/search', [ProductController::class, 'search'])->name('products.search');
     Route::resource('products', ProductController::class)
         ->only(['index', 'create', 'store', 'show', 'update', 'destroy']);
 
@@ -43,6 +45,10 @@ Route::middleware([
         ->only(['index', 'store', 'show', 'update', 'destroy']);
 
     Route::resource('orders', OrderController::class)
+        ->only(['index', 'create', 'store', 'show', 'update', 'destroy']);
+
+    Route::post('forecasting/request', [ForecastController::class, 'requestForecast'])->name('forecasting.request');
+    Route::resource('forecasting', ForecastController::class)
         ->only(['index', 'create', 'store', 'show', 'update', 'destroy']);
 });
 

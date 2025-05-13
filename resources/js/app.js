@@ -1,5 +1,7 @@
 import "./bootstrap";
 import "../css/app.css";
+import "../css/vue-multiselect.css";
+import * as helpers from "@/utils/helpers";
 
 import { isPreloading, skipNextPreload } from "./stores/preload";
 
@@ -12,6 +14,7 @@ import { BootstrapVue3, BToastPlugin } from "bootstrap-vue-3";
 import Vue3Autocounter from "vue3-autocounter";
 import VueApexCharts from "vue3-apexcharts";
 import VueSelect from "vue3-select2-component";
+import VueMultiSelect from "vue-multiselect";
 import DatePicker from "vue3-datepicker";
 import StarRating from "vue-star-rating";
 import Antd from "ant-design-vue";
@@ -115,6 +118,7 @@ import BanIpAddressModal from "@/components/modal/ban-ip-address-modal.vue";
 import FileManagerModal from "@/components/modal/file-manager-modal.vue";
 import NotesModal from "@/components/modal/notes-modal.vue";
 
+import "@fontsource/montserrat";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-vue/dist/bootstrap-vue.css";
 import "bootstrap/dist/css/bootstrap.css";
@@ -159,6 +163,9 @@ createInertiaApp({
         })
             .use(plugin)
             .use(ZiggyVue);
+
+        // Tambahkan helpers
+        app.config.globalProperties.$helpers = helpers;
 
         /********* Layout component**********/
         app.component("layout-header", Header);
@@ -255,6 +262,7 @@ createInertiaApp({
         app.component("vue3-autocounter", Vue3Autocounter);
         app.component(VueFeather.name, VueFeather);
         app.component("vue-select", VueSelect);
+        app.component("vue-multiselect", VueMultiSelect);
         app.component("date-picker", DatePicker);
         app.component("star-rating", StarRating);
         app.use(FlagIcon).use(VueFormWizard);

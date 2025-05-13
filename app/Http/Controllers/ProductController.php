@@ -4,9 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
+use App\Services\ImageUploadService;
+use App\Http\Requests\ProductRequest;
 
 class ProductController extends Controller
 {
+
+    protected $imageUploadService;
+
+
+    public function __construct()
+    {
+        $this->imageUploadService = new ImageUploadService();
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -36,19 +47,18 @@ class ProductController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(ProductRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'sku' => 'required|string|max:255|unique:products,sku',
-            'product_categories_id' => 'required|exists:product_categories,id',
-            'unit_id' => 'required|exists:units,id',
-            'price' => 'required|numeric|min:0',
-            'qty' => 'required|integer|min:0',
-            'min_stock' => 'required|integer|min:0',
-        ]);
 
-        Product::create($request->all());
+        $validatedData = $request->validated();
+        $product = Product::create($validatedData);
+
+        foreach ($request->images as $image) {
+            $imagePath = $this->imageUploadService->uploadImage($image, 'products');
+            $product->images()->create([
+                'image_path' => $imagePath,
+            ]);
+        }
 
         return redirect()->route('products.index')->with('success', 'Product created successfully');
     }
@@ -92,5 +102,41 @@ class ProductController extends Controller
         return back()->withErrors([
             'error' => 'Product not found'
         ]);
+    }
+
+    public function search(Request $request)
+    {
+        $products = Product::filter()
+            ->with(['category', 'unit', 'images', 'orderItems'])
+            ->get();
+
+        $results = $products->map(function ($product) {
+            $image = $product->images->first();
+
+            return [
+                'id' => $product->id,
+                'sku' => $product->sku,
+                'name' => $product->name,
+                'category' => $product->category->name ?? null,
+                'unit' => $product->unit->name ?? null,
+                'image_url' => $image ? $image->image_url : null,
+                'totalOrderItems' => $product->orderItems->count(),
+                'timeSeriesOrderItems' => [
+                    'day' => $product->orderItems->groupBy(function ($orderItem) {
+                        return $orderItem->created_at->format('Y-m-d');
+                    })->count(),
+
+                    'week' => $product->orderItems->groupBy(function ($orderItem) {
+                        return $orderItem->created_at->copy()->startOfWeek()->format('Y-m-d');
+                    })->count(),
+
+                    'month' => $product->orderItems->groupBy(function ($orderItem) {
+                        return $orderItem->created_at->copy()->startOfMonth()->format('Y-m-d');
+                    })->count(),
+                ],
+            ];
+        });
+
+        return response()->json($results);
     }
 }
