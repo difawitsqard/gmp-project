@@ -63,16 +63,39 @@
         <li class="submenu-open">
             <h6 class="submenu-hdr">Pemesanan</h6>
             <ul>
-                <li :class="{ active: route().current('orders.index') }">
-                    <Link :href="route('orders.index')">
-                        <vue-feather type="file-text" />
-                        <span>Riwayat Pemesanan</span>
-                    </Link>
-                </li>
                 <li :class="{ active: route().current('orders.create') }">
                     <Link :href="route('orders.create')">
                         <vue-feather type="shopping-cart" />
                         <span>Buat Pesanan</span>
+                    </Link>
+                </li>
+                <li
+                    :class="{
+                        active:
+                            route().current('orders.index') ||
+                            route().current('orders.show'),
+                    }"
+                >
+                    <Link :href="route('orders.index')">
+                        <vue-feather type="file-text" />
+                        <span>Riwayat Pesanan</span>
+                    </Link>
+                </li>
+            </ul>
+        </li>
+        <li class="submenu-open">
+            <h6 class="submenu-hdr">Lainnya</h6>
+            <ul>
+                <li :class="{ active: route().current('taxes.index') }">
+                    <Link :href="route('taxes.index')">
+                        <vue-feather type="dollar-sign" />
+                        <span>Tarif Pajak</span>
+                    </Link>
+                </li>
+                <li :class="{ active: route().current('profile.show') }">
+                    <Link :href="route('profile.show')">
+                        <vue-feather type="settings" />
+                        <span>Pengaturan Akun</span>
                     </Link>
                 </li>
             </ul>

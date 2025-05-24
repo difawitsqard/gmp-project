@@ -11,6 +11,7 @@ import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 import { ZiggyVue } from "../../vendor/tightenco/ziggy";
 
 import { BootstrapVue3, BToastPlugin } from "bootstrap-vue-3";
+import VueLazyload from "vue-lazyload";
 import Vue3Autocounter from "vue3-autocounter";
 import VueApexCharts from "vue3-apexcharts";
 import VueSelect from "vue3-select2-component";
@@ -120,7 +121,6 @@ import NotesModal from "@/components/modal/notes-modal.vue";
 
 import "@fontsource/montserrat";
 import "bootstrap/dist/css/bootstrap.min.css";
-import "bootstrap-vue/dist/bootstrap-vue.css";
 import "bootstrap/dist/css/bootstrap.css";
 import "@fortawesome/fontawesome-free/css/fontawesome.min.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
@@ -268,6 +268,12 @@ createInertiaApp({
         app.use(FlagIcon).use(VueFormWizard);
         app.use(VueSweetalert2);
         app.use(VueApexCharts);
+        app.use(VueLazyload, {
+            preLoad: 1.3,
+            error: "/uploads/images/gmp-placeholder-image.svg",
+            loading: "/uploads/images/loading-image.gif",
+            attempt: 1,
+        });
         app.use(VueEasyLightbox).use(Antd).use(BootstrapVue3).use(BToastPlugin);
 
         app.mount(el);

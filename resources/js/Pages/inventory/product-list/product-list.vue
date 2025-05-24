@@ -1,5 +1,5 @@
 <template>
-    <Head title="Product List" />
+    <Head title="Daftar Produk" />
     <layout-header></layout-header>
     <layout-sidebar></layout-sidebar>
     <div class="page-wrapper">
@@ -14,16 +14,17 @@
                             <div class="search-input">
                                 <input
                                     type="text"
-                                    placeholder="Search"
+                                    placeholder="Cari..."
                                     class="dark-input"
-                                    v-model="searchFilter"
+                                    v-model="filters.search"
                                 />
-                                <button class="btn btn-searchset">
-                                    <i
-                                        data-feather="search"
-                                        class="feather-search"
-                                    ></i>
-                                </button>
+                                <a
+                                    href="javascript:void(0);"
+                                    v-show="filters.search"
+                                    class="btn btn-searchset"
+                                    @click="reset"
+                                    ><i data-feather="x" class="feather-x"></i
+                                ></a>
                             </div>
                         </div>
                         <div class="search-path">
@@ -32,7 +33,7 @@
                                 id="filter_search"
                                 v-on:click="
                                     filter = !filter;
-                                    if (!filter) resetFilter();
+                                    if (!filter) reset();
                                 "
                                 :class="{ setclose: filter }"
                             >
@@ -46,17 +47,6 @@
                                         alt="img"
                                 /></span>
                             </a>
-                        </div>
-                        <div class="form-sort">
-                            <vue-feather
-                                type="sliders"
-                                class="info-img"
-                            ></vue-feather>
-                            <vue-select
-                                :options="Sortby"
-                                id="sortby"
-                                placeholder="Sort by Date"
-                            />
                         </div>
                     </div>
                     <!-- /Filter -->
@@ -76,10 +66,24 @@
                                                     class="info-img"
                                                 ></vue-feather>
                                                 <vue-select
-                                                    :options="CategroyFilter"
-                                                    v-model="selectedCategory"
+                                                    :options="categoryOptions"
+                                                    v-model="filters.category"
                                                     id="categroyfilter"
-                                                    placeholder="Choose Categroy"
+                                                    placeholder="Pilih Kategori"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-2 col-sm-6 col-12">
+                                            <div class="input-blocks">
+                                                <vue-feather
+                                                    type="speaker"
+                                                    class="info-img"
+                                                ></vue-feather>
+                                                <vue-select
+                                                    :options="unitOptions"
+                                                    v-model="filters.unit"
+                                                    id="unitfilter"
+                                                    placeholder="Pilih Satuan"
                                                 />
                                             </div>
                                         </div>
@@ -101,7 +105,7 @@
                                                 <button
                                                     type="button"
                                                     class="btn btn-filters"
-                                                    @click="resetFilter"
+                                                    @click="reset()"
                                                 >
                                                     <i
                                                         data-feather="x"
@@ -117,31 +121,17 @@
                         </div>
                     </div>
                     <!-- /Filter -->
-                    <div class="table-responsive product-list">
+                    <div class="table-responsive">
                         <a-table
-                            class="table datanew table-hover table-center mb-0"
+                            class="table datanew table-hover"
                             :columns="columns"
-                            :data-source="data"
-                            :row-selection="{}"
+                            :data-source="products.data"
+                            :pagination="pagination"
+                            @change="handleTableChange"
                         >
                             <template #bodyCell="{ column, record }">
                                 <template v-if="column.key === 'name'">
                                     <div class="productimgname">
-                                        <a
-                                            href="javascript:void(0);"
-                                            class="product-img stock-img"
-                                        >
-                                            <img
-                                                :src="
-                                                    record.image
-                                                        ? $helpers.getImageUrl(
-                                                              record.image
-                                                          )
-                                                        : `/uploads/images/placeholder-image.webp`
-                                                "
-                                                alt="product"
-                                            />
-                                        </a>
                                         <Link
                                             :href="
                                                 route(
@@ -149,6 +139,22 @@
                                                     record.id
                                                 )
                                             "
+                                            class="product-img stock-img"
+                                        >
+                                            <img
+                                                v-lazy="record.image"
+                                                :src="record.image"
+                                                alt="product"
+                                            />
+                                        </Link>
+                                        <Link
+                                            :href="
+                                                route(
+                                                    'products.show',
+                                                    record.id
+                                                )
+                                            "
+                                            class="fw-bold"
                                         >
                                             {{ record.name }}
                                         </Link>
@@ -164,19 +170,12 @@
                                             class="product-img me-2"
                                         >
                                             <img
-                                                :src="
-                                                    record.image
-                                                        ? $helpers.getImageUrl(
-                                                              record.image
-                                                          )
-                                                        : `/uploads/images/placeholder-image.webp`
-                                                "
-                                                alt="product"
+                                                v-lazy="record.image"
+                                                :src="record.image"
+                                                :alt="record.name"
                                             />
                                         </a>
-                                        <a href="javascript:void(0);">{{
-                                            record.reatedby
-                                        }}</a>
+                                        <a href="javascript:void(0);">x</a>
                                     </td>
                                 </template>
                                 <template v-else-if="column.key === 'action'">
@@ -228,65 +227,81 @@
             <!-- /product list -->
         </div>
     </div>
-    <product-list-modal></product-list-modal>
 </template>
 <script>
 import { Head, Link, router, usePage } from "@inertiajs/vue3";
+import { useInertiaFiltersDynamic } from "@/composables/useInertiaFiltersDynamic";
+
 export default {
+    setup() {
+        const { filters, fetch, reset } = useInertiaFiltersDynamic(
+            "products.index",
+            ["search", "category", "unit"],
+            { only: ["products"] }
+        );
+
+        return { filters, fetch, reset };
+    },
     components: {
         Head,
         Link,
     },
     props: {
+        units: {
+            type: Object,
+            required: true,
+        },
         products: {
-            type: Array,
+            type: Object,
+            required: true,
+        },
+        productsCategories: {
+            type: Object,
             required: true,
         },
     },
-    mounted() {
-        this.data = this.products;
-        this.CategroyFilter = [
-            ...new Set(this.products.map((product) => product.category.name)),
-        ];
-    },
-    watch: {
-        // selectedFilter(newValue) {
-        //     if (newValue === "Choose Product") {
-        //         // Jika filter nama di-reset, tampilkan semua kategori
-        //         this.CategroyFilter = [
-        //             ...new Set(
-        //                 this.products.map((product) => product.category.name)
-        //             ),
-        //         ];
-        //     } else {
-        //         // Filter kategori berdasarkan produk yang sesuai dengan nama
-        //         const data = this.products.filter(
-        //             (product) => product.name === newValue
-        //         );
-        //         this.CategroyFilter = [
-        //             ...new Set(
-        //                 data.map((product) => product.stock)
-        //             ),
-        //         ];
-        //     }
-        //     // Reset kategori yang dipilih
-        //     this.selectedCategory = null;
-        // },
-        searchFilter(search) {
-            this.filterProducts(search);
+    computed: {
+        pagination() {
+            return {
+                current: this.products.current_page,
+                pageSize: this.products.per_page,
+                total: this.products.total,
+                showSizeChanger: false,
+                showQuickJumper: false,
+                showLessItems: true,
+            };
+        },
+        categoryOptions() {
+            const defaultOption = {
+                id: null,
+                text: "Pilih Kategori",
+            };
+            const category = this.productsCategories.map((category) => ({
+                id: category.id,
+                text: category.name,
+            }));
+
+            return [defaultOption, ...category];
+        },
+        unitOptions() {
+            const defaultOption = {
+                id: null,
+                text: "Pilih Satuan",
+            };
+            const unit = this.units.map((unit) => ({
+                id: unit.id,
+                text: unit.name,
+            }));
+
+            return [defaultOption, ...unit];
         },
     },
     data() {
         return {
             filter: false,
-            Sortby: ["Sort by Date", "14 09 23", "11 09 23"],
-            searchFilter: null,
-            CategroyFilter: [],
-            selectedCategory: null,
-            data: [],
             columns: [
                 {
-                    title: "Product",
+                    title: "Produk",
                     dataIndex: "name",
                     key: "name",
                     sorter: {
@@ -309,12 +324,12 @@ export default {
                     },
                 },
                 {
-                    title: "Category",
+                    title: "Kategori",
                     key: "category",
                     dataIndex: ["category", "name"],
                 },
                 {
-                    title: "Price",
+                    title: "Harga",
                     dataIndex: "price",
                     sorter: {
                         compare: (a, b) => {
@@ -325,7 +340,7 @@ export default {
                     },
                 },
                 {
-                    title: "Unit",
+                    title: "Satuan",
                     dataIndex: ["unit", "name"],
                     key: "unit",
                     sorter: {
@@ -348,7 +363,7 @@ export default {
                     },
                 },
                 {
-                    title: "Created by",
+                    title: "Dibuat Oleh",
                     dataIndex: "CreatedBy",
                     key: "CreatedBy",
                     sorter: {
@@ -368,6 +383,12 @@ export default {
         };
     },
     methods: {
+        handleTableChange(pagination) {
+            this.filters.page = pagination.current;
+            this.filters.per_page = pagination.pageSize;
+            this.fetch();
+        },
+
         showConfirmation(id) {
             Swal.fire({
                 title: "Are you sure?",
@@ -385,39 +406,6 @@ export default {
                     this.deleteProduct(id);
                 }
             });
-        },
-        filterProducts(search = null) {
-            this.data = this.products.filter((product) => {
-                // Filter berdasarkan nama produk
-
-                if (search instanceof PointerEvent) {
-                    search = this.searchFilter;
-                } else if (search) {
-                    this.searchFilter = search;
-                }
-
-                const matchesName =
-                    this.searchFilter === null ||
-                    product.name
-                        .toLowerCase()
-                        .includes(
-                            typeof this.searchFilter === "string"
-                                ? this.searchFilter.toLowerCase()
-                                : ""
-                        );
-
-                // Filter berdasarkan kategori
-                const matchesCategory =
-                    this.selectedCategory === null ||
-                    product.category.name === this.selectedCategory;
-
-                return matchesName && matchesCategory;
-            });
-        },
-        resetFilter() {
-            this.selectedCategory = null; // Reset kategori
-            this.data = this.products; // Tampilkan semua produk
-            this.searchFilter = null; // Reset pencarian
         },
         deleteProduct(id) {
             router.delete(`products/${id}`, {

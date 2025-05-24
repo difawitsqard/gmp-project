@@ -5,52 +5,35 @@
     <div class="page-wrapper pos-pg-wrapper ms-0">
         <div class="content pos-design p-0">
             <div class="btn-row d-sm-flex align-items-center">
-                <a
-                    href="javascript:void(0);"
+                <Link
+                    :href="route('orders.index')"
                     class="btn btn-secondary mb-xs-3"
-                    data-bs-toggle="modal"
-                    data-bs-target="#orders"
                     ><span class="me-1 d-flex align-items-center"
                         ><vue-feather
                             type="shopping-cart"
                             class="feather-16"
                         ></vue-feather></span
-                    >View Orders</a
+                    >Riwayat Pesanan</Link
                 >
-                <a
-                    href="javascript:void(0);"
-                    class="btn btn-info"
-                    @click="reset"
-                    ><span class="me-1 d-flex align-items-center"
+                <a type="button" class="btn btn-info" @click="resetCart">
+                    <span class="me-1 d-flex align-items-center"
                         ><vue-feather
                             type="rotate-cw"
                             class="feather-16"
                         ></vue-feather></span
-                    >Reset</a
-                >
-                <a
-                    href="javascript:void(0);"
-                    class="btn btn-primary"
-                    data-bs-toggle="modal"
-                    data-bs-target="#recents"
-                    ><span class="me-1 d-flex align-items-center"
-                        ><vue-feather
-                            type="refresh-ccw"
-                            class="feather-16"
-                        ></vue-feather></span
-                    >Transaction</a
-                >
+                    >Reset
+                </a>
             </div>
 
             <div class="row align-items-start pos-wrapper">
                 <div class="col-md-12 col-lg-8">
-                    <div class="pos-categories tabs_wrapper">
-                        <h5>Categories</h5>
-                        <p>Select From Below Categories</p>
+                    <div class="pos-categories tabs_wrapper h-100">
+                        <h5>Kategori</h5>
+                        <p>Pilih berdasarkan kategori</p>
                         <ul class="tabs owl-carousel pos-category">
                             <Carousel
                                 ref="carouselCategory"
-                                :wrap-around="true"
+                                :wrap-around="false"
                                 :settings="settings"
                                 :breakpoints="breakpoints"
                             >
@@ -59,18 +42,18 @@
                                     :key="item.id"
                                     @click="selectCategory(item.id)"
                                     :class="{
-                                        active: selectedCategory === item.id,
+                                        active: filters.category === item.id,
                                     }"
                                 >
                                     <li :id="item.id">
                                         <a href="javascript:void(0);">
                                             <img
-                                                :src="
-                                                    getImageUrl(
-                                                        `../../assets/img/categories/category-01.png`
-                                                    )
+                                                v-lazy="
+                                                    item.image ||
+                                                    '/uploads/images/category_default.svg'
                                                 "
-                                                alt="Categories"
+                                                :alt="item.name"
+                                                style="max-width: 40px"
                                             />
                                         </a>
                                         <h6>
@@ -86,7 +69,7 @@
                                         <button
                                             type="button"
                                             role="presentation"
-                                            class="owl-prev disabled"
+                                            class="owl-prev"
                                             @click="prev"
                                         >
                                             <i
@@ -106,15 +89,38 @@
                         </ul>
                         <div class="pos-products">
                             <div
-                                class="d-flex align-items-center justify-content-between"
+                                class="d-flex align-items-center justify-content-between mb-3"
                             >
-                                <h5 class="mb-3">Products</h5>
+                                <h5 class="mb-0">Produk</h5>
+                                <div class="search-set">
+                                    <div
+                                        class="search-input"
+                                        style="margin-right: 0"
+                                    >
+                                        <input
+                                            type="text"
+                                            placeholder="Cari Produk"
+                                            class="dark-input"
+                                            v-model="filters.search"
+                                        />
+                                        <a
+                                            href="javascript:void(0);"
+                                            v-show="filters.search"
+                                            class="btn btn-searchset"
+                                            @click="filters.search = ''"
+                                            ><i
+                                                data-feather="x"
+                                                class="feather-x"
+                                            ></i
+                                        ></a>
+                                    </div>
+                                </div>
                             </div>
                             <div class="tabs_container">
                                 <div class="tab_content active" data-tab="all">
                                     <div class="row">
                                         <div
-                                            v-for="product in filteredProducts"
+                                            v-for="product in products.data"
                                             :key="product.id"
                                             class="col-sm-2 col-md-6 col-lg-3 col-xl-3 pe-2"
                                             @click="addProduct(product)"
@@ -133,8 +139,9 @@
                                                     class="img-bg"
                                                 >
                                                     <img
-                                                        src="@/assets/img/products/pos-product-02.png"
+                                                        v-lazy="product.image"
                                                         alt="Products"
+                                                        class="product-image"
                                                     />
                                                     <span>
                                                         <vue-feather
@@ -168,11 +175,52 @@
                                                         }}</span
                                                     >
                                                     <p>
-                                                        Rp. {{ product.price }}
+                                                        Rp.
+                                                        {{
+                                                            $helpers.formatRupiah(
+                                                                product.price
+                                                            )
+                                                        }}
                                                     </p>
                                                 </div>
                                             </div>
                                         </div>
+                                        <div
+                                            v-if="isLoading"
+                                            class="text-center py-2"
+                                        >
+                                            Loading...
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        class="d-flex align-items-center justify-content-between my-3"
+                                    >
+                                        <!-- Per Page Selector -->
+                                        <b-form-group
+                                            label="Tampilkan"
+                                            label-for="per-page-select"
+                                            label-cols="auto"
+                                            class="mb-0"
+                                        >
+                                            <b-form-select
+                                                id="per-page-select"
+                                                v-model="filters.per_page"
+                                                :options="perPageOptions"
+                                                @change="handlePerPageChange"
+                                                size="sm"
+                                            />
+                                        </b-form-group>
+
+                                        <!-- Pagination -->
+                                        <PaginationStyle3
+                                            :current-page="
+                                                products.current_page
+                                            "
+                                            :total-pages="products.last_page"
+                                            :max-visible-pages="3"
+                                            @page-changed="handlePageChange"
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -181,35 +229,8 @@
                 </div>
                 <div class="col-md-12 col-lg-4 ps-0">
                     <aside class="product-order-list">
-                        <div
-                            class="head d-flex align-items-center justify-content-between w-100"
-                        >
-                            <div class="">
-                                <h5>Order List</h5>
-                                <span>Transaction ID : #65565</span>
-                            </div>
-                            <div class="">
-                                <a
-                                    class="confirm-text"
-                                    @click="showConfirmation"
-                                    href="javascript:void(0);"
-                                    ><vue-feather
-                                        type="trash-2"
-                                        class="feather-16 text-danger"
-                                    ></vue-feather
-                                ></a>
-                                <a
-                                    href="javascript:void(0);"
-                                    class="text-default"
-                                    ><vue-feather
-                                        type="more-vertical"
-                                        class="feather-16"
-                                    ></vue-feather
-                                ></a>
-                            </div>
-                        </div>
                         <div class="customer-info block-section">
-                            <h6>Customer Information</h6>
+                            <h6>Informasi Pelanggan</h6>
                             <div class="input-block d-flex align-items-center">
                                 <div class="flex-grow-1">
                                     <vue-select
@@ -230,13 +251,6 @@
                                     ></vue-feather
                                 ></a>
                             </div>
-                            <div class="input-block">
-                                <vue-select
-                                    :options="Airpod"
-                                    id="airpod"
-                                    placeholder="Search Products"
-                                />
-                            </div>
                         </div>
 
                         <div class="product-added block-section">
@@ -244,19 +258,19 @@
                                 class="head-text d-flex align-items-center justify-content-between"
                             >
                                 <h6 class="d-flex align-items-center mb-0">
-                                    Product Added<span class="count">{{
+                                    Produk ditambahkan<span class="count">{{
                                         totalProducts
                                     }}</span>
                                 </h6>
                                 <a
                                     href="javascript:void(0);"
                                     class="d-flex align-items-center text-danger"
-                                    @click="reset"
+                                    @click="resetCart"
                                     ><vue-feather
                                         type="x"
                                         class="feather-16 me-1"
                                     ></vue-feather
-                                    >Clear all</a
+                                    >Hapus Semua</a
                                 >
                             </div>
                             <div class="product-wrap">
@@ -273,8 +287,8 @@
                                             class="img-bg"
                                         >
                                             <img
-                                                src="@/assets/img/products/pos-product-02.png"
-                                                alt="Products"
+                                                v-lazy="product.image"
+                                                :alt="product.name"
                                             />
                                         </a>
                                         <div class="info">
@@ -284,7 +298,14 @@
                                                     product.name
                                                 }}</a>
                                             </h6>
-                                            <p>Rp. {{ product.price }}</p>
+                                            <p>
+                                                Rp.
+                                                {{
+                                                    $helpers.formatRupiah(
+                                                        product.price
+                                                    )
+                                                }}
+                                            </p>
                                         </div>
                                     </div>
                                     <div class="qty-item text-center">
@@ -344,27 +365,49 @@
                         <div class="block-section">
                             <div class="selling-info">
                                 <div class="row">
-                                    <div class="col-12 col-sm-4">
+                                    <div class="col-12 col-sm-6">
                                         <div class="input-block">
-                                            <label>Order Tax</label>
+                                            <label>Pengiriman</label>
                                             <vue-select
-                                                :options="GST"
-                                                id="gst"
-                                                placeholder="GST 5%"
+                                                :options="shipping_method"
+                                                v-model="form.shipping_method"
+                                                id="shipping_method"
+                                                label="text"
+                                                :reduce="(option) => option.id"
+                                                placeholder="Pilih Pengiriman"
+                                                @update:modelValue="
+                                                    (val) => {
+                                                        if (val === 'pickup') {
+                                                            form.shipping_fee =
+                                                                null;
+                                                        }
+                                                    }
+                                                "
                                             />
                                         </div>
                                     </div>
-                                    <div class="col-12 col-sm-4">
+                                    <div
+                                        class="col-12 col-sm-6"
+                                        v-show="
+                                            form.shipping_method === 'delivery'
+                                        "
+                                    >
                                         <div class="input-block">
-                                            <label>Shipping</label>
-                                            <vue-select
-                                                :options="Shipping"
-                                                id="shippingf"
-                                                placeholder="15"
+                                            <label>Biaya Pengiriman</label>
+                                            <input
+                                                type="text"
+                                                class="form-control"
+                                                v-model="form.shipping_fee"
+                                                placeholder="Rp. 0"
+                                                :disabled="
+                                                    form.shipping_method ===
+                                                    'pickup'
+                                                "
                                             />
                                         </div>
                                     </div>
-                                    <div class="col-12 col-sm-4">
+
+                                    <!-- <div class="col-12 col-sm-6">
                                         <div class="input-block">
                                             <label>Discount</label>
                                             <vue-select
@@ -373,7 +416,7 @@
                                                 placeholder="10%"
                                             />
                                         </div>
-                                    </div>
+                                    </div> -->
                                 </div>
                             </div>
                             <div class="order-total">
@@ -385,12 +428,43 @@
                                         <td class="text-end">
                                             Rp.
                                             {{
-                                                form.addedProducts.reduce(
-                                                    (subtotal, product) =>
-                                                        subtotal +
-                                                        product.qty *
-                                                            product.price,
-                                                    0
+                                                $helpers.formatRupiah(subtotal)
+                                            }}
+                                        </td>
+                                    </tr>
+                                    <tr v-for="tax in taxes" :key="tax.id">
+                                        <td>
+                                            {{ tax.name }}
+                                            <template v-if="tax.percent">
+                                                ( {{ tax.percent }}% )
+                                            </template>
+                                        </td>
+                                        <td class="text-end">
+                                            Rp.
+                                            {{
+                                                $helpers.formatRupiah(
+                                                    tax.percent
+                                                        ? (subtotal *
+                                                              tax.percent) /
+                                                              100
+                                                        : Number(
+                                                              tax.fixed_amount
+                                                          ) || 0
+                                                )
+                                            }}
+                                        </td>
+                                    </tr>
+                                    <tr
+                                        v-show="
+                                            form.shipping_method === 'delivery'
+                                        "
+                                    >
+                                        <td>Pengiriman</td>
+                                        <td class="text-end">
+                                            Rp.
+                                            {{
+                                                $helpers.formatRupiah(
+                                                    Number(form.shipping_fee)
                                                 )
                                             }}
                                         </td>
@@ -400,12 +474,32 @@
                                         <td class="text-end">
                                             Rp.
                                             {{
-                                                form.addedProducts.reduce(
-                                                    (total, product) =>
-                                                        total +
-                                                        product.qty *
-                                                            product.price,
-                                                    0
+                                                $helpers.formatRupiah(
+                                                    subtotal +
+                                                        (Array.isArray(taxes)
+                                                            ? taxes.reduce(
+                                                                  (
+                                                                      total,
+                                                                      tax
+                                                                  ) =>
+                                                                      total +
+                                                                      (tax.percent
+                                                                          ? (subtotal *
+                                                                                tax.percent) /
+                                                                            100
+                                                                          : Number(
+                                                                                tax.fixed_amount
+                                                                            ) ||
+                                                                            0),
+                                                                  0
+                                                              )
+                                                            : 0) +
+                                                        (form.shipping_method ===
+                                                        "delivery"
+                                                            ? Number(
+                                                                  form.shipping_fee
+                                                              ) || 0
+                                                            : 0)
                                                 )
                                             }}
                                         </td>
@@ -432,52 +526,88 @@
     <pos-modal></pos-modal>
 </template>
 
+<style scoped>
+.product-image {
+    object-fit: cover; /* Memastikan gambar tetap proporsional */
+    width: 20%; /* Gambar akan menyesuaikan lebar elemen induknya */
+}
+</style>
+
 <script>
 import { ref } from "vue";
 import { Head, Link, useForm } from "@inertiajs/vue3";
 import { Carousel, Navigation, Slide } from "vue3-carousel";
-import loadMidtransSnap from "@/utils/snap";
+import { useInertiaFiltersDynamic } from "@/composables/useInertiaFiltersDynamic";
+import { BPagination, BFormGroup, BFormSelect } from "bootstrap-vue-3";
+import PaginationStyle3 from "@/components/pagination/PaginationStyle3.vue";
 
 export default {
-    props: {
-        products: {
-            type: Array,
-            required: true,
-        },
-        productCategories: {
-            type: Array,
-            required: true,
-        },
-    },
     setup() {
+        const { filters, fetch, reset } = useInertiaFiltersDynamic(
+            "orders.create",
+            ["search", "category"],
+            { only: ["products"] }
+        );
+
         const carouselCategory = ref(null);
         const prev = () => carouselCategory.value?.prev();
         const next = () => carouselCategory.value?.next();
 
         const form = useForm({
             name: "",
+            shipping_method: "pickup",
+            shipping_fee: null,
             subtotal: 0,
             total: 0,
             addedProducts: [],
         });
-        return { form, carouselCategory, prev, next };
+
+        return { filters, fetch, reset, prev, next, form, carouselCategory };
+    },
+    props: {
+        taxes: {
+            type: Object,
+            required: true,
+        },
+        products: {
+            type: Object,
+            required: true,
+        },
+        productCategories: {
+            type: Object,
+            required: true,
+        },
+    },
+    components: {
+        Head,
+        Link,
+        Carousel,
+        Slide,
+        Navigation,
+        BPagination,
+        BFormGroup,
+        BFormSelect,
+        PaginationStyle3,
     },
     created() {
-        // Add "All" category to the beginning of the productCategories array
+        this.filters.per_page = this.products.per_page;
         this.productCategories.unshift({
             id: null,
-            name: "All Categories",
+            name: "Semua Kategori",
             items: this.products.length,
         });
+
+        // Load added products from localStorage
         const savedProducts = localStorage.getItem("addedProducts");
         if (savedProducts) {
             this.form.addedProducts = JSON.parse(savedProducts);
         }
+
+        // Load selected category from localStorage
+        this.filters.category =
+            JSON.parse(localStorage.getItem("selectedCategory")) || null;
     },
     watch: {
-        selectedCategory(newValue) {
-            localStorage.setItem("selectedCategory", JSON.stringify(newValue));
-        },
         "form.addedProducts": {
             handler(newValue) {
                 localStorage.setItem("addedProducts", JSON.stringify(newValue));
@@ -486,12 +616,10 @@ export default {
         },
     },
     computed: {
-        filteredProducts() {
-            if (!this.selectedCategory) {
-                return this.products; // Jika tidak ada kategori yang dipilih, tampilkan semua produk
-            }
-            return this.products.filter(
-                (product) => product.category.id === this.selectedCategory
+        subtotal() {
+            return this.form.addedProducts.reduce(
+                (total, product) => total + product.qty * product.price,
+                0
             );
         },
         totalProducts() {
@@ -503,7 +631,12 @@ export default {
     },
     data() {
         return {
-            selectedCategory: null,
+            errors: [],
+            isLoading: false,
+            perPageOptions: [
+                { value: 12, text: "12" },
+                { value: 24, text: "24" },
+            ],
 
             Walk: ["Walk in Customer", "John", "Smith", "Ana", "Elza"],
             Airpod: [
@@ -523,40 +656,48 @@ export default {
                 "GST 25%",
                 "GST 30%",
             ],
-            Shipping: ["15", "20", "25", "30"],
+            shipping_method: [
+                {
+                    id: null,
+                    text: "Pilih Pengiriman",
+                },
+                {
+                    id: "pickup",
+                    text: "Ambil Sendiri",
+                },
+                {
+                    id: "delivery",
+                    text: "Pengiriman",
+                },
+            ],
             Discount: ["10%", "10%", "15%", "20%", "25%", "30%"],
             settings: {
-                itemsToShow: 1,
+                itemsToShow: 2, // Increased from 1 to show more items
                 snapAlign: "center",
                 loop: true,
+                itemsToScroll: 1,
             },
             breakpoints: {
                 575: {
-                    itemsToShow: 3,
+                    itemsToShow: 4, // Increased to show more items
                     snapAlign: "center",
                 },
                 767: {
-                    itemsToShow: 3,
+                    itemsToShow: 5, // Increased to show more items
                     snapAlign: "center",
                 },
                 991: {
-                    itemsToShow: 4,
+                    itemsToShow: 6, // Increased to show more items
                     snapAlign: "center",
                 },
                 1024: {
-                    itemsToShow: 5,
+                    itemsToShow: 7, // Increased to show more items
                     snapAlign: "start",
                 },
             },
         };
     },
-    components: {
-        Head,
-        Link,
-        Carousel,
-        Slide,
-        Navigation,
-    },
+
     methods: {
         showConfirmation() {
             Swal.fire({
@@ -581,6 +722,19 @@ export default {
                 }
             });
         },
+
+        handlePageChange(newPage) {
+            console.log("Page changed to:", newPage);
+            this.filters.page = newPage;
+            this.fetch();
+        },
+
+        handlePerPageChange(newPerPage) {
+            this.filters.per_page = newPerPage;
+            this.filters.page = 1;
+            this.fetch();
+        },
+
         addProduct(product) {
             const existingProductIndex = this.form.addedProducts.findIndex(
                 (p) => p.id === product.id
@@ -609,87 +763,38 @@ export default {
             );
         },
         selectCategory(category) {
-            this.selectedCategory = category;
+            localStorage.setItem("selectedCategory", JSON.stringify(category));
+            this.filters.category = category;
         },
-        reset() {
+        resetFilters() {
+            this.reset();
+        },
+        resetCart() {
             this.form.addedProducts = [];
             localStorage.removeItem("addedProducts");
         },
-        async submitForm() {
-            try {
-                // Submit form ke Laravel dan tunggu response JSON
-                const response = await axios.post(
-                    route("orders.store"),
-                    this.form
-                );
-
-                const snapToken = response.data.snap_token;
-                const clientKey = response.data.midtrans_client_key;
-
-                // Load Snap.js dengan client key dari server
-                const snap = await loadMidtransSnap(clientKey);
-
-                // Jalankan Snap
-                snap.pay(snapToken, {
-                    onSuccess: (result) => {
-                        console.log("Sukses:", result);
-                        // Lanjutkan ke halaman sukses, atau kirim kembali ke server
-                    },
-                    onPending: (result) => {
-                        console.log("Pending:", result);
-                    },
-                    onError: (result) => {
-                        console.log("Error:", result);
-                    },
-                    onClose: () => {
-                        console.log("Popup ditutup");
-                    },
-                });
-            } catch (error) {
-                console.error("Gagal:", error?.response?.data || error.message);
-            }
-        },
-        // submitForm() {
-        //     axios
-        //         .post(route("orders.store"), this.form)
-        //         .then((response) => {
-        //             // snap token load
-        //             const snapToken = response.data.snap_token;
-        //             if (snapToken) {
-        //                 window.snap.pay(snapToken, {
-        //                     onSuccess: function (result) {
-        //                         console.log("Payment Success:", result);
-        //                     },
-        //                     onPending: function (result) {
-        //                         console.log("Payment Pending:", result);
-        //                     },
-        //                     onError: function (result) {
-        //                         console.error("Payment Error:", result);
-        //                     },
-        //                     onClose: function () {
-        //                         console.log("Payment Closed");
-        //                     },
-        //                 });
-        //             } else {
-        //                 console.error("Snap token not found in response");
-        //             }
-        //         })
-        //         .catch((error) => {
-        //             console.error("Gagal membuat order:", error.response.data);
-        //         });
-
-        //     // this.form.post(this.route("orders.store"), {
-        //     //     onSuccess: (response) => {
-        //     //         console.log("Order created successfully:", response.data);
-        //     //     },
-        //     //     onError: (errors) => {
-        //     //         console.error(errors);
-        //     //     },
-        //     // });
-        // },
-        getImageUrl(imageName) {
-            return new URL(`${imageName}`, import.meta.url).href;
+        submitForm() {
+            this.isLoading = true;
+            this.form.post(this.route("orders.store"), {
+                onError: (errors) => {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Uups...",
+                        text: errors
+                            ? typeof errors === "object"
+                                ? Object.values(errors)[0]
+                                : errors
+                            : "Something went wrong!",
+                    });
+                },
+            });
         },
     },
 };
 </script>
+
+<style>
+.select2-container {
+    z-index: 1 !important;
+}
+</style>

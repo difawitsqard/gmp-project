@@ -12,7 +12,7 @@
                     </div>
                 </div>
                 <ul class="table-top-head">
-                    <li>
+                    <!-- <li>
                         <a
                             data-bs-toggle="tooltip"
                             data-bs-placement="top"
@@ -38,7 +38,7 @@
                                 class="feather-printer"
                             ></i
                         ></a>
-                    </li>
+                    </li> -->
                     <li>
                         <a
                             data-bs-toggle="tooltip"

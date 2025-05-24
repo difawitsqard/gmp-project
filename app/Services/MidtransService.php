@@ -2,11 +2,14 @@
 
 namespace App\Services;
 
-use App\Models\Order;
 use Exception;
-use Midtrans\Config;
-use Midtrans\Notification;
 use Midtrans\Snap;
+use Midtrans\Config;
+use App\Models\Order;
+use App\Models\Payment;
+use Illuminate\Support\Facades\Log;
+use Midtrans\Transaction;
+use Midtrans\Notification;
 
 class MidtransService
 {
@@ -43,12 +46,15 @@ class MidtransService
      * @return string Snap token yang dapat digunakan di front-end untuk proses pembayaran.
      * @throws Exception Jika terjadi kesalahan saat menghasilkan snap token.
      */
-    public function createSnapToken(Order $order): string
+    public function createSnapToken(Order $order, $costumOrderId = null): string
     {
+        // Jika order_id tidak diberikan, gunakan ID order yang ada
+        $orderId = $costumOrderId ?? $order->id;
+
         // data transaksi
         $params = [
             'transaction_details' => [
-                'order_id' => $order->id,
+                'order_id' => $orderId,
                 'gross_amount' => $order->total,
             ],
             'item_details' => $this->mapItemsToDetails($order),
@@ -71,7 +77,7 @@ class MidtransService
      */
     public function isSignatureKeyVerified(): bool
     {
-        $notification = new Notification();
+        $notification = $this->notification();
 
         // Membuat signature key lokal dari data notifikasi
         $localSignatureKey = hash(
@@ -91,15 +97,38 @@ class MidtransService
      */
     public function getOrder(): Order
     {
-        $notification = new Notification();
+        // // get request payload
+        // $payload = file_get_contents('php://input');
+        // Log::info('Midtrans Payload', [$payload]);
 
-        $order = Order::with('items.product')
-            ->where('order_id', $notification->order_id)
+        $notification = $this->notification(); // Ambil data dari Midtrans payload
+
+        $payment = Payment::with('order')
+            ->where('midtrans_order_id', $notification->order_id)
             ->firstOrFail();
-        $order->load('items.product.category', 'items.product.unit');
 
-        // Mengambil data order dari database berdasarkan order_id
-        return $order;
+        return $payment->order;
+    }
+
+    /**
+     * Mendapatkan notifikasi Midtrans sebagai objek.
+     * Jika payment_type adalah 'dana', kembalikan sebagai objek dari array payload.
+     * Jika tidak, gunakan Notification bawaan Midtrans.
+     *
+     * @return object
+     */
+    public function notification()
+    {
+        $raw_notification = json_decode(file_get_contents('php://input'), true);
+        $payment_type = $raw_notification['payment_type'] ?? null;
+
+        if ($payment_type === 'dana') {
+            // Kembalikan sebagai object stdClass agar bisa diakses seperti $obj->nama
+            return json_decode(json_encode($raw_notification));
+        } else {
+            // Kembalikan Notification Midtrans (sudah berbentuk object)
+            return new Notification();
+        }
     }
 
     /**
@@ -125,6 +154,62 @@ class MidtransService
     }
 
     /**
+     * Mendapatkan jenis pembayaran dari notifikasi Midtrans.
+     *
+     * @return string Jenis pembayaran ('bank_transfer', 'credit_card', dll).
+     */
+    public function getPaymentType(): string
+    {
+        $notification = new Notification();
+
+        // Mengambil jenis pembayaran dari notifikasi
+        return $notification->payment_type;
+    }
+
+    /**
+     * Mendapatkan status transaksi berdasarkan order_id.
+     *
+     * @param string $orderId ID order yang ingin diperiksa statusnya.
+     * @return string Status transaksi ('success', 'pending', 'expire', 'cancel', 'failed').
+     */
+    public function getStatusByOrderId(string $orderId): string
+    {
+        try {
+            $status = Transaction::status($orderId);
+        } catch (Exception $e) {
+            // Jika order belum ada atau gagal mengambil status, kembalikan 'not_found'
+            return 'not_found';
+        }
+
+        $transactionStatus = $status->transaction_status ?? null;
+        $fraudStatus = $status->fraud_status ?? null;
+
+        if (!$transactionStatus) {
+            return 'not_found';
+        }
+
+        return match ($transactionStatus) {
+            'capture' => ($fraudStatus == 'accept') ? 'success' : 'pending',
+            'settlement' => 'success',
+            'deny' => 'failed',
+            'cancel' => 'cancel',
+            'expire' => 'expire',
+            'pending' => 'pending',
+            default => 'unknown',
+        };
+    }
+
+    public function getTransactionByOrderId(string $orderId)
+    {
+        try {
+            return Transaction::status($orderId);
+        } catch (Exception $e) {
+            // Jika order belum ada atau gagal mengambil status, kembalikan null
+            return null;
+        }
+    }
+
+    /**
      * Memetakan item dalam order menjadi format yang dibutuhkan oleh Midtrans.
      *
      * @param Order $order Objek order yang berisi daftar item.
@@ -132,14 +217,42 @@ class MidtransService
      */
     protected function mapItemsToDetails(Order $order): array
     {
-        return $order->items()->get()->map(function ($item) {
+        // Pastikan relasi sudah dimuat untuk menghindari N+1 problem
+        $order->loadMissing(['items.product', 'taxes']);
+
+        // produk
+        $items = $order->items->map(function ($item) {
             return [
                 'id' => $item->id,
                 'price' => $item->price,
                 'quantity' => $item->quantity,
-                'name' => $item->product->name,
+                'name' => $item->product->name ?? 'Product',
             ];
         })->toArray();
+
+        // pengiriman
+        $items[] = [
+            'id' => 'shipping',
+            'price' => $order->shipping_fee ?? 0,
+            'quantity' => 1,
+            'name' => 'Shipping Cost',
+        ];
+
+        // pajak
+        foreach ($order->taxes as $tax) {
+            $taxName = $tax->name;
+            if (!empty($tax->percent)) {
+                $taxName .= ' (' . $tax->percent . '%)';
+            }
+            $items[] = [
+                'id' => 'tax_' . $tax->id,
+                'price' => $tax->pivot->amount ?? 0,
+                'quantity' => 1,
+                'name' => $taxName,
+            ];
+        }
+
+        return $items;
     }
 
     /**
@@ -157,5 +270,22 @@ class MidtransService
             'email' => 'difawitsqard@email.com', // Ganti dengan data nyata
             'phone' => '081280788963', // Ganti dengan data nyata
         ];
+    }
+
+    /**
+     * Membatalkan transaksi Midtrans berdasarkan order_id.
+     *
+     * @param string $orderId
+     * @return mixed Response dari Midtrans atau null jika gagal.
+     */
+    public function cancelTransaction(string $orderId)
+    {
+        try {
+            return Transaction::cancel($orderId);
+        } catch (\Exception $e) {
+            // Log error jika perlu
+            Log::error('Midtrans cancel error: ' . $e->getMessage());
+            return null;
+        }
     }
 }

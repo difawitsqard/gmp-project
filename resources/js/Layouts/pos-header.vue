@@ -21,6 +21,7 @@
                 <img src="@/assets/img/logo-small.png" alt="" />
             </router-link>
             <a
+                v-show="!route('orders.create')"
                 id="toggle_btn"
                 href="javascript:void(0);"
                 @click="toggleSidebar"
@@ -47,7 +48,7 @@
         <ul class="nav user-menu">
             <!-- Search -->
             <li class="nav-item nav-searchinputs">
-                <div class="top-nav-search">
+                <!-- <div class="top-nav-search">
                     <a href="javascript:void(0);" class="responsive-search">
                         <i class="fa fa-search"></i>
                     </a>
@@ -150,12 +151,12 @@
                             </div>
                         </div>
                     </form>
-                </div>
+                </div> -->
             </li>
             <!-- /Search -->
 
             <!-- Select Store -->
-            <li
+            <!-- <li
                 class="nav-item dropdown has-arrow main-drop select-store-dropdown"
             >
                 <a
@@ -210,7 +211,7 @@
                         Grocery Eden
                     </a>
                 </div>
-            </li>
+            </li> -->
             <!-- /Select Store -->
 
             <li class="nav-item nav-item-box">
@@ -224,7 +225,7 @@
             </li>
 
             <!-- Notifications -->
-            <li class="nav-item dropdown nav-item-box">
+            <!-- <li class="nav-item dropdown nav-item-box">
                 <a
                     href="javascript:void(0);"
                     class="dropdown-toggle nav-link"
@@ -402,7 +403,7 @@
                         >
                     </div>
                 </div>
-            </li>
+            </li> -->
             <!-- /Notifications -->
 
             <li class="nav-item nav-item-box">
@@ -449,18 +450,12 @@
                             :href="route('profile.show')"
                             class="dropdown-item"
                         >
-                            <vue-feather class="me-2" type="user"></vue-feather>
-                            My Profile
-                        </Link>
-                        <router-link
-                            class="dropdown-item"
-                            to="/settings/general-settings"
-                            ><vue-feather
+                            <vue-feather
                                 class="me-2"
                                 type="settings"
-                            ></vue-feather
-                            >Settings</router-link
-                        >
+                            ></vue-feather>
+                            Akun
+                        </Link>
                         <hr class="m-0" />
                         <!-- Authentication -->
                         <form @submit.prevent="logout">
@@ -473,7 +468,7 @@
                                     class="me-2"
                                     alt="img"
                                 />
-                                Logout
+                                Keluar
                             </button>
                         </form>
                     </div>
@@ -493,16 +488,11 @@
             ></a>
             <div class="dropdown-menu dropdown-menu-right">
                 <Link :href="route('profile.show')" class="dropdown-item"
-                    >My Profile
+                    >Pengaturan Akun
                 </Link>
-                <router-link
-                    class="dropdown-item"
-                    to="/settings/general-settings"
-                    >Settings</router-link
-                >
                 <!-- Authentication -->
                 <form @submit.prevent="logout">
-                    <button type="submit" class="dropdown-item">Logout</button>
+                    <button type="submit" class="dropdown-item">Keluar</button>
                 </form>
             </div>
         </div>

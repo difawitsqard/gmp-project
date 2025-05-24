@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Unit;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use App\Models\ProductCategory;
 use App\Services\ImageUploadService;
 use App\Http\Requests\ProductRequest;
 
@@ -21,12 +23,34 @@ class ProductController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $proucts = Product::all();
-        $proucts->load('category', 'unit');
+        $perPage = is_numeric($request->perPage) ? $request->perPage :  10;
+
+        $productsCategories = ProductCategory::where('status', 1)
+            ->orderBy('name', 'asc')
+            ->get();
+
+        $units = Unit::where('status', 1)
+            ->orderBy('name', 'asc')
+            ->get();
+
+        $products = Product::filter()
+            ->with(['category', 'unit'])
+            ->orderBy('name', 'asc')
+            ->paginate($perPage);
+        $products->appends(['search' => $request->search]);
+
+        if (!empty($request->search) && $request->search != '')
+            $products->appends(['search' => $request->search]);
+
+        $products->appends(['perPage' => $perPage]);
+
         return inertia('inventory/product-list/product-list', [
-            'products' => $proucts,
+            'units' => $units,
+            'productsCategories' => $productsCategories,
+            'products' => $products,
+            'filters' => $request->only('search', 'page', 'per_page'),
         ]);
     }
 
@@ -104,7 +128,7 @@ class ProductController extends Controller
         ]);
     }
 
-    public function search(Request $request)
+    public function search()
     {
         $products = Product::filter()
             ->with(['category', 'unit', 'images', 'orderItems'])

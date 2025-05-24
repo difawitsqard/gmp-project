@@ -5,10 +5,10 @@ namespace Database\Seeders;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\OrderItem;
+use App\Models\Payment;
 use Illuminate\Support\Carbon;
 use Illuminate\Database\Seeder;
 use PhpOffice\PhpSpreadsheet\IOFactory;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 
 class OrderSeeder extends Seeder
 {
@@ -63,11 +63,15 @@ class OrderSeeder extends Seeder
 
             $order = Order::create([
                 'name' => $orderData['name'],
+                'email' => null,
+                'phone' => null,
+                'address' => '-',
+                'shipping_method' => 'pickup',
+                'shipping_fee' => null,
                 'sub_total' => $orderData['sub_total'],
                 'total' => $orderData['total'],
-                'payment_method' => 'cash',
                 'status' => 'completed',
-                'payment_status' => 'paid',
+                'uplink_id' => null,
                 'created_at' => $orderDate,
                 'updated_at' => $orderDate,
             ]);
@@ -84,6 +88,15 @@ class OrderSeeder extends Seeder
                     'updated_at' => $orderDate,
                 ]);
             }
+
+            Payment::create([
+                'order_id' => $order->id,
+                'status' => 'paid',
+                'payment_type' => 'cash',
+                'paid_at' => $orderDate,
+                'created_at' => $orderDate,
+                'updated_at' => $orderDate,
+            ]);
         }
 
         echo count($groupedOrders) . " orders (grouped by name + date) berhasil diimport.\n";

@@ -48,9 +48,9 @@ class Product extends Model
 
     public function scopeFilter($query)
     {
-        $columns = ['name'];
-        $query->when(request()->filled('q') ?? false, function ($query) use ($columns) {
-            $s = request()->q;
+        $columns = ['name', 'sku'];
+        $query->when(request()->filled('search') ?? false, function ($query) use ($columns) {
+            $s = request()->search;
             $query->where(function ($query) use ($columns, $s) {
                 foreach ($columns as $column) {
                     $query->orWhere($column, 'like', '%' . $s . '%');
@@ -58,10 +58,16 @@ class Product extends Model
             });
         });
 
-        // filter by status
-        $query->when(request()->filled('status') ?? false, function ($query) {
-            $s = request()->status;
-            $query->where('status', $s);
+        //filter by category
+        $query->when(request()->filled('category') ?? false, function ($query) {
+            $s = request()->category;
+            $query->where('product_categories_id', $s);
+        });
+
+        // filter by unit
+        $query->when(request()->filled('unit') ?? false, function ($query) {
+            $s = request()->unit;
+            $query->where('unit_id', $s);
         });
 
         // // filter by created_at
