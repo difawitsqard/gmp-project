@@ -69,13 +69,13 @@
                                         <span class="status-label">Status</span>
                                         <input
                                             type="checkbox"
-                                            id="status"
+                                            :id="'status-' + modalId"
                                             class="check"
                                             v-model="model.status"
                                             :checked="model.status ?? true"
                                         />
                                         <label
-                                            for="status"
+                                            :for="'status-' + modalId"
                                             class="checktoggle"
                                         ></label>
                                     </div>

@@ -6,6 +6,14 @@
         <div class="content pos-design p-0">
             <div class="btn-row d-sm-flex align-items-center">
                 <Link
+                    :href="this.$page.props.previousUrl"
+                    v-if="hasPreviousPage"
+                    class="btn btn-dark"
+                >
+                    <vue-feather type="arrow-left" class="me-2"></vue-feather>
+                    Kembali
+                </Link>
+                <Link
                     :href="route('orders.index')"
                     class="btn btn-secondary mb-xs-3"
                     ><span class="me-1 d-flex align-items-center"
@@ -638,6 +646,8 @@ export default {
                 { value: 24, text: "24" },
             ],
 
+            hasPreviousPage: false,
+
             Walk: ["Walk in Customer", "John", "Smith", "Ana", "Elza"],
             Airpod: [
                 "Search Products",
@@ -696,6 +706,9 @@ export default {
                 },
             },
         };
+    },
+    mounted() {
+        this.checkPreviousPage();
     },
 
     methods: {
@@ -788,6 +801,19 @@ export default {
                     });
                 },
             });
+        },
+
+        checkPreviousPage() {
+            if (
+                this.$page.props.previousUrl &&
+                !this.$page.props.previousUrl.includes(
+                    this.$page.props.ziggy.location
+                )
+            ) {
+                this.hasPreviousPage = true;
+            } else {
+                this.hasPreviousPage = false;
+            }
         },
     },
 };

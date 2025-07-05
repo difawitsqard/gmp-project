@@ -135,7 +135,7 @@
                                                 : "Belum dipilih"
                                         }}
                                     </span>
-                                    <span class="col-6 mb-1"
+                                    <!-- <span class="col-6 mb-1"
                                         >Status Pembayaran</span
                                     >
                                     <span class="col-6 mb-1">
@@ -154,20 +154,48 @@
                                                 ).label
                                             }}
                                         </span>
-                                    </span>
-                                    <span class="col-6 mb-1"
-                                        >Tanggal Pembayaran</span
+                                    </span> -->
+                                    <template
+                                        v-if="order.latest_payment.paid_at"
                                     >
-                                    <span class="col-6 mb-1">
-                                        {{
-                                            order.latest_payment.paid_at
-                                                ? dayjs(
-                                                      order.latest_payment
-                                                          .paid_at
-                                                  ).format("D MMMM YYYY HH:mm")
-                                                : "-"
-                                        }}
-                                    </span>
+                                        <span class="col-6 mb-1"
+                                            >Tanggal Pembayaran
+                                        </span>
+                                        <span class="col-6 mb-1">
+                                            {{
+                                                order.latest_payment.paid_at
+                                                    ? dayjs(
+                                                          order.latest_payment
+                                                              .paid_at
+                                                      ).format(
+                                                          "D MMMM YYYY HH:mm"
+                                                      )
+                                                    : "-"
+                                            }}
+                                        </span>
+                                    </template>
+                                    <template
+                                        v-else-if="
+                                            order.latest_payment.expired_at &&
+                                            order.latest_payment.payment_type
+                                        "
+                                    >
+                                        <span class="col-6 mb-1"
+                                            >Bayar Sebelum</span
+                                        >
+                                        <span class="col-6 mb-1">
+                                            {{
+                                                order.latest_payment.expired_at
+                                                    ? dayjs(
+                                                          order.latest_payment
+                                                              .expired_at
+                                                      ).format(
+                                                          "D MMMM YYYY HH:mm"
+                                                      )
+                                                    : "-"
+                                            }}
+                                        </span>
+                                    </template>
                                 </div>
                             </div>
                             <div

@@ -4,19 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class ForecastResult extends Model
+class ForecastAnalysis extends Model
 {
     // fillable
     protected $fillable = [
         'forecast_id',
         'product_id',
-        'predictions',
-        'actuals',
+        'analysis',
     ];
 
     protected $casts = [
-        'predictions' => 'array',
-        'actuals' => 'array',
+        'analysis' => 'array',
     ];
 
     // relation

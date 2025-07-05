@@ -17,12 +17,15 @@ class PaymentController extends Controller
 
                 $getStatus = $midtransService->getStatus();
                 $getPaymentType = $midtransService->getPaymentType();
+                $getExpiryTime = $midtransService->getExpiryTime();
+
+                // Log informasi status pembayaran
+                Log::info('Midtrans Callback Expire: ' . $getExpiryTime);
 
                 if ($getStatus == 'success') {
                     $order->update([
-                        'status' => 'processing',
+                        'status' => 'waiting_processing',
                     ]);
-
                     $lastPayment->update([
                         'payment_type' => $getPaymentType,
                         'status' => 'paid',
@@ -36,6 +39,7 @@ class PaymentController extends Controller
                     $lastPayment->update([
                         'payment_type' => $getPaymentType,
                         'status' => 'pending',
+                        'expired_at' => $getExpiryTime,
                     ]);
                 }
 
@@ -45,7 +49,6 @@ class PaymentController extends Controller
                     $lastPayment->update([
                         'payment_type' => $getPaymentType,
                         'status' => 'expired',
-                        'expired_at' => now(),
                     ]);
                 }
 

@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Forecast;
 use App\Models\Product;
 use App\Models\OrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use App\Services\NixtlaService;
+use App\Services\OpenAIService;
 use Illuminate\Support\Facades\DB;
 use OpenAI\Laravel\Facades\OpenAI;
 
@@ -14,282 +16,297 @@ class ForecastController extends Controller
 {
 
     /**
-     * Display a listing of the resource.
+     * Generate time series data dari request parameters
      */
-    public function index()
+    public function generateTimeSeriesFromRequest(Request $request)
     {
-        //
+        $validatedData = $request->validate([
+            'products' => 'required|array',
+            'products.*.id' => 'required|exists:products,id',
+            'frequency' => 'required|in:D,W,M',
+            'horizon' => 'required|integer|min:1',
+            'startDate' => 'required|date',
+            'endDate' => 'required|date|after_or_equal:startDate',
+        ]);
+
+        $productIds = collect($validatedData['products'])->pluck('id')->toArray();
+        $frequency = $validatedData['frequency'];
+        $horizon = $validatedData['horizon'];
+        $startDate = Carbon::parse($validatedData['startDate']);
+        $endDate = Carbon::parse($validatedData['endDate']);
+
+        // Generate semua titik waktu berdasarkan frekuensi
+        $dates = $this->generateDatesFromRange($startDate, $endDate, $frequency);
+
+        // Inisialisasi series
+        $series = [];
+        foreach ($productIds as $productId) {
+            // Panggil method terpisah untuk mendapatkan time series data
+            $series[$productId] = $this->getTimeSeriesData(
+                $productId,
+                $frequency,
+                $startDate,
+                $endDate,
+                $dates
+            );
+        }
+
+        $productNames = Product::whereIn('id', $productIds)->pluck('name', 'id')->toArray();
+
+        // Struktur data untuk OpenAI dan validasi
+        $openaiStructured = [];
+        $validationResults = [];
+
+        foreach ($series as $productId => $dateSeries) {
+            $openaiStructured[$productId] = [
+                'name' => $productNames[$productId] ?? "Produk ID {$productId}",
+                'data' => $dateSeries
+            ];
+
+            $validationResult = $this->validateTimeSeriesQuality($dateSeries, $frequency);
+            $validationResults[$productId] = $validationResult;
+            $openaiStructured[$productId]['data_quality'] = $validationResult;
+        }
+
+        return [
+            'start_date' => $startDate->toDateString(),
+            'end_date' => $endDate->toDateString(),
+            'frequency' => $frequency,
+            'horizon' => $horizon,
+            'series' => $series,
+            'openai_ready' => $openaiStructured,
+            'validation_results' => $validationResults,
+        ];
     }
 
+    /**
+     * Display a listing of the resource.
+     */
+    public function index(Request $request)
+    {
+        $perPage = is_numeric($request->per_page) ? $request->per_page :  10;
+
+        $forecasts = Forecast::filter()
+            ->with(['results.product', 'analyses.product'])
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
+
+        $forecasts->getCollection()->transform(function ($forecasts) {
+            return [
+                'id' => $forecasts->id,
+                'forecasted_at' => $forecasts->forecasted_at,
+                'frequency' => $forecasts->frequency,
+                'horizon' => $forecasts->horizon,
+                'model' => $forecasts->model,
+                'input_start_date' => $forecasts->input_start_date,
+                'input_end_date' => $forecasts->input_end_date,
+                'total_products' => $forecasts->analyses->count(),
+                'created_by' => $forecasts->createdBy ? [
+                    'id' => $forecasts->createdBy->id,
+                    'name' => $forecasts->createdBy->name,
+                ] : null,
+            ];
+        });
+
+        $forecasts->appends(['search' => $request->search]);
+        $forecasts->appends(['per_page' => $perPage]);
+
+        if (!empty($request->search) && $request->search != '') {
+            $forecasts->appends(['search' => $request->search]);
+        }
+
+        return inertia('forecasting/forecast-list', [
+            'forecasts' => $forecasts,
+            'filters' => $request->only('search', 'page', 'per_page'),
+        ]);
+    }
 
     /**
      * Show the form for creating a new resource.
      */
     public function create()
     {
-        return inertia('forecasting/add-forecast');
-    }
-
-    public function generateSeriesData(array $productIds, string $frequency, int $horizon)
-    {
+        // ambil tanggal produk order item paling awal dan akhir
         $dateRange = OrderItem::join('orders', 'orders.id', '=', 'order_items.order_id')
-            ->whereIn('order_items.product_id', $productIds)
             ->selectRaw('MIN(DATE(orders.created_at)) as start_date, MAX(DATE(orders.created_at)) as end_date')
             ->first();
 
-        if (!$dateRange || !$dateRange->start_date || !$dateRange->end_date) {
-            return response()->json([
-                'error' => 'Tidak ditemukan data transaksi untuk produk yang dipilih.'
-            ], 422);
-        }
-
-        $start = Carbon::parse($dateRange->start_date);
-        $end = Carbon::parse($dateRange->end_date);
-
-        // if ($end->lt(Carbon::today())) {
-        //     $end = Carbon::today();
-        // }
-
-        // Generate semua titik waktu berdasarkan frekuensi
-        $dates = [];
-        if ($frequency === 'W') {
-            for ($date = $start->copy()->startOfWeek(); $date->lte($end); $date->addWeek()) {
-                $dates[] = $date->format('Y-m-d');
-            }
-        } elseif ($frequency === 'M') {
-            for ($date = $start->copy()->startOfMonth(); $date->lte($end); $date->addMonth()) {
-                $dates[] = $date->format('Y-m-d');
-            }
-        } else {
-            for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
-                $dates[] = $date->format('Y-m-d');
-            }
-        }
-
-        // Ambil data berdasarkan frekuensi
-        $orderItems = OrderItem::select(
-            'product_id',
-            DB::raw(match ($frequency) {
-                'W' => "YEAR(orders.created_at) as year, WEEK(orders.created_at, 1) as week",
-                'M' => "DATE_FORMAT(orders.created_at, '%Y-%m-01') as period",
-                default => "DATE(orders.created_at) as period",
-            }),
-            DB::raw('SUM(order_items.quantity) as total_qty')
-        )
-            ->join('orders', 'orders.id', '=', 'order_items.order_id')
-            ->whereIn('order_items.product_id', $productIds)
-            ->groupBy('product_id', match ($frequency) {
-                'W' => DB::raw('YEAR(orders.created_at), WEEK(orders.created_at, 1)'),
-                'M' => DB::raw("DATE_FORMAT(orders.created_at, '%Y-%m-01')"),
-                default => DB::raw("DATE(orders.created_at)"),
-            })
-            ->get();
-
-        // Inisialisasi series
-        $series = [];
-        foreach ($productIds as $productId) {
-            foreach ($dates as $date) {
-                $series[$productId][$date] = 0;
-            }
-        }
-
-        // Masukkan nilai ke series
-        foreach ($orderItems as $item) {
-            if ($frequency === 'W') {
-                $date = Carbon::now()
-                    ->setISODate((int)$item->year, (int)$item->week)
-                    ->startOfWeek()
-                    ->format('Y-m-d');
-            } else {
-                $date = $item->period;
-            }
-
-            if (isset($series[$item->product_id][$date])) {
-                $series[$item->product_id][$date] = $item->total_qty;
-            }
-        }
-
-        $productNames = Product::whereIn('id', $productIds)->pluck('name', 'id')->toArray();
-
-        $openaiStructured = [];
-        foreach ($series as $productId => $dateSeries) {
-            $openaiStructured[$productId] = [
-                'name' => $productNames[$productId] ?? "Produk ID {$productId}",
-                'data' => $dateSeries
-            ];
-        }
-
-        return [
-            'start_date' => $start->toDateString(),
-            'end_date' => $end->toDateString(),
-            'frequency' => $frequency,
-            'horizon' => $horizon,
-            'series' => $series,
-            'openai_ready' => $openaiStructured,
-        ];
+        return inertia(
+            'forecasting/add-forecast',
+            [
+                'initialData' => [
+                    'start_date' => $dateRange->start_date ?? Carbon::now()->subYear()->toDateString(),
+                    'end_date' => $dateRange->end_date ?? Carbon::now()->toDateString(),
+                ]
+            ]
+        );
     }
 
-
-    public function requestForecast(NixtlaService $nixtla, Request $request)
+    public function requestForecast(NixtlaService $nixtla, OpenAIService $openaiService, Request $request)
     {
         $validatedData = $request->validate([
             'products' => 'required|array',
             'products.*.id' => 'required|exists:products,id',
             'frequency' => 'required|in:D,W,M',
-            'horizon' => 'required|integer',
+            'horizon' => 'required|integer|min:1',
+            'startDate' => 'required|date',
+            'endDate' => 'required|date|after_or_equal:startDate',
+            'enforceDataQuality' => 'boolean',
+            'includeConfidenceIntervals' => 'boolean',
         ]);
 
-        $productIds = collect($validatedData['products'])->pluck('id')->toArray();
-        $frequency = $validatedData['frequency'];
-        $horizon = $validatedData['horizon'];
+        // Generate time series data dari request
+        $result = $this->generateTimeSeriesFromRequest($request);
 
-        // Generate series
-        $result = $this->generateSeriesData($productIds, $frequency, $horizon);
+        // Pisahkan produk valid dan tidak valid
+        $validProducts = [];
+        $invalidProducts = [];
 
-        //dd($result);
+        foreach ($result['validation_results'] as $productId => $validation) {
+            if ($validation['valid']) {
+                $validProducts[$productId] = $result['series'][$productId];
+            } else {
+                $invalidProducts[$productId] = [
+                    'product_id' => $productId,
+                    'name' => $result['openai_ready'][$productId]['name'],
+                    'issues' => $validation['issues'],
+                    'metrics' => [
+                        'total_points' => $validation['total_points'],
+                        'non_zero_points' => $validation['non_zero_points'],
+                        'non_zero_ratio' => $validation['non_zero_ratio'],
+                    ]
+                ];
 
-        if (isset($result['error'])) {
-            return back()->withErrors(['series' => $result['error']]);
-        }
-
-        // //Validasi kelayakan tiap produk
-        // $errors = [];
-        // foreach ($validatedData['products'] as $index => $product) {
-        //     $series = $result['series'][$product['id']] ?? [];
-
-        //     $validation = $nixtla->validate($series, 0.2, 5, $frequency);
-
-        //     if (!$validation['valid']) {
-        //         $errors["products.{$index}.id"] = "{$product['id']} tidak layak forecast: {$validation['reason']}";
-        //     }
-        // }
-
-        // if (!empty($errors)) {
-        //     throw \Illuminate\Validation\ValidationException::withMessages($errors);
-        // }W
-
-        foreach ($validatedData['products'] as $index => $product) {
-            $series = $result['series'][$product['id']] ?? [];
-            $validation = $nixtla->validate($series, 0.2, 5, $frequency);
-            // Tandai bahwa forecast tidak valid, tetapi pola tetap dianalisis
-            $result['openai_ready'][$product['id']]['forecast'] = $validation['valid'];
-            // remove series if not valid
-            if (!$validation['valid']) {
-                unset($result['series'][$product['id']]);
+                // Tandai produk yang tidak valid untuk OpenAI
+                $result['openai_ready'][$productId]['is_valid'] = false;
+                $result['openai_ready'][$productId]['issues'] = $validation['issues'];
             }
         }
 
-        //get time series terbanyak
-        // $timeseries = DB::table('order_items as oi')
-        //     ->join('orders as o', 'o.id', '=', 'oi.order_id')
-        //     ->select('oi.product_id', DB::raw('COUNT(DISTINCT DATE(o.created_at)) as unique_days'))
-        //     ->groupBy('oi.product_id')
-        //     ->orderByDesc('unique_days')
-        //     ->limit(5)
-        //     ->get();
+        // SKENARIO 1: Jika enforceDataQuality = true dan ada produk tidak valid
+        if ($validatedData['enforceDataQuality'] && count($invalidProducts) > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Beberapa produk memiliki data yang tidak layak untuk forecast',
+                'invalid_products' => $invalidProducts,
+                'validation_results' => $result['validation_results']
+            ], 422);
+        }
 
-        // dd($timeseries);
+        // dd($result);
 
-        // $timeseries =  DB::table('order_items as oi')
-        //     ->join('orders as o', 'o.id', '=', 'oi.order_id')
-        //     ->select('oi.product_id', DB::raw('COUNT(DISTINCT YEARWEEK(o.created_at, 1)) as unique_weeks'))
-        //     ->groupBy('oi.product_id')
-        //     ->orderByDesc('unique_weeks')
-        //     ->first();
+        // SKENARIO 2: Lanjutkan proses dengan produk valid saja
+        $forecast = [];
 
-
-        // dd($validatedData);
-        // dd($result['series']);
-
-        // dd($result['series'],  $this->smoothSeries($result['series']));
-
-        // dd($result['series']);
-
-        // dd($result['series']);
-
-        // $result['series'] = $this->smoothSeries($result['series'], 3);
-
-        // dd($result['series']);
-
-        // potong 4 tanggal terakhir
-        $result['series'] = array_map(function ($series) {
-            $keys = array_keys($series);
-            $remainingKeys = array_slice($keys, 0, -4);
-            return array_intersect_key($series, array_flip($remainingKeys));
-        }, $result['series']);
-
-        //dd($result['series']);
-
-
-        dd($result);
-
+        // Siapkan opsi untuk Nixtla
         $options = [
-            'h' => $validatedData['horizon'],
-            //'freq' => $validatedData['frequency'],
-            'freq' =>  $frequency,
+            'h' => (int)$validatedData['horizon'],
+            'freq' => $validatedData['frequency'],
             'model' => 'timegpt-1',
+            'level' => $request->input('includeConfidenceIntervals', false) ? [80, 95] : null,
         ];
 
-        $forecast = $nixtla->forecast($result['series'], $options);
+        // Kirim ke Nixtla hanya untuk produk valid
+        if (count($validProducts) > 0) {
+            $forecast = $nixtla->forecast($validProducts, $options);
 
-        dd($forecast);
-
-        foreach ($forecast as $productId => $data) {
-            $result['openai_ready'][$productId]['forecast'] = $data;
-        }
-
-        $prompt = "Berikut adalah data penjualan dari beberapa produk. 
-            Tugas Anda adalah menganalisis pola penjualan dan memberikan saran manajerial berdasarkan pola tersebut.
-            Jika forecast = false, berarti produk tersebut tidak diprediksi, tetapi jika ada hasil forecast,
-            Anda harus memberikan saran manajerial dan menyimpulkan apakah hasil forecast tersebut sesuai dengan pola atau tidak dan layak digunakan atau tidak.
-
-            Kembalikan hasil dalam format JSON dengan struktur sebagai berikut:
-
-            {
-            \"id\": {
-                \"name\": \"nama produk\",
-                \"forecast\": \"perkiraan penjualan dan saran manajerial berdasarkan pola data\"
-            },
-            ...
-            }
-
-            Berikut data yang perlu dianalisis:\n\n";
-
-        foreach ($result['openai_ready'] as $productId => $info) {
-            $prompt .= "ID: {$productId}\n";
-            $prompt .= "Nama Produk: {$info['name']}\n";
-            $prompt .= "Data Penjualan (mingguan): " . json_encode($info['data']) . "\n\n";
-            if (isset($info['forecast'])) {
-                $prompt .= "Forecast: " . json_encode($info['forecast']) . "\n\n";
-            } else {
-                $prompt .= "Forecast: false\n\n";
+            // Update struktur data dengan hasil forecast
+            foreach ($forecast as $productId => $forecastData) {
+                $result['openai_ready'][$productId]['forecast'] = $forecastData;
+                $result['openai_ready'][$productId]['is_valid'] = true;
             }
         }
 
+        // Siapkan data untuk analisis oleh OpenAI
+        $validProductIds = array_keys($validProducts);
 
+        // Kirim data ke OpenAI Service
+        $openaiResults = $openaiService->analyzeTimeSeriesAndForecast(
+            $result,
+            $validProductIds,
+            $invalidProducts,
+            $validatedData['frequency']
+        );
 
-        // Kirim ke OpenAI versi murah (gpt-3.5-turbo)
-        $response = OpenAI::chat()->create([
-            'model' => 'gpt-4o',
-            'messages' => [
-                ['role' => 'user', 'content' => $prompt],
-            ],
-            'temperature' => 0.3,
-        ]);
+        // TAMBAHAN BARU: Simpan hasil forecast ke database
+        $forecastId = $this->storeForecastResults(
+            $request,
+            $result,
+            $forecast,
+            $openaiResults['analysis']
+        );
 
-        // Ambil dan tampilkan hasil
-        $content = $response->choices[0]->message->content;
+        // Return response dengan hasil lengkap
+        // return response()->json([
+        //     'success' => true,
+        //     'data' => [
+        //         'time_series_info' => [
+        //             'start_date' => $result['start_date'],
+        //             'end_date' => $result['end_date'],
+        //             'frequency' => $result['frequency'],
+        //             'horizon' => $result['horizon'],
+        //         ],
+        //         'valid_products' => array_keys($validProducts),
+        //         'invalid_products' => $invalidProducts,
+        //         'forecast' => $forecast,
+        //         'analysis' => $openaiResults['analysis'],
+        //     ]
+        // ]);
 
-        // gett json only in $content
-        $jsonString = preg_replace('/.*?({.*}).*/s', '$1', $content);
-
-        dd($response, $prompt, $content, $jsonString);
-
-        return response()->json($forecast);
+        return redirect()->route('forecasting.show', ['forecasting' => $forecastId]);
     }
 
-    // OpenAI 
+    /**
+     * Store forecast results in database
+     *
+     * @param Request $request Original request data
+     * @param array $result Time series data
+     * @param array $forecast Forecast results from Nixtla
+     * @param array $analysis Analysis results from OpenAI
+     * @return int ID of created forecast
+     */
+    private function storeForecastResults(Request $request, array $result, array $forecast, array $analysis)
+    {
+        // 1. Insert ke tabel forecasts (data utama)
+        $forecastRecord = \App\Models\Forecast::create([
+            'forecasted_at' => now(),
+            'frequency' => $result['frequency'],
+            'horizon' => $result['horizon'],
+            'model' => 'timegpt-1', // Bisa diambil dari config atau parameter
+            'input_start_date' => $result['start_date'],
+            'input_end_date' => $result['end_date'],
+            'created_by' => auth()->id(),
+        ]);
 
+        // 2. Insert forecast results untuk setiap produk
+        foreach ($forecast as $productId => $forecastData) {
+            // Pastikan productId valid
+            if (!is_numeric($productId)) continue;
+
+            \App\Models\ForecastResult::create([
+                'forecast_id' => $forecastRecord->id,
+                'product_id' => $productId,
+                'predictions' => json_encode($forecastData),
+                //'actuals' => json_encode($result['series'][$productId] ?? []),
+            ]);
+        }
+
+        // 3. Insert forecast analyses dari OpenAI
+        if (is_array($analysis)) {
+            foreach ($analysis as $productId => $productAnalysis) {
+                // Skip jika productId bukan numeric
+                if (!is_numeric($productId)) continue;
+
+                \App\Models\ForecastAnalysis::create([
+                    'forecast_id' => $forecastRecord->id,
+                    'product_id' => $productId,
+                    'analysis' => json_encode($productAnalysis),
+                ]);
+            }
+        }
+
+        return $forecastRecord->id;
+    }
 
     /**
      * Store a newly created resource in storage.
@@ -302,9 +319,38 @@ class ForecastController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Request $request, string $id)
     {
-        //
+        // Load forecast dan relasi
+        $forecast = \App\Models\Forecast::with(['results.product', 'analyses.product'])
+            ->findOrFail($id);
+
+        // Ambil product_id dari request, atau gunakan produk pertama jika tidak ada
+        $product_id = $request->input('product_id', null);
+
+        // Jika tidak ada product_id yang dipilih dan ada hasil forecast
+        if (!$product_id && $forecast->analyses->count() > 0) {
+            $product_id = $forecast->analyses->first()->product_id;
+        }
+
+        // Data time series (null jika tidak ada product_id)
+        $timeSeriesData = null;
+
+        // Jika ada produk yang dipilih, ambil data time seriesnya
+        if ($product_id) {
+            $timeSeriesData = $this->getTimeSeriesData(
+                $product_id,
+                $forecast->frequency,
+                Carbon::parse($forecast->input_start_date),
+                Carbon::parse($forecast->input_end_date)
+            );
+        }
+
+        return inertia('forecasting/forecast-detail', [
+            'forecast' => $forecast,
+            'selectedProductId' => $product_id,
+            'timeSeriesData' => $timeSeriesData
+        ]);
     }
 
     /**
@@ -343,5 +389,177 @@ class ForecastController extends Controller
         }
 
         return $smoothedSeries;
+    }
+
+    private function validateTimeSeriesQuality(array $timeSeries, string $frequency)
+    {
+        // Menyaring nilai-nilai pada array $timeSeries dan hanya mengambil yang lebih besar dari 0
+        $nonZeroValues = array_filter($timeSeries, function ($value) {
+            return $value > 0;
+        });
+
+        // Menghitung total jumlah elemen dalam array $timeSeries (termasuk nol)
+        $totalPoints = count($timeSeries);
+
+        // Menghitung jumlah elemen yang bernilai lebih dari 0 (non-zero values)
+        $nonZeroPoints = count($nonZeroValues);
+
+
+        // Initialize result array first
+        $result = [
+            'valid' => true,
+            'issues' => [],
+            'total_points' => $totalPoints,
+            'non_zero_points' => $nonZeroPoints,
+            'non_zero_ratio' => $totalPoints > 0 ? $nonZeroPoints / $totalPoints : 0,
+        ];
+
+        // Kriteria validasi
+        $minDataPoints = match ($frequency) {
+            'D' => 30,    // Minimum 30 hari data
+            'W' => 13,    // Minimum 13 minggu data (3 bulan)
+            'M' => 6,     // Minimum 6 bulan data
+        };
+
+        // Kriteria validasi berdasarkan frekuensi
+        $minNonZeroRatio = match ($frequency) {
+            'D' => 0.3,    // 30% untuk data harian
+            'W' => 0.5,    // 50% untuk data mingguan
+            'M' => 0.7,    // 70% untuk data bulanan
+        };
+
+        // Cek jumlah data points
+        if ($totalPoints < $minDataPoints) {
+            $result['valid'] = false;
+            $result['issues'][] = "Jumlah titik data tidak mencukupi (minimum: {$minDataPoints})";
+        }
+
+        // Cek rasio data non-zero
+        if ($result['non_zero_ratio'] < $minNonZeroRatio) {
+            $result['valid'] = false;
+            $result['issues'][] = "Terlalu banyak nilai kosong (0)";
+        }
+
+        // // Memeriksa periode kosong berurutan
+        // $consecutiveZeros = $this->findLongestConsecutiveZeros($timeSeries);
+        // $maxConsecutiveZerosAllowed = match ($frequency) {
+        //     'D' => 14,   // 2 minggu kosong berturut-turut
+        //     'W' => 4,    // 1 bulan kosong berturut-turut
+        //     'M' => 2,    // 2 bulan kosong berturut-turut
+        // };
+
+        // if ($consecutiveZeros > $maxConsecutiveZerosAllowed) {
+        //     $result['valid'] = false;
+        //     $result['issues'][] = "Terdapat {$consecutiveZeros} periode berturut-turut tanpa data";
+        // }
+
+        return $result;
+    }
+
+
+    // Fungsi helper untuk periode kosong berurutan
+    private function findLongestConsecutiveZeros(array $series): int
+    {
+        $longest = 0;
+        $current = 0;
+
+        foreach ($series as $value) {
+            if ($value == 0) {
+                $current++;
+                $longest = max($longest, $current);
+            } else {
+                $current = 0;
+            }
+        }
+
+        return $longest;
+    }
+
+    /**
+     * Mendapatkan data time series untuk satu produk
+     *
+     * @param int $productId ID produk
+     * @param string $frequency Frekuensi data (D,W,M)
+     * @param Carbon $startDate Tanggal mulai
+     * @param Carbon $endDate Tanggal akhir
+     * @param array $dates Array tanggal yang sudah digenerate
+     * @return array Time series data dengan format [date => value]
+     */
+    private function getTimeSeriesData($productId, $frequency, $startDate, $endDate, $dates = null)
+    {
+        // Generate dates jika tidak disediakan
+        if ($dates === null) {
+            $dates = $this->generateDatesFromRange($startDate, $endDate, $frequency);
+        }
+
+        // Inisialisasi series kosong
+        $series = array_fill_keys($dates, 0);
+
+        // Ambil data dari database berdasarkan frekuensi
+        $orderItems = OrderItem::select(
+            'product_id',
+            DB::raw(match ($frequency) {
+                'W' => "YEAR(orders.created_at) as year, WEEK(orders.created_at, 1) as week",
+                'M' => "DATE_FORMAT(orders.created_at, '%Y-%m-01') as period",
+                default => "DATE(orders.created_at) as period",
+            }),
+            DB::raw('SUM(order_items.quantity) as total_qty')
+        )
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->where('order_items.product_id', $productId)
+            ->whereBetween('orders.created_at', [$startDate, $endDate]) // Filter by date range
+            ->groupBy('product_id', match ($frequency) {
+                'W' => DB::raw('YEAR(orders.created_at), WEEK(orders.created_at, 1)'),
+                'M' => DB::raw("DATE_FORMAT(orders.created_at, '%Y-%m-01')"),
+                default => DB::raw("DATE(orders.created_at)"),
+            })
+            ->get();
+
+        // Masukkan nilai ke series
+        foreach ($orderItems as $item) {
+            if ($frequency === 'W') {
+                $date = Carbon::now()
+                    ->setISODate((int)$item->year, (int)$item->week)
+                    ->startOfWeek()
+                    ->format('Y-m-d');
+            } else {
+                $date = $item->period;
+            }
+
+            if (isset($series[$date])) {
+                $series[$date] = $item->total_qty;
+            }
+        }
+
+        return $series;
+    }
+
+    /**
+     * Generate array tanggal berdasarkan range dan frekuensi
+     *
+     * @param Carbon $startDate Tanggal mulai
+     * @param Carbon $endDate Tanggal akhir
+     * @param string $frequency Frekuensi (D,W,M)
+     * @return array Array tanggal dalam format Y-m-d
+     */
+    private function generateDatesFromRange($startDate, $endDate, $frequency)
+    {
+        $dates = [];
+
+        if ($frequency === 'W') {
+            for ($date = $startDate->copy()->startOfWeek(); $date->lte($endDate); $date->addWeek()) {
+                $dates[] = $date->format('Y-m-d');
+            }
+        } elseif ($frequency === 'M') {
+            for ($date = $startDate->copy()->startOfMonth(); $date->lte($endDate); $date->addMonth()) {
+                $dates[] = $date->format('Y-m-d');
+            }
+        } else { // Daily default
+            for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
+                $dates[] = $date->format('Y-m-d');
+            }
+        }
+
+        return $dates;
     }
 }

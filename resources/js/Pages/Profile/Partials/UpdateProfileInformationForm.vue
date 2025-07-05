@@ -130,11 +130,34 @@ const clearPhotoFileInput = () => {
                         </div>
                     </div>
                 </div>
+                <!-- <div class="card-title-head">
+                    <h6>
+                        <span
+                            ><svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="feather feather-user feather-chevron-up"
+                            >
+                                <path
+                                    d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"
+                                ></path>
+                                <circle cx="12" cy="7" r="4"></circle></svg
+                        ></span>
+                        Informasi Profil
+                    </h6>
+                </div> -->
                 <div
                     v-show="form.recentlySuccessful"
                     class="alert alert-solid-success alert-dismissible fade show"
                 >
-                    Profile information updated successfully.
+                    Informasi profil telah diperbarui.
                     <button
                         type="button"
                         class="btn-close"
@@ -147,7 +170,7 @@ const clearPhotoFileInput = () => {
                 <div class="row">
                     <div class="col-lg-6 col-sm-12">
                         <div class="input-blocks">
-                            <label class="form-label">Name</label>
+                            <label class="form-label">Nama</label>
                             <input
                                 id="name"
                                 type="text"
@@ -177,7 +200,7 @@ const clearPhotoFileInput = () => {
                             "
                         >
                             <p class="text-sm mt-2">
-                                Your email address is unverified.
+                                Alamat email Anda belum diverifikasi.
 
                                 <Link
                                     :href="route('verification.send')"
@@ -186,8 +209,8 @@ const clearPhotoFileInput = () => {
                                     class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                     @click.prevent="sendEmailVerification"
                                 >
-                                    Click here to re-send the verification
-                                    email.
+                                    Klik di sini untuk mengirim ulang tautan
+                                    verifikasi email.
                                 </Link>
                             </p>
 
@@ -195,19 +218,18 @@ const clearPhotoFileInput = () => {
                                 v-show="verificationLinkSent"
                                 class="mt-2 font-medium text-sm text-green-600"
                             >
-                                A new verification link has been sent to your
-                                email address.
+                                Tautan verifikasi email telah dikirim.
                             </div>
                         </div>
                     </div>
 
                     <div class="col-lg-6 col-sm-12">
                         <div class="input-blocks">
-                            <label class="form-label">Phone</label>
+                            <label class="form-label">Telepon</label>
                             <input
                                 type="text"
                                 v-model="form.phone"
-                                value="621 1234 5678"
+                                placeholder="Nomor telepon"
                                 class="form-control"
                             />
                         </div>
@@ -215,22 +237,22 @@ const clearPhotoFileInput = () => {
 
                     <div class="col-lg-6 col-sm-12">
                         <div class="input-blocks">
-                            <label class="form-label">Address</label>
+                            <label class="form-label">Alamat</label>
                             <textarea
                                 class="form-control"
                                 rows="3"
-                                placeholder="Address"
+                                placeholder="Alamat lengkap"
                                 v-model="form.address"
                             ></textarea>
                         </div>
                     </div>
 
-                    <div class="col-12">
+                    <div class="col-12 text-end">
                         <button
                             class="btn btn-submit me-2"
                             :disabled="form.processing"
                         >
-                            Submit
+                            Perbarui
                         </button>
                     </div>
                 </div>

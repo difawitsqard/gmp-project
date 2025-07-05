@@ -133,11 +133,11 @@
                                             class="info-img"
                                         ></vue-feather>
                                         <div class="input-groupicon">
-                                            <!-- <date-picker
+                                            <date-picker
                                                 v-model="filters.created"
                                                 placeholder="Choose Date"
                                                 class="form-control"
-                                            /> -->
+                                            />
                                         </div>
                                     </div>
                                 </div>

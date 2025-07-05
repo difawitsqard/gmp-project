@@ -13,10 +13,13 @@ return new class extends Migration
     {
         Schema::create('forecasts', function (Blueprint $table) {
             $table->id();
-            $table->dateTime('forecasted_at');
-            $table->integer('horizon');
+            $table->dateTime('forecasted_at'); // waktu saat prediksi dibuat
+            $table->enum('frequency', ['D', 'W', 'M']); // 'D' = daily, 'W' = weekly, 'M' = monthly
+            $table->integer('horizon'); // jumlah periode ke depan yang diprediksi
             $table->string('model')->nullable();
-            $table->unsignedBigInteger('created_by')->nullable();
+            $table->date('input_start_date');
+            $table->date('input_end_date');
+            $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->timestamps();
         });
     }

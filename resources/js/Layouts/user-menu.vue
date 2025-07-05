@@ -52,10 +52,16 @@
                         <span>Prediksi Stok</span>
                     </Link>
                 </li>
-                <li :class="{ active: route().current('orders.create') }">
-                    <Link :href="route('orders.create')">
-                        <vue-feather type="shopping-cart" />
-                        <span>Buat Pesanan</span>
+                <li
+                    :class="{
+                        active:
+                            route().current('forecasting.index') ||
+                            route().current('forecasting.show'),
+                    }"
+                >
+                    <Link :href="route('forecasting.index')">
+                        <vue-feather type="bar-chart-2" />
+                        <span>Riwayat Prediksi</span>
                     </Link>
                 </li>
             </ul>

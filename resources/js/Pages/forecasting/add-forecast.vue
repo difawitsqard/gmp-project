@@ -46,52 +46,321 @@
 
             <div class="row">
                 <div class="col-12">
-                    <div class="card">
-                        <!-- <div class="card-header">
-                            <h4 class="card-title">Konfigurasi</h4>
-                        </div> -->
-                        <div class="card-body">
-                            <div class="row border-bottom mb-3">
-                                <div class="col-sm-3 col-12 mb-3">
-                                    <label class="form-label">Frekuensi</label>
-                                    <vue-select
-                                        v-model="form.frequency"
-                                        :options="ChooseFrequency"
-                                        id="choosefrequency"
-                                        placeholder="Pilih Frekuensi"
-                                    />
-                                </div>
-                                <div class="col-sm-3 col-12 mb-3">
-                                    <label class="form-label">Horizon</label>
-                                    <input
-                                        type="number"
-                                        class="form-control"
-                                        v-model="form.horizon"
-                                        placeholder="Horizon"
-                                        min="1"
-                                        max="12"
-                                    />
-                                </div>
-                                <div class="col-sm-6 mb-3">
-                                    <form @submit.prevent="submit">
-                                        <label class="form-label">Produk</label>
-                                        <AsyncProductSelect
-                                            v-model="form.products"
-                                        />
-                                    </form>
-                                </div>
-                            </div>
-                            <div class="d-flex justify-content-end">
-                                <button
-                                    type="button"
-                                    class="btn btn-submit me-2"
-                                    @click="submitForm"
+                    <form @submit.prevent="submitForm">
+                        <div class="card">
+                            <div class="card-body add-product">
+                                <div
+                                    class="accordion-card-one accordion"
+                                    id="accordionForecasting"
                                 >
-                                    Buat Prediksi
-                                </button>
+                                    <div class="accordion-item">
+                                        <div
+                                            class="accordion-header"
+                                            id="headingOne"
+                                        >
+                                            <div
+                                                class="accordion-button"
+                                                data-bs-toggle="collapse"
+                                                data-bs-target="#collapseOne"
+                                                aria-expanded="true"
+                                                aria-controls="collapseOne"
+                                            >
+                                                <div class="addproduct-icon">
+                                                    <h5>
+                                                        <vue-feather
+                                                            type="info"
+                                                            class="add-info"
+                                                        ></vue-feather
+                                                        ><span>Data Input</span>
+                                                    </h5>
+                                                    <a
+                                                        href="javascript:void(0);"
+                                                        ><vue-feather
+                                                            type="chevron-down"
+                                                            class="chevron-down-add"
+                                                        ></vue-feather
+                                                    ></a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div
+                                            id="collapseOne"
+                                            class="accordion-collapse collapse show"
+                                            aria-labelledby="headingOne"
+                                        >
+                                            <div class="accordion-body">
+                                                <div class="row">
+                                                    <div
+                                                        class="col-lg-4 col-12"
+                                                    >
+                                                        <div
+                                                            class="mb-3 add-product"
+                                                        >
+                                                            <label
+                                                                class="form-label"
+                                                                >Frekuensi</label
+                                                            >
+                                                            <vue-select
+                                                                v-model="
+                                                                    form.frequency
+                                                                "
+                                                                :options="
+                                                                    ChooseFrequency
+                                                                "
+                                                                id="choosefrequency"
+                                                                placeholder="Pilih Frekuensi"
+                                                                :class="{
+                                                                    'is-invalid':
+                                                                        errors.frequency,
+                                                                }"
+                                                            />
+                                                            <div
+                                                                v-if="
+                                                                    errors.frequency
+                                                                "
+                                                                class="invalid-feedback"
+                                                            >
+                                                                {{
+                                                                    errors.frequency
+                                                                }}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div
+                                                        class="col-lg-4 col-12"
+                                                    >
+                                                        <div
+                                                            class="mb-3 add-product"
+                                                        >
+                                                            <label
+                                                                class="form-label"
+                                                                >Tanggal
+                                                                Mulai</label
+                                                            >
+                                                            <date-picker
+                                                                placeholder="Pilih Tanggal Mulai"
+                                                                class="form-control"
+                                                                v-model="
+                                                                    form.startDate
+                                                                "
+                                                                :class="{
+                                                                    'is-invalid':
+                                                                        errors.startDate,
+                                                                }"
+                                                                :lower-limit="
+                                                                    minDate
+                                                                "
+                                                            />
+                                                            <div
+                                                                v-if="
+                                                                    errors.startDate
+                                                                "
+                                                                class="invalid-feedback"
+                                                            >
+                                                                {{
+                                                                    errors.startDate
+                                                                }}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div
+                                                        class="col-lg-4 col-12"
+                                                    >
+                                                        <div
+                                                            class="mb-3 add-product"
+                                                        >
+                                                            <label
+                                                                class="form-label"
+                                                                >Tanggal
+                                                                Selesai</label
+                                                            >
+                                                            <date-picker
+                                                                placeholder="Pilih Tanggal Selesai"
+                                                                class="form-control"
+                                                                v-model="
+                                                                    form.endDate
+                                                                "
+                                                                :class="{
+                                                                    'is-invalid':
+                                                                        errors.endDate,
+                                                                }"
+                                                                :lower-limit="
+                                                                    form.startDate
+                                                                "
+                                                            />
+                                                            <div
+                                                                v-if="
+                                                                    errors.endDate
+                                                                "
+                                                                class="invalid-feedback"
+                                                            >
+                                                                {{
+                                                                    errors.endDate
+                                                                }}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12 mb-3">
+                                                        <div>
+                                                            <label
+                                                                class="form-label"
+                                                                >Produk</label
+                                                            >
+                                                            <AsyncProductSelect
+                                                                v-model="
+                                                                    form.products
+                                                                "
+                                                                :frequency="
+                                                                    form.frequency
+                                                                "
+                                                                :start-date="
+                                                                    form.startDate
+                                                                "
+                                                                :end-date="
+                                                                    form.endDate
+                                                                "
+                                                                :class="{
+                                                                    'is-invalid':
+                                                                        errors.products,
+                                                                }"
+                                                            />
+                                                            <div
+                                                                v-if="
+                                                                    errors.products
+                                                                "
+                                                                class="invalid-feedback"
+                                                            >
+                                                                {{
+                                                                    errors.products
+                                                                }}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="accordion-item mt-2">
+                                        <div
+                                            class="accordion-header"
+                                            id="headingTwo"
+                                        >
+                                            <div
+                                                class="accordion-button"
+                                                data-bs-toggle="collapse"
+                                                data-bs-target="#collapseTwo"
+                                                aria-expanded="true"
+                                                aria-controls="collapseTwo"
+                                            >
+                                                <div class="addproduct-icon">
+                                                    <h5>
+                                                        <vue-feather
+                                                            type="info"
+                                                            class="add-info"
+                                                        ></vue-feather
+                                                        ><span>Prediksi</span>
+                                                    </h5>
+                                                    <a
+                                                        href="javascript:void(0);"
+                                                        ><vue-feather
+                                                            type="chevron-down"
+                                                            class="chevron-down-add"
+                                                        ></vue-feather
+                                                    ></a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div
+                                            id="collapseTwo"
+                                            class="accordion-collapse collapse show"
+                                            aria-labelledby="headingTwo"
+                                        >
+                                            <div class="accordion-body">
+                                                <div class="row">
+                                                    <div
+                                                        class="col-lg-4 col-12 mb-3"
+                                                    >
+                                                        <label
+                                                            class="form-label"
+                                                            >Horizon</label
+                                                        >
+                                                        <input
+                                                            type="number"
+                                                            class="form-control"
+                                                            v-model="
+                                                                form.horizon
+                                                            "
+                                                            placeholder="Horizon"
+                                                            min="1"
+                                                            max="12"
+                                                            :class="{
+                                                                'is-invalid':
+                                                                    errors.horizon,
+                                                            }"
+                                                        />
+                                                        <div
+                                                            v-if="
+                                                                errors.horizon
+                                                            "
+                                                            class="invalid-feedback"
+                                                        >
+                                                            {{ errors.horizon }}
+                                                        </div>
+                                                        <small
+                                                            class="form-text text-muted"
+                                                        >
+                                                            Masukkan nilai
+                                                            antara 1-12
+                                                        </small>
+                                                    </div>
+                                                    <div
+                                                        class="col-lg-4 col-12 mb-3"
+                                                    >
+                                                        <label
+                                                            class="form-label"
+                                                            >Opsi Lain</label
+                                                        >
+                                                        <div
+                                                            class="form-check form-check-md d-flex align-items-center"
+                                                        >
+                                                            <input
+                                                                v-model="
+                                                                    form.enforceDataQuality
+                                                                "
+                                                                class="form-check-input"
+                                                                type="checkbox"
+                                                                id="checkebox-md"
+                                                                checked
+                                                            />
+                                                            <label
+                                                                class="form-check-label"
+                                                                for="checkebox-md"
+                                                            >
+                                                                Cegah proses
+                                                                jika data
+                                                                dianggap tidak
+                                                                layak
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-end">
+                                    <button
+                                        type="submtit"
+                                        class="btn btn-submit me-2"
+                                    >
+                                        Buat Prediksi
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -107,19 +376,33 @@ export default {
         AsyncProductSelect: AsyncProductSelectVue,
         Head,
     },
+    props: {
+        initialData: {
+            type: Object,
+            default: () => ({}),
+        },
+    },
     data() {
+        const minDate = this.initialData?.start_date
+            ? new Date(this.initialData.start_date)
+            : new Date(new Date().setFullYear(new Date().getFullYear() - 1));
+
         return {
             errors: {},
             form: {
                 products: [],
                 frequency: "D",
                 horizon: 1,
+                startDate: minDate,
+                endDate: new Date(),
+                enforceDataQuality: true,
             },
             ChooseFrequency: [
                 { id: "D", text: "Harian" },
                 { id: "W", text: "Mingguan" },
                 { id: "M", text: "Bulanan" },
             ],
+            minDate: minDate,
         };
     },
     watch: {
@@ -141,11 +424,11 @@ export default {
                 const totalPoints =
                     found?.timeSeriesOrderItems?.[frequencyKey] ?? 0;
 
-                if (totalPoints < 8) {
+                if (totalPoints < 13) {
                     Swal.fire({
                         icon: "error",
                         title: "Gagal",
-                        text: `Produk "${found?.name}" hanya memiliki ${totalPoints} titik data ${frequencyKey}, minimal 8 diperlukan.`,
+                        text: `Produk "${found?.name}" hanya memiliki ${totalPoints} titik data ${frequencyKey}, minimal 13 diperlukan.`,
                         confirmButtonClass: "btn btn-danger",
                     });
 
@@ -169,11 +452,11 @@ export default {
                     const totalPoints =
                         product?.timeSeriesOrderItems?.[frequencyKey] ?? 0;
 
-                    if (totalPoints < 8) {
+                    if (totalPoints < 13) {
                         Swal.fire({
                             icon: "error",
                             title: "Produk Tidak Valid",
-                            text: `Produk "${product.name}" hanya memiliki ${totalPoints} titik data ${frequencyKey}, minimal 8 diperlukan.`,
+                            text: `Produk "${product.name}" hanya memiliki ${totalPoints} titik data ${frequencyKey}, minimal 13 diperlukan.`,
                             confirmButtonClass: "btn btn-danger",
                         });
                         return false; // Hapus produk dari daftar

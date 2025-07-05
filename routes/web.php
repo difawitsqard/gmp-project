@@ -33,7 +33,7 @@ Route::middleware([
         // check user login
         $user = auth()->user();
 
-        return Inertia::render('dashboard/admin-dashboard', [
+        return Inertia::render('dashboard/dashboard', [
             'user' => $user,
         ]);
     })->name('dashboard');
@@ -68,3 +68,5 @@ Route::get('/nixtla-test', [NixtlaTestController::class, 'forecast'])
 
 Route::post('/midtrans/webhook', [PaymentController::class, 'midtransCallback'])
     ->name('midtrans.webhook');
+
+Route::get('demo-openai', [ForecastController::class, 'openAIDemoTest'])->name('demo.openai');

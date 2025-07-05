@@ -13,6 +13,7 @@ class Payment extends Model
         'snap_token',
         'status',
         'paid_at',
+        'expired_at',
     ];
 
     public function order()

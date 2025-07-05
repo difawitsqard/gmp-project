@@ -97,9 +97,9 @@ class MidtransService
      */
     public function getOrder(): Order
     {
-        // // get request payload
-        // $payload = file_get_contents('php://input');
-        // Log::info('Midtrans Payload', [$payload]);
+        // get request payload
+        $payload = file_get_contents('php://input');
+        Log::info('Midtrans Payload', [$payload]);
 
         $notification = $this->notification(); // Ambil data dari Midtrans payload
 
@@ -151,6 +151,22 @@ class MidtransService
             'pending' => 'pending',
             default => 'unknown',
         };
+    }
+
+    /**
+     * Mendapatkan waktu kedaluwarsa dari notifikasi Midtrans.
+     *
+     * @return string Waktu kedaluwarsa dalam format ISO 8601.
+     */
+    public function getExpiryTime(): string
+    {
+        $notification = new Notification();
+
+        // Mengambil waktu kedaluwarsa dari notifikasi
+        $expiryTime = $notification->expiry_time;
+
+        // Pastikan waktu kedaluwarsa dalam format ISO 8601
+        return date('c', strtotime($expiryTime));
     }
 
     /**

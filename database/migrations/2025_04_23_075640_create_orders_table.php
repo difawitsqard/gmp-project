@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
-            //$table->foreignId('customer_id')->constrained('users', 'id')->onDelete('restrict'); // User pemilik pesanan
+            // $table->foreignId('customer_id')->constrained('users', 'id')->onDelete('restrict'); // User pemilik pesanan
             $table->string('name')->nullable(); // Nama 
             $table->string('email')->nullable(); // Email pemesan
             $table->string('phone')->nullable(); // Nomor telepon pemesan
@@ -30,6 +30,8 @@ return new class extends Migration
                 'cancelled'             // Dibatalkan
             ])->default('pending');
             $table->foreignId('uplink_id')->nullable()->constrained('users', 'id')->onDelete('restrict'); // Foreign key ke tabel users, kolom uplink_id
+            // user yang proses order ini, bisa admin atau staff gudang
+            $table->foreignId('processed_by')->nullable()->constrained('users', 'id')->onDelete('restrict'); // User yang memproses order ini
             $table->timestamps();
         });
     }

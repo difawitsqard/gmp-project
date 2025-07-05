@@ -150,13 +150,13 @@ class OrderController extends Controller
             ]);
 
             // Buat Snap Token midtrans
-            $snapToken = $midtransService->createSnapToken($order, 'ord2-' . $order->id);
+            $snapToken = $midtransService->createSnapToken($order, 'ord4-' . $order->id);
 
             // create payment
             $order->payments()->create([
                 'order_id' => $order->id,
                 'status' => 'pending',
-                'midtrans_order_id' => 'ord2-' . $order->id,
+                'midtrans_order_id' => 'ord4-' . $order->id,
                 'snap_token' => $snapToken,
             ]);
 
@@ -220,22 +220,6 @@ class OrderController extends Controller
         ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
-
     public function cancel(MidtransService $midtransService, string $id)
     {
         try {
@@ -255,6 +239,20 @@ class OrderController extends Controller
         } catch (\Exception $e) {
             return back()->withErrors([
                 'error' => 'Failed to cancel order: ' . $e->getMessage(),
+            ]);
+        }
+    }
+
+    public function markAsCompleted(string $id)
+    {
+        try {
+            $order = Order::findOrFail($id);
+            $order->update(['status' => 'completed']);
+
+            return back()->with('success', 'Pesanan telah ditandai selesai diproses.');
+        } catch (\Exception $e) {
+            return back()->withErrors([
+                'error' => 'Gagal menandai pesanan selesai: ' . $e->getMessage(),
             ]);
         }
     }

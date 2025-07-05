@@ -22,7 +22,6 @@ class Product extends Model
     ];
 
     //relation
-
     public function images()
     {
         return $this->hasMany(ProductImage::class);
@@ -43,9 +42,48 @@ class Product extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    public function stockTransactions()
+    {
+        return $this->hasMany(StockTransaction::class);
+    }
+
+    // pengurangan stok
+    public function decreaseStock(int $qty, ?Model $source = null, ?string $note = null): void
+    {
+        if ($this->qty < $qty) {
+            throw new \Exception('Stok tidak cukup');
+        }
+
+        $this->qty -= $qty;
+        $this->save();
+
+        $this->stockTransactions()->create([
+            'qty' => $qty,
+            'type' => 'in',
+            'note' => $note,
+            'source_id' => $source?->id,
+            'source_type' => $source ? get_class($source) : null,
+            'created_by' => auth()->id(),
+        ]);
+    }
+
+    // penambahan stok
+    public function increaseStock(int $qty, ?Model $source = null, ?string $note = null): void
+    {
+        $this->qty += $qty;
+        $this->save();
+
+        $this->stockTransactions()->create([
+            'qty' => $qty,
+            'type' => 'out',
+            'note' => $note,
+            'source_id' => $source?->id,
+            'source_type' => $source ? get_class($source) : null,
+            'created_by' => auth()->id(),
+        ]);
+    }
+
     //scope
-
-
     public function scopeFilter($query)
     {
         $columns = ['name', 'sku'];
@@ -68,6 +106,22 @@ class Product extends Model
         $query->when(request()->filled('unit') ?? false, function ($query) {
             $s = request()->unit;
             $query->where('unit_id', $s);
+        });
+
+        // Filter produk berdasarkan tanggal order item
+        $query->when(request()->filled('order_date_start') ?? false, function ($query) {
+            $startDate = request()->order_date_start;
+            $query->whereHas('orderItems', function ($q) use ($startDate) {
+                $q->whereDate('created_at', '>=', date('Y-m-d', strtotime($startDate)));
+            });
+        });
+
+        // Filter untuk batas akhir tanggal (opsional)
+        $query->when(request()->filled('order_date_end') ?? false, function ($query) {
+            $endDate = request()->order_date_end;
+            $query->whereHas('orderItems', function ($q) use ($endDate) {
+                $q->whereDate('created_at', '<=', date('Y-m-d', strtotime($endDate)));
+            });
         });
 
         // // filter by created_at

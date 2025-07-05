@@ -69,8 +69,8 @@ class NixtlaService
       'freq' => $freq,
       'clean_ex_first' => true,
       'level' => [80, 95],
-      'finetune_steps' => 0,
-      'finetune_depth' => 3,
+      'finetune_steps' => 3,
+      'finetune_depth' => 5,
       'finetune_loss' => 'default',
       'finetuned_model_id' => null,
       'feature_contributions' => false

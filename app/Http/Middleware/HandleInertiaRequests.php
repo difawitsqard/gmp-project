@@ -39,6 +39,9 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => fn() => $request->session()->get('success'),
             ],
+            'previousUrl' => function () {
+                return url()->previous();
+            },
         ];
     }
 }

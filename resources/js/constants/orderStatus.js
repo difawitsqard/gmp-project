@@ -1,6 +1,7 @@
 export const orderStatusMap = {
     waiting_confirmation: { label: "Menunggu Konfirmasi", color: "dark" },
     pending: { label: "Menunggu Pembayaran", color: "dark" },
+    waiting_processing: { label: "Diproses", color: "primary" },
     processing: { label: "Diproses", color: "primary" },
     completed: { label: "Selesai", color: "success" },
     cancelled: { label: "Dibatalkan", color: "danger" },

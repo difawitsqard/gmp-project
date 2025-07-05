@@ -15,9 +15,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('forecast_id')->constrained('forecasts')->onDelete('cascade');
             $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
-            $table->date('forecast_date');
-            $table->float('predicted_demand');
-            $table->float('actual_demand')->nullable();
+            $table->json('predictions')->nullable(); // menyimpan hasil prediksi dalam format JSON
+            $table->json('actuals')->nullable(); // menyimpan nilai aktual dalam format JSON
             $table->timestamps();
         });
     }

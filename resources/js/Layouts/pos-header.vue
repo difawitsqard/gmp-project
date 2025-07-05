@@ -406,11 +406,11 @@
             </li> -->
             <!-- /Notifications -->
 
-            <li class="nav-item nav-item-box">
+            <!-- <li class="nav-item nav-item-box">
                 <router-link to="/settings/general-settings"
                     ><vue-feather type="settings"></vue-feather
                 ></router-link>
-            </li>
+            </li> -->
             <li class="nav-item dropdown has-arrow main-drop">
                 <a
                     href="javascript:void(0);"
@@ -420,7 +420,7 @@
                     <span class="user-info">
                         <span class="user-letter">
                             <img
-                                src="@/assets/img/profiles/avator1.jpg"
+                                :src="user.profile_photo_url"
                                 alt=""
                                 class="img-fluid"
                             />
@@ -435,9 +435,7 @@
                     <div class="profilename">
                         <div class="profileset">
                             <span class="user-img"
-                                ><img
-                                    src="@/assets/img/profiles/avator1.jpg"
-                                    alt="" />
+                                ><img :src="user.profile_photo_url" alt="" />
                                 <span class="status online"></span
                             ></span>
                             <div class="profilesets">

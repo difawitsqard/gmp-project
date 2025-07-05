@@ -11482,7 +11482,6 @@ table.dataTable thead > tr > th.no-sort.sorting::after {
 }
 .page-wrapper .content {
     padding: 24px;
-    padding-bottom: 0;
 }
 @media (max-width: 991.98px) {
     .page-wrapper .content {
@@ -28677,6 +28676,7 @@ table tbody td.action-table-data a.cancel-circle:hover svg {
     gap: 8px;
     border-radius: 8px;
 }
+
 
 .card .card-body.add-product .addproduct-icon {
     margin: 0 0 20px 0px;

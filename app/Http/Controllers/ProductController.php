@@ -128,14 +128,76 @@ class ProductController extends Controller
         ]);
     }
 
-    public function search()
-    {
-        $products = Product::filter()
-            ->with(['category', 'unit', 'images', 'orderItems'])
-            ->get();
 
-        $results = $products->map(function ($product) {
+    public function search(Request $request)
+    {
+        $perPage = $request->input('per_page', 10);
+        $startDate = $request->input('order_date_start');
+        $endDate = $request->input('order_date_end');
+
+        // Inisialisasi query dasar
+        $query = Product::filter()
+            ->with(['category', 'unit', 'images']);
+
+        // Load orderItems dengan kondisi tanggal jika parameter tersedia
+        if ($startDate || $endDate) {
+            $query->with(['orderItems' => function ($query) use ($startDate, $endDate) {
+                if ($startDate) {
+                    $query->whereDate('created_at', '>=', $startDate);
+                }
+                if ($endDate) {
+                    $query->whereDate('created_at', '<=', $endDate);
+                }
+            }]);
+
+            // Tambahkan withCount untuk filtered orderItems
+            $query->withCount(['orderItems as filtered_order_items_count' => function ($query) use ($startDate, $endDate) {
+                if ($startDate) {
+                    $query->whereDate('created_at', '>=', $startDate);
+                }
+                if ($endDate) {
+                    $query->whereDate('created_at', '<=', $endDate);
+                }
+            }]);
+
+            // Urut berdasarkan jumlah order items dalam rentang tanggal
+            $query->orderByDesc('filtered_order_items_count');
+        } else {
+            // Load orderItems tanpa filter jika tidak ada parameter tanggal
+            $query->with('orderItems');
+            $query->withCount('orderItems');
+            $query->orderByDesc('order_items_count');
+        }
+
+        // Hitung total dan paginasi (kode yang sudah ada)
+        $totalCount = $query->count();
+        $currentPage = $request->input('page', 1);
+        $offset = ($currentPage - 1) * $perPage;
+        $products = $query->paginate($perPage);
+
+        // Tambahkan parameter ke link paginasi (kode yang sudah ada, dengan penambahan)
+        if ($request->filled('search')) {
+            $products->appends(['search' => $request->search]);
+        }
+        if ($startDate) {
+            $products->appends(['order_date_start' => $startDate]);
+        }
+        if ($endDate) {
+            $products->appends(['order_date_end' => $endDate]);
+        }
+        $products->appends(['per_page' => $perPage]);
+
+        // Transform koleksi paginasi
+        $products->getCollection()->transform(function ($product) use ($offset, $startDate, $endDate) {
+            static $rankCounter = 0;
+            $rankCounter++;
+            $rank = $offset + $rankCounter;
             $image = $product->images->first();
+
+            // Gunakan jumlah order yang sudah difilter jika ada parameter tanggal
+            $orderCount = ($startDate || $endDate)
+                ? $product->filtered_order_items_count
+                : $product->order_items_count;
 
             return [
                 'id' => $product->id,
@@ -144,16 +206,15 @@ class ProductController extends Controller
                 'category' => $product->category->name ?? null,
                 'unit' => $product->unit->name ?? null,
                 'image_url' => $image ? $image->image_url : null,
-                'totalOrderItems' => $product->orderItems->count(),
+                'totalOrderItems' => $orderCount,
+                'popularityRank' => $rank,
                 'timeSeriesOrderItems' => [
                     'day' => $product->orderItems->groupBy(function ($orderItem) {
                         return $orderItem->created_at->format('Y-m-d');
                     })->count(),
-
                     'week' => $product->orderItems->groupBy(function ($orderItem) {
                         return $orderItem->created_at->copy()->startOfWeek()->format('Y-m-d');
                     })->count(),
-
                     'month' => $product->orderItems->groupBy(function ($orderItem) {
                         return $orderItem->created_at->copy()->startOfMonth()->format('Y-m-d');
                     })->count(),
@@ -161,6 +222,6 @@ class ProductController extends Controller
             ];
         });
 
-        return response()->json($results);
+        return response()->json($products);
     }
 }
