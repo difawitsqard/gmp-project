@@ -2,85 +2,70 @@
     <vue-multiselect
         v-model="selected"
         :options="options"
-        :multiple="true"
+        :multiple="multiple"
         :searchable="true"
         :loading="isLoading"
         :internal-search="false"
         :clear-on-select="false"
         :close-on-select="false"
         :preserve-search="true"
-        placeholder="Cari Produk..."
+        :placeholder="placeholder ?? 'Pilih Produk'"
         label="name"
         track-by="id"
         @search-change="searchProducts"
         :custom-label="customLabel"
         @open="registerScrollEvent"
-        :option-disabled="isOptionDisabled"
     >
         <template #option="{ option }">
             <div class="option-container">
                 <img
-                    v-lazy="option.image_url"
+                    :src="option.image_url || placeholderImage"
                     alt="Product Image"
                     class="option-image"
                 />
-
                 <div class="option-text">
-                    <span
-                        v-if="option.popularityRank"
-                        class="popularity-badge badge-silver"
-                    >
-                        <template v-if="lastQuery">
-                            Terlaris ke {{ option.popularityRank }} untuk "{{
-                                lastQuery
-                            }}"
-                        </template>
-                        <template v-else>
-                            Terlaris ke {{ option.popularityRank }}
-                        </template>
-                    </span>
-                    <div class="option-name">
-                        {{ option.name }}
-                    </div>
+                    <div class="option-name">{{ option.name }}</div>
                     <div class="option-description">
-                        {{ option.sku }} - {{ option.category }}
-                        <span
-                            v-if="option.timeSeriesOrderItems"
-                            class="data-points-badge"
-                        >
-                            {{ getDataPointsLabel(option) }}
-                        </span>
+                        {{ option.sku }} - {{ option.category }} - Stok:
+                        {{ option.qty }}
                     </div>
                 </div>
             </div>
+        </template>
+        <template #noResult>
+            <div class="no-result">Tidak ada produk yang ditemukan</div>
+        </template>
+        <template #noOptions>
+            <div class="no-options">Mulai ketik untuk mencari produk</div>
         </template>
     </vue-multiselect>
 </template>
 
 <script>
 import { debounce } from "lodash";
+
 export default {
-    name: "AsyncProductSelect",
+    name: "ProductSearch",
     props: {
         modelValue: {
-            type: Array,
-            default: () => [],
-        },
-        startDate: {
-            type: [String, Date],
+            type: [Array, Object],
             default: null,
         },
-        endDate: {
-            type: [String, Date],
+        multiple: {
+            type: Boolean,
+            default: false,
+        },
+        categoryFilter: {
+            type: Number,
             default: null,
         },
-        frequency: {
-            type: String,
-            default: "D",
+        unitFilter: {
+            type: Number,
+            default: null,
         },
-        initialOptions: {
-            type: Array,
-            default: () => [],
+        stockFilter: {
+            type: String, // 'available', 'low', 'out'
+            default: null,
         },
     },
     data() {
@@ -88,133 +73,97 @@ export default {
             selected: this.modelValue,
             options: [],
             isLoading: false,
+            placeholderImage: "/uploads/images/placeholder-image.webp",
+            lastSearchQuery: "",
             currentPage: 1,
-            lastQuery: "",
             hasMorePages: true,
-            placeholderImage: "/uploads/images/placeholder-image.webp", // URL gambar placeholder
         };
     },
     watch: {
         modelValue(val) {
             this.selected = val;
+            // console.log("Model value updated:", val);
         },
         selected(val) {
             this.$emit("update:modelValue", val);
         },
-        startDate() {
-            // Reload products when date changes
-            this.resetAndSearch();
-        },
-        endDate() {
-            // Reload products when date changes
-            this.resetAndSearch();
-        },
-    },
-    created() {
-        // Gunakan initial options jika ada
-        if (this.initialOptions && this.initialOptions.length > 0) {
-            this.options = this.initialOptions;
-        } else {
-            // Load produk default dengan filter tanggal
-            this.loadDefaultProducts();
-        }
-    },
-    methods: {
-        resetAndSearch() {
-            this.currentPage = 1;
-            this.options = [];
-            if (this.lastQuery && this.lastQuery.length >= 2) {
-                this.searchProducts(this.lastQuery);
-            } else {
-                this.loadDefaultProducts();
-            }
-        },
-
-        loadDefaultProducts() {
-            this.isLoading = true;
-
-            axios
-                .get("/products/search", {
-                    params: this.getSearchParams(),
-                })
-                .then((response) => {
-                    this.hasMorePages = !!response.data.next_page_url;
-                    this.options = response.data.data;
-                })
-                .finally(() => {
-                    this.isLoading = false;
-                });
-        },
-
-        getSearchParams(query = null) {
-            const params = {
-                page: this.currentPage,
-                per_page: 10,
-            };
-
-            // Tambahkan parameter search jika ada
-            if (query && query.length >= 2) {
-                params.search = query;
-            } else {
-                // Jika tidak ada search, kita bisa request produk popular
-                params.popular = true;
-            }
-
-            // Tambahkan filter tanggal jika tersedia
-            if (this.startDate) {
-                params.order_date_start = this.formatDate(this.startDate);
-            }
-
-            if (this.endDate) {
-                params.order_date_end = this.formatDate(this.endDate);
-            }
-
-            return params;
-        },
-
-        // Format tanggal ke YYYY-MM-DD
-        formatDate(date) {
-            if (!date) return null;
-
-            // Jika sudah string dalam format YYYY-MM-DD, return langsung
-            if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-                return date;
-            }
-
-            // Convert ke Date object jika string
-            const dateObj = typeof date === "string" ? new Date(date) : date;
-
-            // Format ke YYYY-MM-DD
-            return dateObj.toISOString().split("T")[0];
-        },
-
-        // Method untuk pencarian dengan debounce
-        searchProducts: debounce(function (query) {
-            if (!query || query.length < 2) {
-                this.lastQuery = "";
-                this.options = [];
-                this.loadDefaultProducts();
-                return;
-            }
-
-            // Simpan query terakhir
-            this.lastQuery = query;
-
-            // Reset pagination jika query baru
-            if (this.currentPage !== 1) {
+        categoryFilter(newVal, oldVal) {
+            console.log("categoryFilter changed:", oldVal, "->", newVal);
+            if (newVal !== oldVal) {
+                // Reset pagination untuk pencarian baru
                 this.currentPage = 1;
                 this.options = [];
-            }
+                this.hasMorePages = true;
 
+                // Lakukan pencarian dengan query yang ada (atau kosong)
+                this.searchProducts(this.lastSearchQuery || "");
+            }
+        },
+        unitFilter(newVal, oldVal) {
+            if (newVal !== oldVal) {
+                // Reset pagination untuk pencarian baru
+                this.currentPage = 1;
+                this.options = [];
+                this.hasMorePages = true;
+
+                // Lakukan pencarian dengan query yang ada (atau kosong)
+                this.searchProducts(this.lastSearchQuery || "");
+            }
+        },
+        stockFilter(newVal, oldVal) {
+            if (newVal !== oldVal) {
+                // Reset pagination untuk pencarian baru
+                this.currentPage = 1;
+                this.options = [];
+                this.hasMorePages = true;
+
+                // Lakukan pencarian dengan query yang ada (atau kosong)
+                this.searchProducts(this.lastSearchQuery || "");
+            }
+        },
+    },
+    methods: {
+        searchProducts: debounce(function (query) {
+            this.lastSearchQuery = query; // Simpan query terakhir
+
+            // if (!query || query.length < 2) {
+            //     this.options = [];
+            //     this.currentPage = 1;
+            //     this.hasMorePages = true;
+            //     return;
+            // }
+
+            // Reset pagination untuk pencarian baru
+            this.currentPage = 1;
+            this.options = [];
+            this.hasMorePages = true;
             this.isLoading = true;
 
+            const params = {
+                per_page: 20,
+                page: this.currentPage,
+            };
+
+            if (query && query.length >= 2) {
+                params.search = query;
+            }
+
+            // Tambahkan filter opsional
+            if (this.categoryFilter) {
+                params.category = this.categoryFilter;
+            }
+            if (this.unitFilter) {
+                params.unit = this.unitFilter;
+            }
+            if (this.stockFilter) {
+                params.stock_status = this.stockFilter;
+            }
+
             axios
-                .get("/products/search", {
-                    params: this.getSearchParams(query),
-                })
+                .get("/products/search", { params })
                 .then((response) => {
-                    this.hasMorePages = !!response.data.next_page_url;
                     this.options = response.data.data;
+                    this.hasMorePages = !!response.data.next_page_url;
                 })
                 .finally(() => {
                     this.isLoading = false;
@@ -222,6 +171,11 @@ export default {
         }, 300),
 
         registerScrollEvent() {
+            // Load data default jika belum ada
+            if (this.options.length === 0 && !this.isLoading) {
+                this.searchProducts("");
+            }
+
             // Tambahkan event listener saat dropdown terbuka
             setTimeout(() => {
                 const dropdownList = document.querySelector(
@@ -251,12 +205,31 @@ export default {
             if (this.isLoading || !this.hasMorePages) return;
 
             this.currentPage++;
-
             this.isLoading = true;
+
+            const params = {
+                per_page: 20,
+                page: this.currentPage,
+            };
+
+            // Hanya tambahkan search jika query ada dan panjangnya >= 2
+            if (this.lastSearchQuery && this.lastSearchQuery.length >= 2) {
+                params.search = this.lastSearchQuery;
+            }
+
+            // Tambahkan filter opsional
+            if (this.categoryFilter) {
+                params.category = this.categoryFilter;
+            }
+            if (this.unitFilter) {
+                params.unit = this.unitFilter;
+            }
+            if (this.stockFilter) {
+                params.stock_status = this.stockFilter;
+            }
+
             axios
-                .get("/products/search", {
-                    params: this.getSearchParams(this.lastQuery),
-                })
+                .get("/products/search", { params })
                 .then((response) => {
                     this.hasMorePages = !!response.data.next_page_url;
                     // Append hasil baru ke options yang ada
@@ -265,57 +238,6 @@ export default {
                 .finally(() => {
                     this.isLoading = false;
                 });
-        },
-
-        isOptionDisabled(option) {
-            if (!option.timeSeriesOrderItems) return true;
-
-            let dataPoints = 0;
-
-            // Periksa jumlah data points berdasarkan frekuensi yang dipilih
-            switch (this.frequency) {
-                case "D":
-                    dataPoints = option.timeSeriesOrderItems.day;
-                    break;
-                case "W":
-                    dataPoints = option.timeSeriesOrderItems.week;
-                    break;
-                case "M":
-                    dataPoints = option.timeSeriesOrderItems.month;
-                    break;
-                default:
-                    dataPoints = option.timeSeriesOrderItems.day;
-            }
-
-            // Disable jika data point kurang dari 13
-            return dataPoints < 13;
-        },
-
-        getDataPointsLabel(option) {
-            if (!option.timeSeriesOrderItems) return "";
-
-            let count = 0;
-            let periodName = "";
-
-            switch (this.frequency) {
-                case "D":
-                    count = option.timeSeriesOrderItems.day;
-                    periodName = "harian";
-                    break;
-                case "W":
-                    count = option.timeSeriesOrderItems.week;
-                    periodName = "mingguan";
-                    break;
-                case "M":
-                    count = option.timeSeriesOrderItems.month;
-                    periodName = "bulanan";
-                    break;
-                default:
-                    count = option.timeSeriesOrderItems.day;
-                    periodName = "harian";
-            }
-
-            return `${count} titik data ${periodName}`;
         },
 
         customLabel(option) {
@@ -367,6 +289,10 @@ export default {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.input-blocks .info-img {
+    z-index: 10 !important;
 }
 
 .multiselect__option:hover .option-name {

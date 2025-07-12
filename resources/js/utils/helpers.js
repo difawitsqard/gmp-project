@@ -21,3 +21,30 @@ export function formatRupiah(angka, prefix) {
     rupiah = split[1] !== undefined ? rupiah + "," + split[1] : rupiah;
     return prefix === undefined ? rupiah : rupiah ? "Rp. " + rupiah : "";
 }
+
+export function formatDate(dateString, format = "D MMMM YYYY") {
+    if (!dateString) return "-";
+
+    try {
+        return window.dayjs(dateString).format(format);
+    } catch (error) {
+        console.error("Error formatting date:", error);
+        return "-";
+    }
+}
+
+export function timeAgo(dateString) {
+    if (!dateString) return "-";
+
+    if (!window.dayjs.fn.fromNow) {
+        import("dayjs/plugin/relativeTime").then((module) => {
+            window.dayjs.extend(module.default);
+        });
+    }
+
+    return window.dayjs(dateString).fromNow();
+}
+
+export function formatDateRange(startDate, endDate, format = "D MMMM YYYY") {
+    return `${formatDate(startDate, format)} - ${formatDate(endDate, format)}`;
+}

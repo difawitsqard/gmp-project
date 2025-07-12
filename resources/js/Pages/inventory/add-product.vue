@@ -31,11 +31,13 @@
             <form @submit.prevent="submitForm">
                 <div class="card">
                     <div class="card-body add-product pb-0">
+                        <!-- Accordion pertama: Informasi Produk -->
                         <div
                             class="accordion-card-one accordion"
                             id="accordionExample"
                         >
                             <div class="accordion-item">
+                                <!-- Header accordion tidak berubah -->
                                 <div class="accordion-header" id="headingOne">
                                     <div
                                         class="accordion-button"
@@ -67,9 +69,9 @@
                                     data-bs-parent="#accordionExample"
                                 >
                                     <div class="accordion-body">
-                                        <div class="row">
+                                        <div class="row mb-3">
                                             <div class="col-lg-6 col-12">
-                                                <div class="mb-3 add-product">
+                                                <div class="mb-3">
                                                     <label class="form-label"
                                                         >Nama Produk</label
                                                     >
@@ -81,6 +83,7 @@
                                                             'is-invalid':
                                                                 errors.name,
                                                         }"
+                                                        placeholder="e.g Besi, Paku, Baut"
                                                     />
                                                     <div
                                                         v-if="errors.name"
@@ -91,14 +94,14 @@
                                                 </div>
                                             </div>
                                             <div class="col-lg-6 col-12">
-                                                <div
-                                                    class="input-blocks add-product list"
-                                                >
-                                                    <label>SKU</label>
+                                                <div class="mb-3 input-blocks">
+                                                    <label class="form-label"
+                                                        >SKU</label
+                                                    >
                                                     <input
                                                         type="text"
                                                         class="form-control list"
-                                                        placeholder="Enter SKU"
+                                                        placeholder="SKU Produk"
                                                         v-model="form.sku"
                                                         :class="{
                                                             'is-invalid':
@@ -122,69 +125,57 @@
                                                     </button>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        <div class="add-product-new">
-                                            <div class="row">
-                                                <div class="col-lg-6 col-12">
+                                            <div class="col-lg-6 col-12">
+                                                <div class="mb-3">
+                                                    <div class="add-newplus">
+                                                        <label
+                                                            class="form-label"
+                                                            >Satuan</label
+                                                        >
+                                                        <a
+                                                            href="#"
+                                                            @click="
+                                                                openModalAddUnit()
+                                                            "
+                                                            ><vue-feather
+                                                                type="plus-circle"
+                                                                class="plus-down-add"
+                                                            ></vue-feather
+                                                            ><span
+                                                                >Tambahkan
+                                                                Baru</span
+                                                            ></a
+                                                        >
+                                                    </div>
+                                                    <vue-select
+                                                        :options="ChooseUnit"
+                                                        id="chooseUnit"
+                                                        placeholder="Pilih Unit"
+                                                        v-model="form.unit_id"
+                                                        :class="{
+                                                            'is-invalid':
+                                                                errors.unit_id,
+                                                        }"
+                                                    />
                                                     <div
-                                                        class="mb-3 add-product"
+                                                        v-if="errors.unit_id"
+                                                        class="invalid-feedback"
                                                     >
-                                                        <div
-                                                            class="add-newplus"
-                                                        >
-                                                            <label
-                                                                class="form-label"
-                                                                >Satuan</label
-                                                            >
-                                                            <a
-                                                                href="javascript:void(0);"
-                                                                @click="
-                                                                    openModalAddUnit()
-                                                                "
-                                                                ><vue-feather
-                                                                    type="plus-circle"
-                                                                    class="plus-down-add"
-                                                                ></vue-feather
-                                                                ><span
-                                                                    >Tambahkan
-                                                                    Baru</span
-                                                                ></a
-                                                            >
-                                                        </div>
-                                                        <vue-select
-                                                            :options="
-                                                                ChooseUnit
-                                                            "
-                                                            id="chooseUnit"
-                                                            placeholder="Choose"
-                                                            v-model="
-                                                                form.unit_id
-                                                            "
-                                                            :class="{
-                                                                'is-invalid':
-                                                                    errors.unit_id,
-                                                            }"
-                                                        />
-                                                        <div
-                                                            v-if="
-                                                                errors.unit_id
-                                                            "
-                                                            class="invalid-feedback"
-                                                        >
-                                                            {{ errors.unit_id }}
-                                                        </div>
+                                                        {{ errors.unit_id }}
                                                     </div>
                                                 </div>
+                                            </div>
 
-                                                <div class="col-lg-6 col-12">
+                                            <div class="col-lg-6 col-12">
+                                                <div class="mb-3">
                                                     <div class="add-newplus">
                                                         <label
                                                             class="form-label"
                                                             >Kategori</label
                                                         >
                                                         <a
-                                                            href="javascript:void(0);"
+                                                            href="#"
                                                             @click="
                                                                 openModalAddCategory()
                                                             "
@@ -203,7 +194,7 @@
                                                             ChooseCategory
                                                         "
                                                         id="chooseCategory"
-                                                        placeholder="Choose"
+                                                        placeholder="Pilih Kategori"
                                                         v-model="
                                                             form.product_categories_id
                                                         "
@@ -224,43 +215,49 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <!-- Editor -->
-                                        <div class="col-lg-12">
-                                            <div
-                                                class="input-blocks summer-description-box transfer mb-3"
-                                            >
-                                                <label>Deskripsi</label>
-                                                <textarea
-                                                    class="form-control h-100"
-                                                    rows="5"
-                                                    :class="{
-                                                        'is-invalid':
-                                                            errors.description,
-                                                    }"
-                                                ></textarea>
-                                                <p class="mt-1">
-                                                    Maksimum 60 Karakter
-                                                </p>
+
+                                            <div class="col-lg-12">
                                                 <div
-                                                    v-if="errors.description"
-                                                    class="invalid-feedback"
+                                                    class="input-blocks summer-description-box transfer"
                                                 >
-                                                    {{ errors.description }}
+                                                    <label>Deskripsi</label>
+                                                    <QuillEditor
+                                                        v-model="
+                                                            form.description
+                                                        "
+                                                        :class="{
+                                                            'is-invalid':
+                                                                errors.description,
+                                                        }"
+                                                        placeholder="Deskripsi produk"
+                                                    />
+
+                                                    <p class="mt-1">
+                                                        Maksimum 60 Karakter
+                                                    </p>
+                                                    <div
+                                                        v-if="
+                                                            errors.description
+                                                        "
+                                                        class="invalid-feedback"
+                                                    >
+                                                        {{ errors.description }}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                        <!-- /Editor -->
                                     </div>
                                 </div>
                             </div>
                         </div>
 
+                        <!-- Accordion kedua: Harga & Stok -->
                         <div
                             class="accordion-card-one accordion"
                             id="accordionStockAndPrice"
                         >
                             <div class="accordion-item">
+                                <!-- Header accordion tidak berubah -->
                                 <div class="accordion-header" id="headingTwo">
                                     <div
                                         class="accordion-button"
@@ -306,15 +303,15 @@
                                                 role="tabpanel"
                                                 aria-labelledby="pills-home-tab"
                                             >
-                                                <div class="row">
+                                                <div class="row mb-3">
                                                     <div
                                                         class="col-lg-4 col-sm-6 col-12"
                                                     >
-                                                        <div
-                                                            class="input-blocks add-product"
-                                                        >
+                                                        <div class="mb-3">
                                                             <label
-                                                                >Kuantitas</label
+                                                                class="form-label"
+                                                                >Inisialisasi
+                                                                Kuantitas</label
                                                             >
                                                             <input
                                                                 type="text"
@@ -340,12 +337,11 @@
                                                     <div
                                                         class="col-lg-4 col-sm-6 col-12"
                                                     >
-                                                        <div
-                                                            class="input-blocks add-product"
-                                                        >
+                                                        <div class="mb-3">
                                                             <label
+                                                                class="form-label"
                                                                 >Peringatan
-                                                                Quantitas</label
+                                                                Kuantitas</label
                                                             >
                                                             <input
                                                                 type="text"
@@ -373,10 +369,11 @@
                                                     <div
                                                         class="col-lg-4 col-sm-6 col-12"
                                                     >
-                                                        <div
-                                                            class="input-blocks add-product"
-                                                        >
-                                                            <label>Harga</label>
+                                                        <div class="mb-3">
+                                                            <label
+                                                                class="form-label"
+                                                                >Harga</label
+                                                            >
                                                             <input
                                                                 type="text"
                                                                 class="form-control"
@@ -408,11 +405,13 @@
                             </div>
                         </div>
 
+                        <!-- Accordion ketiga: Gambar -->
                         <div
                             class="accordion-card-one accordion"
                             id="accordionImagesProduct"
                         >
                             <div class="accordion-item">
+                                <!-- Header accordion tidak berubah -->
                                 <div class="accordion-header" id="headingThree">
                                     <div
                                         class="accordion-button"
@@ -479,17 +478,19 @@
                                                         </div>
                                                     </div>
 
+                                                    <!-- Gambar baru -->
                                                     <div
                                                         v-for="(
                                                             image, index
                                                         ) in form.images"
-                                                        :key="index"
+                                                        :key="'new-' + index"
                                                         class="phone-img"
                                                     >
                                                         <img
                                                             :src="image"
-                                                            alt="Uploaded Image"
+                                                            alt="New Image"
                                                         />
+
                                                         <a
                                                             href="javascript:void(0);"
                                                             @click="
@@ -497,6 +498,7 @@
                                                                     index
                                                                 )
                                                             "
+                                                            class="remove-btn"
                                                             >x</a
                                                         >
                                                     </div>
@@ -518,7 +520,7 @@
                             Cancel
                         </Link>
                         <button type="submit" class="btn btn-submit">
-                            Tambahkan Produk
+                            Tambah Produk
                         </button>
                     </div>
                 </div>
@@ -553,6 +555,7 @@ import Vue3TagsInput from "vue3-tags-input";
 import { Head, Link, useForm } from "@inertiajs/vue3";
 import UnitsModal from "@/components/modal/units-modal.vue";
 import ProductCategoryModal from "@/components/modal/product-category-modal.vue";
+import QuillEditor from "@/components/QuillEditor.vue";
 // import CropperjsModal from "@/components/modal/cropperjs-modal.vue";
 
 export default {
@@ -562,6 +565,7 @@ export default {
         Head,
         UnitsModal,
         ProductCategoryModal,
+        QuillEditor,
         // CropperjsModal,
     },
     props: {

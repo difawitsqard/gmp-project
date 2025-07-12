@@ -14,7 +14,7 @@
                             <div class="search-input">
                                 <input
                                     type="text"
-                                    placeholder="Cari..."
+                                    placeholder="Cari.."
                                     class="dark-input"
                                     v-model="filters.search"
                                 />
@@ -49,77 +49,81 @@
                             </a>
                         </div>
                     </div>
-                    <!-- /Filter -->
+
                     <div
-                        class="card mb-0"
+                        class="card"
                         :style="{ display: filter ? 'block' : 'none' }"
                         id="filter_inputs"
                     >
                         <div class="card-body pb-0">
                             <div class="row">
-                                <div class="col-lg-12 col-sm-12">
-                                    <div class="row">
-                                        <div class="col-lg-2 col-sm-6 col-12">
-                                            <div class="input-blocks">
-                                                <vue-feather
-                                                    type="stop-circle"
-                                                    class="info-img"
-                                                ></vue-feather>
-                                                <vue-select
-                                                    :options="categoryOptions"
-                                                    v-model="filters.category"
-                                                    id="categroyfilter"
-                                                    placeholder="Pilih Kategori"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div class="col-lg-2 col-sm-6 col-12">
-                                            <div class="input-blocks">
-                                                <vue-feather
-                                                    type="speaker"
-                                                    class="info-img"
-                                                ></vue-feather>
-                                                <vue-select
-                                                    :options="unitOptions"
-                                                    v-model="filters.unit"
-                                                    id="unitfilter"
-                                                    placeholder="Pilih Satuan"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div class="col-lg-2 col-sm-6 col-12">
-                                            <div
-                                                class="input-blocks d-flex align-items-center justify-content-end"
-                                            >
-                                                <button
-                                                    type="button"
-                                                    class="btn btn-filters ms-auto me-2"
-                                                    @click="filterProducts"
-                                                >
-                                                    <i
-                                                        data-feather="search"
-                                                        class="feather-search"
-                                                    ></i>
-                                                    Search
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    class="btn btn-filters"
-                                                    @click="reset()"
-                                                >
-                                                    <i
-                                                        data-feather="x"
-                                                        class="feather-x me-2"
-                                                    ></i>
-                                                    Reset
-                                                </button>
-                                            </div>
-                                        </div>
+                                <div class="col-lg-2 col-sm-6 col-12">
+                                    <div class="input-blocks">
+                                        <vue-feather
+                                            type="stop-circle"
+                                            class="info-img"
+                                        ></vue-feather>
+                                        <vue-select
+                                            :options="categoryOptions"
+                                            v-model="filters.category"
+                                            id="categroyfilter"
+                                            :settings="{
+                                                allowClear: true,
+                                                placeholder: 'Pilih Kategori',
+                                            }"
+                                        />
+                                    </div>
+                                </div>
+                                <div class="col-lg-2 col-sm-6 col-12">
+                                    <div class="input-blocks">
+                                        <vue-feather
+                                            type="speaker"
+                                            class="info-img"
+                                        ></vue-feather>
+                                        <vue-select
+                                            :options="unitOptions"
+                                            v-model="filters.unit"
+                                            :settings="{
+                                                allowClear: true,
+                                                placeholder: 'Pilih Satuan',
+                                            }"
+                                            id="unitfilter"
+                                        />
+                                    </div>
+                                </div>
+                                <div class="col-lg-2 col-sm-6 col-12">
+                                    <div class="input-blocks">
+                                        <vue-feather
+                                            type="package"
+                                            class="info-img"
+                                        ></vue-feather>
+                                        <vue-select
+                                            :options="stockStatusOptions"
+                                            v-model="filters.stock_status"
+                                            :settings="{
+                                                allowClear: true,
+                                                placeholder: 'Pilih Status',
+                                            }"
+                                            id="stockfilter"
+                                        />
+                                    </div>
+                                </div>
+                                <div class="col-lg-3 col-sm-6 col-12 ms-auto">
+                                    <div
+                                        class="input-blocks d-flex justify-content-end"
+                                    >
+                                        <a
+                                            class="btn btn-filters btn-reset"
+                                            @click="reset"
+                                        >
+                                            Reset
+                                        </a>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+
                     <!-- /Filter -->
                     <div class="table-responsive">
                         <a-table
@@ -142,8 +146,8 @@
                                             class="product-img stock-img"
                                         >
                                             <img
-                                                v-lazy="record.image"
-                                                :src="record.image"
+                                                v-lazy="record.image_url"
+                                                :src="record.image_url"
                                                 alt="product"
                                             />
                                         </Link>
@@ -159,6 +163,10 @@
                                             {{ record.name }}
                                         </Link>
                                     </div>
+                                </template>
+
+                                <template v-else-if="column.key === 'price'">
+                                    {{ $helpers.formatRupiah(record.price) }}
                                 </template>
 
                                 <template
@@ -197,7 +205,12 @@
                                             </Link>
                                             <Link
                                                 class="me-2 p-2"
-                                                :href="`/product/${record.id}/edit`"
+                                                :href="
+                                                    route(
+                                                        'products.edit',
+                                                        record.id
+                                                    )
+                                                "
                                             >
                                                 <i
                                                     data-feather="edit"
@@ -236,7 +249,7 @@ export default {
     setup() {
         const { filters, fetch, reset } = useInertiaFiltersDynamic(
             "products.index",
-            ["search", "category", "unit"],
+            ["search", "category", "unit", "stock_status"],
             { only: ["products"] }
         );
 
@@ -295,6 +308,14 @@ export default {
 
             return [defaultOption, ...unit];
         },
+        stockStatusOptions() {
+            return [
+                { id: null, text: "Pilih Status" },
+                { id: "available", text: "Tersedia" },
+                { id: "low", text: "Stok Rendah" },
+                { id: "out", text: "Habis" },
+            ];
+        },
     },
     data() {
         return {
@@ -331,6 +352,7 @@ export default {
                 {
                     title: "Harga",
                     dataIndex: "price",
+                    key: "price",
                     sorter: {
                         compare: (a, b) => {
                             a = a.price.toLowerCase();

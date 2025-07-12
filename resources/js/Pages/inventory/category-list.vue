@@ -86,7 +86,7 @@
                             <div class="search-input">
                                 <input
                                     type="text"
-                                    placeholder="Search"
+                                    placeholder="Cari.."
                                     class="dark-input"
                                     v-model="filters.search"
                                 />

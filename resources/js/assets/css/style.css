@@ -1356,7 +1356,7 @@ button:focus {
 .btn.btn-primary.active {
     background-color: #0273b0 !important;
     border: 1px solid #0273b0 !important;
-    box-shadow: 0 3px 10px rgba(3, 146, 222, 0.5);;
+    box-shadow: 0 3px 10px rgba(3, 146, 222, 0.5);
     color: #ffffff !important;
 }
 .btn.btn-secondary {
@@ -1628,7 +1628,7 @@ button:focus {
 }
 
 .btn.btn-primary-light {
-    background-color: rgba(3, 146, 222, 0.1);;
+    background-color: rgba(3, 146, 222, 0.1);
     color: #0392de;
 }
 .btn.btn-primary-light:hover,
@@ -1770,7 +1770,7 @@ button:focus {
 .btn-outline-primary.active {
     background-color: #0392de !important;
     border: 1px solid #0392de !important;
-    box-shadow: 0 3px 10px rgba(3, 146, 222, 0.5);;
+    box-shadow: 0 3px 10px rgba(3, 146, 222, 0.5);
     color: #ffffff !important;
 }
 
@@ -1984,19 +1984,19 @@ button:focus {
 }
 
 .badge.badge-primary {
-    background: rgba(3, 146, 222, 0.1);;
-    box-shadow: 0 1px 1px rgba(3, 146, 222, 0.5);;
+    background: rgba(3, 146, 222, 0.1);
+    box-shadow: 0 1px 1px rgba(3, 146, 222, 0.5);
     color: #0392de;
 }
 
 .badge.badge-primary {
     background: #0392de;
-    box-shadow: 0 1px 1px rgba(3, 146, 222, 0.5);;
+    box-shadow: 0 1px 1px rgba(3, 146, 222, 0.5);
     color: #ffffff;
 }
 .badge.badge-soft-primary {
-    background: rgba(3, 146, 222, 0.1);;
-    box-shadow: 0 1px 1px rgba(3, 146, 222, 0.5);;
+    background: rgba(3, 146, 222, 0.1);
+    box-shadow: 0 1px 1px rgba(3, 146, 222, 0.5);
     color: #0392de;
 }
 
@@ -2898,7 +2898,7 @@ button:focus {
 .dropdown-item:not(.active):focus,
 .dropdown-item:not(.active):active {
     color: #0392de;
-    background-color: rgba(3, 146, 222, 0.05);;
+    background-color: rgba(3, 146, 222, 0.05);
 }
 .dropdown-item.active {
     background-color: #0392de !important;
@@ -3315,7 +3315,7 @@ button:focus {
     width: 1.15rem;
     height: 1.15rem;
     border-radius: 50%;
-    box-shadow: 0 0.313rem 0.313rem rgba(3, 146, 222, 0.5);;
+    box-shadow: 0 0.313rem 0.313rem rgba(3, 146, 222, 0.5);
     background: #ffffff;
     position: absolute;
     inset-inline-end: -0.375rem;
@@ -3480,7 +3480,7 @@ button:focus {
 }
 
 .custom-progress-4.progress {
-    background-color: rgba(3, 146, 222, 0.1);;
+    background-color: rgba(3, 146, 222, 0.1);
     border-radius: 0.25rem;
 }
 .custom-progress-4.progress.secondary {
@@ -4121,11 +4121,11 @@ hr.text-danger {
     inset-inline-start: 0.5rem;
 }
 .blockquote.custom-blockquote.primary {
-    background-color: rgba(3, 146, 222, 0.1);;
+    background-color: rgba(3, 146, 222, 0.1);
     border-inline-start: 2px solid #0392de;
 }
 .blockquote.custom-blockquote.primary:before {
-    color: rgba(3, 146, 222, 0.1);;
+    color: rgba(3, 146, 222, 0.1);
 }
 .blockquote.custom-blockquote.secondary {
     background-color: rgba(9, 44, 76, 0.1);
@@ -4254,9 +4254,9 @@ hr.text-danger {
 }
 
 .alert-primary {
-    background-color: rgba(3, 146, 222, 0.1);;
+    background-color: rgba(3, 146, 222, 0.1);
     color: #0392de;
-    border-color: rgba(3, 146, 222, 0.1);;
+    border-color: rgba(3, 146, 222, 0.1);
 }
 .alert-primary .alert-link {
     color: #0392de;
@@ -5264,16 +5264,16 @@ hr.text-danger {
 }
 
 .popover-primary-light.popover {
-    border: 1px solid rgba(3, 146, 222, 0.1);;
+    border: 1px solid rgba(3, 146, 222, 0.1);
 }
 .popover-primary-light.popover .popover-header {
-    background-color: rgba(3, 146, 222, 0.1);;
-    border-block-end: 1px solid rgba(3, 146, 222, 0.1);;
+    background-color: rgba(3, 146, 222, 0.1);
+    border-block-end: 1px solid rgba(3, 146, 222, 0.1);
     color: #0392de;
     border-radius: 0;
 }
 .popover-primary-light.popover .popover-body {
-    background-color: rgba(3, 146, 222, 0.1);;
+    background-color: rgba(3, 146, 222, 0.1);
     color: #0392de;
 }
 .popover-primary-light.bs-popover-auto[data-popper-placement^="top"]
@@ -5282,7 +5282,7 @@ hr.text-danger {
 .popover-primary-light.bs-popover-auto[data-popper-placement^="top"]
     > .popover-arrow::before,
 .popover-primary-light.bs-popover-top > .popover-arrow::before {
-    border-top-color: rgba(3, 146, 222, 0.1);;
+    border-top-color: rgba(3, 146, 222, 0.1);
 }
 .popover-primary-light.bs-popover-auto[data-popper-placement^="right"]
     > .popover-arrow::after,
@@ -5290,7 +5290,7 @@ hr.text-danger {
 .popover-primary-light.bs-popover-auto[data-popper-placement^="right"]
     > .popover-arrow::before,
 .popover-primary-light.bs-popover-end > .popover-arrow::before {
-    border-right-color: rgba(3, 146, 222, 0.1);;
+    border-right-color: rgba(3, 146, 222, 0.1);
 }
 .popover-primary-light.bs-popover-auto[data-popper-placement^="left"]
     > .popover-arrow::after,
@@ -5298,7 +5298,7 @@ hr.text-danger {
 .popover-primary-light.bs-popover-auto[data-popper-placement^="left"]
     > .popover-arrow::before,
 .popover-primary-light.bs-popover-start > .popover-arrow::before {
-    border-left-color: rgba(3, 146, 222, 0.1);;
+    border-left-color: rgba(3, 146, 222, 0.1);
 }
 .popover-primary-light.bs-popover-auto[data-popper-placement^="bottom"]
     > .popover-arrow::after,
@@ -5309,7 +5309,7 @@ hr.text-danger {
 .popover-primary-light.bs-popover-auto[data-popper-placement^="bottom"]
     .popover-header::before,
 .popover-primary-light.bs-popover-bottom .popover-header::before {
-    border-bottom-color: rgba(3, 146, 222, 0.1);;
+    border-bottom-color: rgba(3, 146, 222, 0.1);
 }
 
 .popover-secondary-light.popover {
@@ -5836,12 +5836,12 @@ hr.text-danger {
 }
 
 .form-control-primary {
-    background-color: rgba(3, 146, 222, 0.1);;
+    background-color: rgba(3, 146, 222, 0.1);
     border: 0;
     color: #0392de;
 }
 .form-control-primary:focus {
-    background-color: rgba(3, 146, 222, 0.1);;
+    background-color: rgba(3, 146, 222, 0.1);
     color: #0392de;
 }
 
@@ -6907,7 +6907,7 @@ caption {
 .table.table-bordered.border-primary th,
 .table.table-bordered.border-primary thead,
 .table.table-bordered.border-primary tr {
-    border-color: rgba(3, 146, 222, 0.1);;
+    border-color: rgba(3, 146, 222, 0.1);
 }
 .table.table-bordered.border-info tbody,
 .table.table-bordered.border-info td,
@@ -7821,7 +7821,7 @@ td.ant-table-column-sort {
 }
 
 .accordion.accordion-primary .accordion-button {
-    background-color: rgba(3, 146, 222, 0.1);;
+    background-color: rgba(3, 146, 222, 0.1);
     color: #0392de;
 }
 .accordion.accordion-primary .accordion-button:after {
@@ -8137,7 +8137,7 @@ td.ant-table-column-sort {
 .customized-accordion
     .accordion-item.custom-accordion-primary
     .accordion-button {
-    background-color: rgba(3, 146, 222, 0.1);;
+    background-color: rgba(3, 146, 222, 0.1);
     border-inline-start: 0.25rem solid rgba(255, 159, 67, 0.6);
 }
 .customized-accordion
@@ -8147,7 +8147,7 @@ td.ant-table-column-sort {
     color: #ffffff;
 }
 .customized-accordion .accordion-item.custom-accordion-primary .accordion-body {
-    background-color: rgba(3, 146, 222, 0.1);;
+    background-color: rgba(3, 146, 222, 0.1);
     padding-block-start: 0;
     border-inline-start: 0.25rem solid rgba(255, 159, 67, 0.6);
 }
@@ -8942,7 +8942,7 @@ td.ant-table-column-sort {
     font-weight: 600;
 }
 .nav-link.active {
-    background-color: rgba(3, 146, 222, 0.1);;
+    background-color: rgba(3, 146, 222, 0.1);
     color: #0392de;
 }
 
@@ -8999,11 +8999,11 @@ td.ant-table-column-sort {
     margin-inline-end: 0;
 }
 .nav.nav-style-1 .nav-link.active {
-    background-color: rgba(3, 146, 222, 0.1);;
+    background-color: rgba(3, 146, 222, 0.1);
     color: #0392de;
 }
 .nav.nav-style-1 .nav-link.active:hover {
-    background: rgba(3, 146, 222, 0.1);;
+    background: rgba(3, 146, 222, 0.1);
 }
 .nav.nav-style-1 .nav-link:hover {
     background: transparent;
@@ -9014,7 +9014,7 @@ td.ant-table-column-sort {
     border-block-start: 3px solid transparent;
 }
 .nav.nav-style-2 .nav-item .nav-link.active {
-    background-color: rgba(3, 146, 222, 0.1);;
+    background-color: rgba(3, 146, 222, 0.1);
     border-block-start: 3px solid #0392de;
     color: #0392de;
 }
@@ -9101,7 +9101,7 @@ td.ant-table-column-sort {
     font-weight: 500;
 }
 .nav-tabs-header .nav-item .nav-link.active {
-    background: rgba(3, 146, 222, 0.1);;
+    background: rgba(3, 146, 222, 0.1);
     color: #0392de;
     border: 1px solid transparent;
 }
@@ -9296,7 +9296,7 @@ td.ant-table-column-sort {
     color: #0392de;
 }
 .tab-style-2 .nav-item .nav-link.active i {
-    background-color: rgba(3, 146, 222, 0.1);;
+    background-color: rgba(3, 146, 222, 0.1);
     color: #0392de;
 }
 .tab-style-2 .nav-item .nav-link.active:before {
@@ -9498,12 +9498,12 @@ td.ant-table-column-sort {
 }
 .tab-style-7 .nav-link:active,
 .tab-style-7 .nav-link.active {
-    background-color: rgba(3, 146, 222, 0.1);;
+    background-color: rgba(3, 146, 222, 0.1);
     color: #0392de;
 }
 
 .nav-style-1 .nav-item .nav-link.active {
-    background-color: rgba(3, 146, 222, 0.1);;
+    background-color: rgba(3, 146, 222, 0.1);
     color: #0392de;
 }
 
@@ -11259,6 +11259,12 @@ table.table-bordered thead tr th p {
     right: 6px;
 }
 
+.select2-selection__clear {
+    margin-right: 8%;
+    font-size: 18px;
+    color: #ff0000;
+}
+
 .select2-container--default
     .select2-selection--single
     .select2-selection__arrow
@@ -11474,6 +11480,7 @@ table.dataTable thead > tr > th.no-sort.sorting::after {
     -ms-transition: all 0.2s ease;
     transition: all 0.2s ease;
 }
+
 @media (max-width: 991.98px) {
     .page-wrapper {
         margin: 0;
@@ -11954,7 +11961,6 @@ table.dataTable thead > tr > th.no-sort.sorting::after {
     font-size: 14px;
     border-radius: 8px;
 }
-
 
 .page-header .btn-added:active {
     color: #ffffff;
@@ -28677,7 +28683,6 @@ table tbody td.action-table-data a.cancel-circle:hover svg {
     border-radius: 8px;
 }
 
-
 .card .card-body.add-product .addproduct-icon {
     margin: 0 0 20px 0px;
     padding: 0 0 20px 0;
@@ -28882,54 +28887,117 @@ table tbody td.action-table-data a.cancel-circle:hover svg {
     font-weight: 700;
 }
 
+/* Styling untuk container gambar */
 .add-choosen {
     display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    margin-top: 10px;
+    justify-content: flex-start;
 }
+
+/* Responsive layout untuk mobile */
 @media (max-width: 767px) {
     .add-choosen {
-        flex-wrap: wrap;
+        justify-content: space-between; /* Mendistribusikan ruang antar item */
     }
 }
+
+/* Styling untuk phone-img container */
 .add-choosen .phone-img {
     position: relative;
-    width: 137px;
-    height: 123px;
-    border-radius: 10px;
-    border: 1px solid var(--Stroke, rgba(145, 158, 171, 0.3));
-    text-align: center;
-    margin-left: 20px;
+    width: 120px;
+    height: 120px;
+    margin: 0 10px 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    overflow: hidden; /* Mencegah gambar keluar dari kotak */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f9f9f9;
 }
+
+/* Pengaturan khusus untuk mobile */
 @media (max-width: 767px) {
     .add-choosen .phone-img {
+        width: calc(50% - 5px); /* Membuat 2 gambar per baris dengan sedikit margin */
+        margin-right: 0; /* Hapus margin default */
         margin-bottom: 10px;
-        margin-left: 0;
+    }
+    
+    /* Atur margin kanan hanya untuk item ganjil (1, 3, 5) */
+    .add-choosen .phone-img:nth-child(odd) {
+        margin-right: 10px;
+    }
+    
+    /* Pastikan container upload juga mengikuti layout yang sama */
+    .add-choosen .input-blocks {
+        width: calc(50% - 5px);
+        margin-right: 0;
+    }
+    
+    .add-choosen .input-blocks:nth-child(odd) {
+        margin-right: 10px;
+    }
+    
+    /* Pastikan ukuran tombol upload sama dengan gambar */
+    .add-choosen .image-upload {
+        width: 100%;
+        height: 120px;
+        margin-right: 0;
     }
 }
+
+/* Styling untuk gambar di dalam container */
 .add-choosen .phone-img img {
-    padding: 10px;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain; /* Menjaga rasio aspek gambar */
+    display: block;
 }
+
+/* Styling untuk tombol hapus */
 .add-choosen .phone-img a {
     position: absolute;
-    right: 3px;
-    top: 3px;
-    background: #ff0000;
-    border-radius: 3px;
-    width: 16px;
-    height: 16px;
-    color: #ffffff;
-    display: -webkit-box;
-    display: -ms-flexbox;
+    top: 0;
+    right: 0;
+    background: rgba(255, 0, 0, 0.7);
+    color: white;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
-    -webkit-box-align: center;
-    -ms-flex-align: center;
     justify-content: center;
-    -webkit-justify-content: center;
-    -ms-flex-pack: center;
+    border-radius: 0 0 0 5px;
+    text-decoration: none;
+    font-weight: bold;
+    z-index: 2;
 }
+
 .add-choosen .phone-img a:hover {
     color: #ffffff;
     background: #e61414;
+}
+
+/* Styling untuk badge */
+.add-choosen .phone-img .image-badge {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 2px 5px;
+    font-size: 10px;
+    border-radius: 0 0 5px 0;
+    z-index: 2;
+}
+
+.image-upload {
+    margin-right: 10px;
+    margin-bottom: 10px;
 }
 
 .custom_radio,

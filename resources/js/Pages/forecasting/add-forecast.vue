@@ -206,7 +206,7 @@
                                                                 class="form-label"
                                                                 >Produk</label
                                                             >
-                                                            <AsyncProductSelect
+                                                            <AsyncProductForecastSelect
                                                                 v-model="
                                                                     form.products
                                                                 "
@@ -368,12 +368,12 @@
 </template>
 
 <script>
-import AsyncProductSelectVue from "@/components/AsyncProductSelect.vue";
+import AsyncProductForecastSelect from "@/components/AsyncProductForecastSelect.vue";
 import { Head, Link, useForm } from "@inertiajs/vue3";
 
 export default {
     components: {
-        AsyncProductSelect: AsyncProductSelectVue,
+        AsyncProductForecastSelect,
         Head,
     },
     props: {

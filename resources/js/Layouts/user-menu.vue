@@ -7,7 +7,8 @@
                     :class="{
                         active:
                             route().current('products.index') ||
-                            route().current('products.show'),
+                            route().current('products.show') ||
+                            route().current('products.edit'),
                     }"
                 >
                     <Link :href="route('products.index')">
@@ -19,6 +20,16 @@
                     <Link :href="route('products.create')">
                         <vue-feather type="plus-square" />
                         <span>Buat Produk</span>
+                    </Link>
+                </li>
+                <li
+                    :class="{
+                        active: route().current('products.stock-management'),
+                    }"
+                >
+                    <Link :href="route('products.stock-management')">
+                        <vue-feather type="layers" />
+                        <span>Kelola Stok</span>
                     </Link>
                 </li>
                 <li
