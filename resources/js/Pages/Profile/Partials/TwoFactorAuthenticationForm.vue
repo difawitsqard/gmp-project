@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import { router, useForm, usePage } from "@inertiajs/vue3";
+import ConfirmsPassword from "@/components/modal/ConfirmsPassword.vue";
 
 const props = defineProps({
     requiresConfirmation: Boolean,
@@ -193,6 +194,9 @@ const disableTwoFactorAuthentication = () => {
                                 v-model="confirmationForm.code"
                                 type="text"
                                 class="form-control"
+                                :class="{
+                                    'is-invalid': confirmationForm.errors.code,
+                                }"
                                 inputmode="numeric"
                                 autofocus
                                 autocomplete="one-time-code"
@@ -222,16 +226,15 @@ const disableTwoFactorAuthentication = () => {
                         </p>
                     </div>
 
-                    <div class="mt-4 p-3 bg-light rounded">
+                    <div
+                        class="mt-4 p-3 bg-light text-dark rounded font-monospace recovery-code"
+                    >
                         <div class="row">
                             <div
                                 v-for="(code, index) in recoveryCodes"
                                 :key="index"
-                                class="col-md-6"
                             >
-                                <div class="recovery-code mb-2 font-monospace">
-                                    {{ code }}
-                                </div>
+                                {{ code }}
                             </div>
                         </div>
                     </div>
@@ -240,76 +243,92 @@ const disableTwoFactorAuthentication = () => {
 
             <div class="mt-4">
                 <div v-if="!twoFactorEnabled" class="text-end">
-                    <button
-                        type="button"
-                        class="btn btn-primary"
-                        @click="enableTwoFactorAuthentication"
-                        :disabled="enabling"
+                    <ConfirmsPassword
+                        @confirmed="enableTwoFactorAuthentication"
                     >
-                        Aktifkan
-                    </button>
+                        <button
+                            type="button"
+                            class="btn btn-primary"
+                            :disabled="enabling"
+                        >
+                            <span
+                                v-if="enabling"
+                                class="spinner-border spinner-border-sm me-1"
+                            ></span>
+                            Aktifkan
+                        </button>
+                    </ConfirmsPassword>
                 </div>
 
                 <div v-else class="d-flex justify-content-end">
-                    <button
-                        v-if="confirming"
-                        type="button"
-                        class="btn btn-primary me-2"
-                        :disabled="enabling"
-                        @click="confirmTwoFactorAuthentication"
+                    <ConfirmsPassword
+                        @confirmed="confirmTwoFactorAuthentication"
                     >
-                        Konfirmasi
-                    </button>
+                        <button
+                            v-if="confirming"
+                            type="button"
+                            class="btn btn-primary me-2"
+                            :disabled="enabling"
+                        >
+                            <span
+                                v-if="enabling"
+                                class="spinner-border spinner-border-sm me-1"
+                            ></span>
+                            Konfirmasi
+                        </button>
+                    </ConfirmsPassword>
 
-                    <button
-                        v-if="recoveryCodes.length > 0 && !confirming"
-                        type="button"
-                        class="btn btn-secondary me-2"
-                        @click="regenerateRecoveryCodes"
-                    >
-                        Regenerasi Kode Pemulihan
-                    </button>
+                    <ConfirmsPassword @confirmed="regenerateRecoveryCodes">
+                        <button
+                            v-if="recoveryCodes.length > 0 && !confirming"
+                            type="button"
+                            class="btn btn-secondary me-2"
+                        >
+                            Regenerasi Kode Pemulihan
+                        </button>
+                    </ConfirmsPassword>
 
-                    <button
-                        v-if="recoveryCodes.length === 0 && !confirming"
-                        type="button"
-                        class="btn btn-secondary me-2"
-                        @click="showRecoveryCodes"
-                    >
-                        Tampilkan Kode Pemulihan
-                    </button>
+                    <ConfirmsPassword @confirmed="showRecoveryCodes">
+                        <button
+                            v-if="recoveryCodes.length === 0 && !confirming"
+                            type="button"
+                            class="btn btn-secondary me-2"
+                        >
+                            Tampilkan Kode Pemulihan
+                        </button>
+                    </ConfirmsPassword>
 
-                    <button
-                        v-if="confirming"
-                        type="button"
-                        class="btn btn-secondary"
-                        :disabled="disabling"
-                        @click="disableTwoFactorAuthentication"
+                    <ConfirmsPassword
+                        @confirmed="disableTwoFactorAuthentication"
                     >
-                        Batal
-                    </button>
+                        <button
+                            v-if="confirming"
+                            type="button"
+                            class="btn btn-secondary"
+                            :disabled="disabling"
+                        >
+                            Batal
+                        </button>
+                    </ConfirmsPassword>
 
-                    <button
-                        v-if="!confirming"
-                        type="button"
-                        class="btn btn-danger"
-                        :disabled="disabling"
-                        @click="disableTwoFactorAuthentication"
+                    <ConfirmsPassword
+                        @confirmed="disableTwoFactorAuthentication"
                     >
-                        Nonaktifkan
-                    </button>
+                        <button
+                            v-if="!confirming"
+                            type="button"
+                            class="btn btn-danger"
+                            :disabled="disabling"
+                        >
+                            <span
+                                v-if="disabling"
+                                class="spinner-border spinner-border-sm me-1"
+                            ></span>
+                            Nonaktifkan
+                        </button>
+                    </ConfirmsPassword>
                 </div>
             </div>
         </div>
     </div>
 </template>
-
-<style>
-.recovery-code {
-    font-family: monospace;
-    font-size: 14px;
-    padding: 8px;
-    background-color: #f8f9fa;
-    border-radius: 4px;
-}
-</style>

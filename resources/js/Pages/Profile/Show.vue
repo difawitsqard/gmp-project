@@ -24,9 +24,7 @@
             <!-- Two Factor Authentication -->
             <div v-if="$page.props.jetstream.canManageTwoFactorAuthentication">
                 <TwoFactorAuthenticationForm
-                    :requires-confirmation="
-                        $page.props.jetstream.twoFactorConfirmation
-                    "
+                    :requires-confirmation="confirmsTwoFactorAuthentication"
                 />
             </div>
 
@@ -56,6 +54,10 @@ export default {
         LogoutOtherBrowserSessionsForm,
         DeleteUserForm,
         Head,
+    },
+    props: {
+        confirmsTwoFactorAuthentication: Boolean,
+        sessions: Array,
     },
     data() {
         return {};

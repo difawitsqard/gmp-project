@@ -130,9 +130,9 @@ const clearPhotoFileInput = () => {
                         </div>
                     </div>
                 </div>
-                <!-- <div class="card-title-head">
-                    <h6>
-                        <span
+                <div class="card-title-head">
+                    <h6 class="pb-2 py-sm-3">
+                        <span class="me-2"
                             ><svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 width="24"
@@ -150,9 +150,9 @@ const clearPhotoFileInput = () => {
                                 ></path>
                                 <circle cx="12" cy="7" r="4"></circle></svg
                         ></span>
-                        Informasi Profil
+                        Informasi Umum
                     </h6>
-                </div> -->
+                </div>
                 <div
                     v-show="form.recentlySuccessful"
                     class="alert alert-solid-success alert-dismissible fade show"

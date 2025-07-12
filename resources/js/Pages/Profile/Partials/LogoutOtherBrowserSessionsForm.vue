@@ -38,8 +38,8 @@ const closeModal = () => {
     <div class="card mt-4">
         <div class="card-body">
             <div class="card-title-head">
-                <h6>
-                    <span>
+                <h6 class="pb-3">
+                    <span class="me-2">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             width="24"
