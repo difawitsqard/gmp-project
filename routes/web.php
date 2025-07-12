@@ -38,9 +38,11 @@ Route::middleware([
         ]);
     })->name('dashboard');
 
+    Route::get('/products/stock-management', [ProductController::class, 'stockManagement'])
+        ->name('products.stock-management');
     Route::get('/products/search', [ProductController::class, 'search'])->name('products.search');
     Route::resource('products', ProductController::class)
-        ->only(['index', 'create', 'store', 'show', 'update', 'destroy']);
+        ->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
 
     Route::resource('product-categories', ProductCategoryController::class)
         ->only(['index', 'store', 'show', 'update', 'destroy']);

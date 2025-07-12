@@ -93,7 +93,7 @@ class ProductController extends Controller
     public function show(string $id)
     {
         $product = Product::find($id);
-        $product->load('category', 'unit');
+        $product->load('category', 'unit', 'images');
 
         if ($product) {
             return inertia('inventory/product-details', [
@@ -106,11 +106,69 @@ class ProductController extends Controller
     }
 
     /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(string $id)
+    {
+        $product = Product::with(['category', 'unit', 'images'])->find($id);
+
+        if (!$product) {
+            return back()->withErrors([
+                'error' => 'Product not found'
+            ]);
+        }
+
+        $categories = \App\Models\ProductCategory::where('status', 1)
+            ->orderBy('name', 'asc')
+            ->get();
+
+        $units = \App\Models\Unit::where('status', 1)
+            ->orderBy('name', 'asc')
+            ->get();
+
+        return inertia('inventory/edit-product', [
+            'product' => $product,
+            'categories' => $categories,
+            'units' => $units,
+            'component' => 'edit-product',
+        ]);
+    }
+
+    /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(ProductRequest $request, string $id)
     {
-        //
+
+        $validatedData = $request->validated();
+
+        $product = Product::find($id);
+
+        // Update product data
+        $product->update($validatedData);
+
+        // Handle delete_image jika ada
+        if (isset($validatedData['delete_image']) && !empty($validatedData['delete_image'])) {
+            foreach ($validatedData['delete_image'] as $imageId) {
+                $image = \App\Models\ProductImage::find($imageId);
+                if ($image) {
+                    $this->imageUploadService->deleteImage($image->image_path);
+                    $image->delete();
+                }
+            }
+        }
+
+        // Handle new images
+        if (isset($validatedData['images']) && !empty($validatedData['images'])) {
+            foreach ($validatedData['images'] as $image) {
+                $imagePath = $this->imageUploadService->uploadImage($image, 'products');
+                $product->images()->create([
+                    'image_path' => $imagePath,
+                ]);
+            }
+        }
+
+        return redirect()->route('products.index')->with('success', 'Product updated successfully');
     }
 
     /**
@@ -207,6 +265,9 @@ class ProductController extends Controller
                 'unit' => $product->unit->name ?? null,
                 'image_url' => $image ? $image->image_url : null,
                 'totalOrderItems' => $orderCount,
+                'qty' => $product->qty,
+                'price' => $product->price,
+                'min_stock' => $product->min_stock,
                 'popularityRank' => $rank,
                 'timeSeriesOrderItems' => [
                     'day' => $product->orderItems->groupBy(function ($orderItem) {
@@ -223,5 +284,26 @@ class ProductController extends Controller
         });
 
         return response()->json($products);
+    }
+
+    public function stockManagement()
+    {
+
+        $productsCategories = ProductCategory::where('status', 1)
+            ->orderBy('name', 'asc')
+            ->get();
+
+        $units = Unit::where('status', 1)
+            ->orderBy('name', 'asc')
+            ->get();
+
+        return inertia(
+            'inventory/stock-management',
+            [
+                'units' => $units,
+                'productsCategories' => $productsCategories,
+                'component' => 'stock-management',
+            ]
+        );
     }
 }

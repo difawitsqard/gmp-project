@@ -21,6 +21,20 @@ class Product extends Model
         'min_stock',
     ];
 
+    //appends
+    protected $appends = [
+        'image_url',
+    ];
+
+    public function getImageUrlAttribute()
+    {
+        $images = $this->images()->first();
+        if ($images) {
+            return $images->image_url;
+        }
+        return null;
+    }
+
     //relation
     public function images()
     {
@@ -130,5 +144,20 @@ class Product extends Model
         //     $date = date('Y-m-d', strtotime(urldecode($s)));
         //     $query->whereDate('created_at', $date);
         // });
+
+        $query->when(request()->filled('stock_status') ?? false, function ($query) {
+            $status = request()->stock_status;
+
+            if ($status === 'available') {
+                // Produk dengan stok tersedia (di atas min_stock)
+                $query->whereRaw('qty > min_stock');
+            } elseif ($status === 'low') {
+                // Produk dengan stok rendah (di antara 0 dan min_stock)
+                $query->whereRaw('qty <= min_stock AND qty > 0');
+            } elseif ($status === 'out') {
+                // Produk dengan stok habis (0)
+                $query->where('qty', 0);
+            }
+        });
     }
 }
