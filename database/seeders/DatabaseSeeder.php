@@ -34,20 +34,9 @@ class DatabaseSeeder extends Seeder
             Tax::create($tax);
         }
 
-        $roles = Role::pluck('name');
-
-        foreach ($roles as $roleName) {
-            // Buat user baru
-            $user = User::factory()->create([
-                'name' => $roleName . ' User',
-                'email' => strtolower($roleName) . '@example.com',
-            ]);
-
-            // Assign role ke user
-            $user->assignRole($roleName);
-        }
-
         $this->call([
+            RolesAndPermissionsSeeder::class,
+            UserSeeder::class,
             UnitSeeder::class,
             ProductCategorySeeder::class,
             ProductSeeder::class,
