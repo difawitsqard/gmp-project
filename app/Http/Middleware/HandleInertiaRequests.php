@@ -42,6 +42,13 @@ class HandleInertiaRequests extends Middleware
             'previousUrl' => function () {
                 return url()->previous();
             },
+            'auth' => [
+                'user' => fn() => $request->user() ? [
+                    ...$request->user()->toArray(),
+                    'permissions' => $request->user()->getAllPermissions()->pluck('name'),
+                    'roles' => $request->user()->roles()->pluck('name'),
+                ] : null,
+            ],
         ];
     }
 }

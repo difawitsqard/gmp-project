@@ -109,8 +109,8 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-4 col-sm-12">
-                    <div class="card">
+                <div class="col-lg-4 col-sm-12 mb-4">
+                    <div class="card h-100">
                         <div class="card-body carousel-card">
                             <div class="slider-product-details">
                                 <Carousel
@@ -161,6 +161,62 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body add-product">
+                            <div
+                                class="accordion-card-one accordion"
+                                id="accordionStockHistory"
+                            >
+                                <div class="accordion-item">
+                                    <div
+                                        class="accordion-header"
+                                        id="headingHistory"
+                                    >
+                                        <div
+                                            class="accordion-button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#collapseHistory"
+                                            aria-expanded="true"
+                                            aria-controls="collapseHistory"
+                                        >
+                                            <div class="addproduct-icon">
+                                                <h5>
+                                                    <vue-feather
+                                                        type="clock"
+                                                        class="add-info"
+                                                    ></vue-feather>
+                                                    <span
+                                                        >Riwayat Perubahan
+                                                        Stok</span
+                                                    >
+                                                </h5>
+                                                <a href="javascript:void(0);">
+                                                    <vue-feather
+                                                        type="chevron-down"
+                                                        class="chevron-down-add"
+                                                    ></vue-feather>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div
+                                        id="collapseHistory"
+                                        class="accordion-collapse collapse show"
+                                        aria-labelledby="headingHistory"
+                                    >
+                                        <div class="accordion-body">
+                                            <StockTransactionsTable
+                                                :productId="product.id"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- /add -->
@@ -172,6 +228,7 @@ import { ref, computed } from "vue";
 import { Head, Link, usePage } from "@inertiajs/vue3";
 import { Carousel, Slide } from "vue3-carousel";
 import "vue3-carousel/dist/carousel.css";
+import StockTransactionsTable from "@/Pages/stock/stock-transactions-table.vue";
 
 export default {
     components: {
@@ -179,6 +236,7 @@ export default {
         Link,
         Carousel,
         Slide,
+        StockTransactionsTable,
     },
     setup() {
         const page = usePage();

@@ -13,6 +13,7 @@ class Product extends Model
     //fillable
     protected $fillable = [
         'name',
+        'description',
         'sku',
         'product_categories_id',
         'unit_id',
@@ -62,38 +63,58 @@ class Product extends Model
     }
 
     // pengurangan stok
-    public function decreaseStock(int $qty, ?Model $source = null, ?string $note = null): void
+    public function decreaseStock(int $qty, ?Model $source = null, ?string $note = null, ?string $batchReference = null): void
     {
         if ($this->qty < $qty) {
             throw new \Exception('Stok tidak cukup');
         }
 
+        // Simpan stok sebelum perubahan
+        $stockBefore = $this->qty;
+
+        // Kurangi stok
         $this->qty -= $qty;
         $this->save();
 
-        $this->stockTransactions()->create([
-            'qty' => $qty,
-            'type' => 'in',
-            'note' => $note,
-            'source_id' => $source?->id,
-            'source_type' => $source ? get_class($source) : null,
-            'created_by' => auth()->id(),
-        ]);
-    }
-
-    // penambahan stok
-    public function increaseStock(int $qty, ?Model $source = null, ?string $note = null): void
-    {
-        $this->qty += $qty;
-        $this->save();
+        // Hitung stok setelah perubahan
+        $stockAfter = $this->qty;
 
         $this->stockTransactions()->create([
             'qty' => $qty,
             'type' => 'out',
+            'stock_before' => $stockBefore, // Tambahkan stok sebelum
+            'stock_after' => $stockAfter,   // Tambahkan stok sesudah
             'note' => $note,
             'source_id' => $source?->id,
-            'source_type' => $source ? get_class($source) : null,
+            'source_type' => $source ? get_class($source) : 'manual_adjustment',
             'created_by' => auth()->id(),
+            'batch_reference' => $batchReference,
+        ]);
+    }
+
+    // penambahan stok
+    public function increaseStock(int $qty, ?Model $source = null, ?string $note = null, ?string $batchReference = null): void
+    {
+        // Simpan stok sebelum perubahan
+        $stockBefore = $this->qty;
+
+        // Tambah stok
+        $this->qty += $qty;
+        $this->save();
+
+        // Hitung stok setelah perubahan
+        $stockAfter = $this->qty;
+
+        $this->stockTransactions()->create([
+            'qty' => $qty,
+            'type' => 'in',
+            'stock_before' => $stockBefore, // Tambahkan stok sebelum
+            'stock_after' => $stockAfter,   // Tambahkan stok sesudah
+            'note' => $note,
+            'source_id' => $source?->id,
+            'source_type' => $source ? get_class($source) : 'manual_adjustment',
+            'created_by' => auth()->id(),
+            'batch_reference' => $batchReference,
         ]);
     }
 
@@ -138,13 +159,6 @@ class Product extends Model
             });
         });
 
-        // // filter by created_at
-        // $query->when(request()->filled('created') ?? false, function ($query) {
-        //     $s = request()->created;
-        //     $date = date('Y-m-d', strtotime(urldecode($s)));
-        //     $query->whereDate('created_at', $date);
-        // });
-
         $query->when(request()->filled('stock_status') ?? false, function ($query) {
             $status = request()->stock_status;
 
@@ -159,5 +173,22 @@ class Product extends Model
                 $query->where('qty', 0);
             }
         });
+    }
+
+    public function scopeSorting($query)
+    {
+        $query->when(request()->filled('sort') ?? false, function ($query) {
+            $sort = request()->sort;
+
+            if ($sort === 'newest') {
+                $query->orderBy('created_at', 'desc');
+            } elseif ($sort === 'latest') {
+                $query->orderBy('created_at', 'asc');
+            }
+        });
+
+        if (!request()->filled('sort')) {
+            $query->orderBy('name', 'asc'); // Default sort by name
+        }
     }
 }

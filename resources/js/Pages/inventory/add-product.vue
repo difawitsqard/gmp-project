@@ -1,5 +1,6 @@
 <template>
-    <Head title="Create Product " />
+    <Head title="Buat Produk " />
+
     <layout-header></layout-header>
     <layout-sidebar></layout-sidebar>
     <div class="page-wrapper">
@@ -517,7 +518,7 @@
                             :href="route('products.index')"
                             class="btn btn-cancel me-2"
                         >
-                            Cancel
+                            Batal
                         </Link>
                         <button type="submit" class="btn btn-submit">
                             Tambah Produk
@@ -727,7 +728,7 @@ export default {
         submitForm() {
             this.form.post(this.route("products.store"), {
                 onSuccess: () => {
-                    resetImages();
+                    this.resetImages();
                     this.$inertia.visit(this.route("products.index"));
                 },
                 onError: (errors) => {

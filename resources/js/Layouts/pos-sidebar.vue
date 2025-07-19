@@ -1,6 +1,6 @@
 <template>
     <div class="sidebar" id="sidebar">
-        <div class="sidebar-inner slimscroll">
+        <div class="sidebar-inner">
             <perfect-scrollbar
                 class="scroll-area"
                 :settings="settings"
@@ -27,6 +27,8 @@ export default {
         return {
             settings: {
                 suppressScrollX: true,
+                wheelPropagation: false,
+                minScrollbarLength: 50,
             },
         };
     },

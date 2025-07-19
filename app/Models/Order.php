@@ -16,7 +16,7 @@ class Order extends Model
         'sub_total',
         'total',
         'status',
-        //'uplink_id',
+        'uplink_id',
     ];
 
     protected $appends = [

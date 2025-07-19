@@ -1,5 +1,5 @@
 <template>
-    <Head title="Create Order" />
+    <Head title="Buat Pesanan" />
     <layout-header></layout-header>
 
     <div class="page-wrapper pos-pg-wrapper ms-0">
@@ -130,11 +130,11 @@
                                         <div
                                             v-for="product in products.data"
                                             :key="product.id"
-                                            class="col-sm-2 col-md-6 col-lg-3 col-xl-3 pe-2"
+                                            class="col-sm-2 col-md-6 col-lg-3 col-xl-3 mb-4"
                                             @click="addProduct(product)"
                                         >
                                             <div
-                                                class="product-info default-cover card"
+                                                class="product-info default-cover card pt-3 h-100"
                                                 :class="{
                                                     active: form.addedProducts.some(
                                                         (p) =>
@@ -142,6 +142,27 @@
                                                     ),
                                                 }"
                                             >
+                                                <!-- buat seperti footer disini ada rincian produk tombol -->
+                                                <div
+                                                    class="d-flex justify-content-between align-items-center mb-3"
+                                                >
+                                                    <span>
+                                                        {{ product.sku }}
+                                                    </span>
+
+                                                    <a
+                                                        href="javascript:void(0);"
+                                                        @click.stop="
+                                                            openProductModal(
+                                                                product.id
+                                                            )
+                                                        "
+                                                        class="link-secondary"
+                                                    >
+                                                        Lihat Produk
+                                                    </a>
+                                                </div>
+
                                                 <a
                                                     href="javascript:void(0);"
                                                     class="img-bg"
@@ -174,7 +195,7 @@
                                                     >
                                                 </h6>
                                                 <div
-                                                    class="d-flex align-items-center justify-content-between price"
+                                                    class="d-flex align-items-center justify-content-between price mb-2"
                                                 >
                                                     <span
                                                         >{{ product.qty }}
@@ -237,27 +258,67 @@
                 </div>
                 <div class="col-md-12 col-lg-4 ps-0">
                     <aside class="product-order-list">
-                        <div class="customer-info block-section">
-                            <h6>Informasi Pelanggan</h6>
+                        <div
+                            class="customer-info block-section"
+                            v-if="hasRole('Admin')"
+                        >
+                            <h6>Pelanggan</h6>
                             <div class="input-block d-flex align-items-center">
                                 <div class="flex-grow-1">
-                                    <vue-select
-                                        v-model="form.name"
-                                        :options="Walk"
-                                        id="walkin"
-                                        placeholder="Walk in Customer"
+                                    <AsyncUserSelect
+                                        v-model="customerSelected"
+                                        :multiple="false"
+                                        :statusFilter="true"
+                                        :roleFilter="'Pelanggan'"
+                                        placeholder="Pilih Pelanggan"
+                                        @update:modelValue="updateCustomerId"
                                     />
                                 </div>
+                                <div class="d-flex">
+                                    <a
+                                        v-if="customerSelected"
+                                        href="javascript:void(0);"
+                                        class="btn btn-outline-primary btn-icon"
+                                        @click="editCustomer"
+                                    >
+                                        <vue-feather
+                                            type="edit"
+                                            class="feather-16"
+                                        ></vue-feather>
+                                    </a>
+                                    <a
+                                        href="javascript:void(0);"
+                                        class="btn btn-outline-primary btn-icon"
+                                        @click="addCustomer"
+                                    >
+                                        <vue-feather
+                                            type="user-plus"
+                                            class="feather-16"
+                                        ></vue-feather>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div
+                            v-else
+                            class="d-flex align-items-center justify-content-between"
+                        >
+                            <div class="flex-grow-1">
+                                <h6 class="mb-0">
+                                    {{ $page.props.auth.user.name }}
+                                </h6>
+                            </div>
+                            <div class="d-flex">
                                 <a
                                     href="javascript:void(0);"
-                                    class="btn btn-primary btn-icon"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#create"
-                                    ><vue-feather
-                                        type="user-plus"
+                                    class="btn btn-outline-primary btn-icon"
+                                    @click="editCustomer"
+                                >
+                                    <vue-feather
+                                        type="edit"
                                         class="feather-16"
-                                    ></vue-feather
-                                ></a>
+                                    ></vue-feather>
+                                </a>
                             </div>
                         </div>
 
@@ -373,7 +434,12 @@
                         <div class="block-section">
                             <div class="selling-info">
                                 <div class="row">
-                                    <div class="col-12 col-sm-6">
+                                    <div
+                                        class="col-12"
+                                        :class="
+                                            hasRole('Admin') ? 'col-sm-6' : ''
+                                        "
+                                    >
                                         <div class="input-block">
                                             <label>Pengiriman</label>
                                             <vue-select
@@ -397,7 +463,8 @@
                                     <div
                                         class="col-12 col-sm-6"
                                         v-show="
-                                            form.shipping_method === 'delivery'
+                                            form.shipping_method ===
+                                                'delivery' && hasRole('Admin')
                                         "
                                     >
                                         <div class="input-block">
@@ -412,6 +479,26 @@
                                                     'pickup'
                                                 "
                                             />
+                                        </div>
+                                    </div>
+                                    <!-- Tampilkan pesan info untuk pelanggan -->
+                                    <div
+                                        class="col-12 mt-3"
+                                        v-if="
+                                            form.shipping_method ===
+                                                'delivery' && !hasRole('Admin')
+                                        "
+                                    >
+                                        <div
+                                            class="alert alert-primary alert-dismissible fade show custom-alert-icon shadow-sm d-flex align-items-center"
+                                            role="alert"
+                                        >
+                                            <i
+                                                class="feather-info flex-shrink-0 me-2"
+                                            ></i>
+                                            Biaya pengiriman saat ini masih
+                                            membutuhkan konfirmasi dari admin,
+                                            setelah pesanan dibuat.
                                         </div>
                                     </div>
 
@@ -531,7 +618,21 @@
         </div>
     </div>
 
-    <pos-modal></pos-modal>
+    <Teleport to="body">
+        <ProductDescriptionModal
+            ref="productModal"
+            :product-id="selectedProductId"
+        />
+
+        <UserModal
+            ref="userModal"
+            :is-edit="!!customerSelectedOpenModal"
+            :user-id="customerSelectedOpenModal"
+            modal-id="customer-modal"
+            default-role="Pelanggan"
+            @user-submit="handleCustomerSubmit"
+        />
+    </Teleport>
 </template>
 
 <style scoped>
@@ -548,6 +649,9 @@ import { Carousel, Navigation, Slide } from "vue3-carousel";
 import { useInertiaFiltersDynamic } from "@/composables/useInertiaFiltersDynamic";
 import { BPagination, BFormGroup, BFormSelect } from "bootstrap-vue-3";
 import PaginationStyle3 from "@/components/pagination/PaginationStyle3.vue";
+import ProductDescriptionModal from "@/components/modal/product-description-modal.vue";
+import AsyncUserSelect from "@/components/AsyncUserSelect.vue";
+import UserModal from "@/components/modal/user-modal.vue";
 
 export default {
     setup() {
@@ -562,7 +666,7 @@ export default {
         const next = () => carouselCategory.value?.next();
 
         const form = useForm({
-            name: "",
+            customer_id: null,
             shipping_method: "pickup",
             shipping_fee: null,
             subtotal: 0,
@@ -596,6 +700,9 @@ export default {
         BFormGroup,
         BFormSelect,
         PaginationStyle3,
+        ProductDescriptionModal,
+        AsyncUserSelect,
+        UserModal,
     },
     created() {
         this.filters.per_page = this.products.per_page;
@@ -647,25 +754,9 @@ export default {
             ],
 
             hasPreviousPage: false,
+            customerSelected: null,
+            customerSelectedOpenModal: null,
 
-            Walk: ["Walk in Customer", "John", "Smith", "Ana", "Elza"],
-            Airpod: [
-                "Search Products",
-                "IPhone 14 64GB",
-                "MacBook Pro",
-                "Rolex Tribute V3",
-                "Red Nike Angelo",
-                "Airpod 2",
-                "Oldest",
-            ],
-            GST: [
-                "GST 5%",
-                "GST 10%",
-                "GST 15%",
-                "GST 20%",
-                "GST 25%",
-                "GST 30%",
-            ],
             shipping_method: [
                 {
                     id: null,
@@ -680,7 +771,7 @@ export default {
                     text: "Pengiriman",
                 },
             ],
-            Discount: ["10%", "10%", "15%", "20%", "25%", "30%"],
+
             settings: {
                 itemsToShow: 2, // Increased from 1 to show more items
                 snapAlign: "center",
@@ -788,6 +879,14 @@ export default {
         },
         submitForm() {
             this.isLoading = true;
+
+            if (
+                !this.hasRole("Admin") &&
+                this.form.shipping_method === "delivery"
+            ) {
+                this.form.shipping_fee = 0;
+            }
+
             this.form.post(this.route("orders.store"), {
                 onError: (errors) => {
                     Swal.fire({
@@ -814,6 +913,52 @@ export default {
             } else {
                 this.hasPreviousPage = false;
             }
+        },
+
+        openProductModal(id) {
+            this.$refs.productModal.showModal(id);
+        },
+
+        // Metode untuk membuka modal tambah customer
+        addCustomer() {
+            this.customerSelectedOpenModal = null;
+            this.$refs.userModal.showModal();
+        },
+
+        // Metode untuk membuka modal edit customer
+        editCustomer() {
+            if (this.hasRole("Admin")) {
+                if (!this.customerSelected) return;
+                this.customerSelectedOpenModal = this.customerSelected.id;
+            } else {
+                this.customerSelectedOpenModal = this.$page.props.auth.user.id;
+                this.customerSelected = this.$page.props.auth.user;
+            }
+            this.$refs.userModal.showModal();
+        },
+
+        // Metode untuk menangani submit form customer
+        handleCustomerSubmit(response) {
+            console.log(response);
+            if (response.status) {
+                this.customerSelected = response.data;
+                this.form.customer_id = response.data.id;
+                Swal.fire({
+                    icon: "success",
+                    title: "Sukses!",
+                    text: response.message,
+                });
+
+                this.fetch();
+            }
+        },
+
+        // Update customer_id ke form
+        updateCustomerId(customer) {
+            this.form.customer_id = customer ? customer.id : null;
+            this.customerSelected = customer;
+
+            this.customerSelectedOpenModal = customer ? customer.id : null;
         },
     },
 };

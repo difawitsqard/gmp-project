@@ -7,36 +7,46 @@
         :loading="isLoading"
         :internal-search="false"
         :clear-on-select="false"
-        :close-on-select="false"
+        :close-on-select="!multiple"
         :preserve-search="true"
-        :placeholder="placeholder ?? 'Pilih Produk'"
+        :placeholder="placeholder ?? 'Pilih Pengguna'"
         label="name"
         track-by="id"
-        @search-change="searchProducts"
+        @search-change="searchUsers"
         :custom-label="customLabel"
         @open="registerScrollEvent"
     >
         <template #option="{ option }">
-            <div class="option-container">
+            <div class="d-flex align-items-center p-2">
                 <img
-                    v-lazy="option.image_url"
-                    alt="Product Image"
-                    class="option-image"
+                    v-lazy="option.profile_photo_url"
+                    alt="Avatar"
+                    class="rounded-circle me-2"
+                    style="width: 40px; height: 40px; object-fit: cover"
                 />
-                <div class="option-text">
-                    <div class="option-name">{{ option.name }}</div>
-                    <div class="option-description">
-                        {{ option.sku }} - {{ option.category }} - Stok:
-                        {{ option.qty }}
+
+                <div class="overflow-hidden">
+                    <div class="fw-bold text-dark">{{ option.name }}</div>
+                    <div class="small text-muted text-truncate">
+                        {{ option.email }} -
+                        {{
+                            option.roles && option.roles.length > 0
+                                ? option.roles[0]
+                                : "No Role"
+                        }}
                     </div>
                 </div>
             </div>
         </template>
         <template #noResult>
-            <div class="no-result">Tidak ada produk yang ditemukan</div>
+            <div class="p-2 text-center text-muted">
+                Tidak ada pengguna yang ditemukan
+            </div>
         </template>
         <template #noOptions>
-            <div class="no-options">Mulai ketik untuk mencari produk</div>
+            <div class="p-2 text-center text-muted">
+                Mulai ketik untuk mencari pengguna
+            </div>
         </template>
     </vue-multiselect>
 </template>
@@ -45,7 +55,7 @@
 import { debounce } from "lodash";
 
 export default {
-    name: "ProductSearch",
+    name: "AsyncUserSelect",
     props: {
         modelValue: {
             type: [Array, Object],
@@ -55,16 +65,16 @@ export default {
             type: Boolean,
             default: false,
         },
-        categoryFilter: {
-            type: Number,
+        roleFilter: {
+            type: String,
             default: null,
         },
-        unitFilter: {
-            type: Number,
+        statusFilter: {
+            type: Boolean, // true for active, false for inactive
             default: null,
         },
-        stockFilter: {
-            type: String, // 'available', 'low', 'out'
+        placeholder: {
+            type: String,
             default: null,
         },
     },
@@ -81,13 +91,11 @@ export default {
     watch: {
         modelValue(val) {
             this.selected = val;
-            // console.log("Model value updated:", val);
         },
         selected(val) {
             this.$emit("update:modelValue", val);
         },
-        categoryFilter(newVal, oldVal) {
-            console.log("categoryFilter changed:", oldVal, "->", newVal);
+        roleFilter(newVal, oldVal) {
             if (newVal !== oldVal) {
                 // Reset pagination untuk pencarian baru
                 this.currentPage = 1;
@@ -95,10 +103,10 @@ export default {
                 this.hasMorePages = true;
 
                 // Lakukan pencarian dengan query yang ada (atau kosong)
-                this.searchProducts(this.lastSearchQuery || "");
+                this.searchUsers(this.lastSearchQuery || "");
             }
         },
-        unitFilter(newVal, oldVal) {
+        statusFilter(newVal, oldVal) {
             if (newVal !== oldVal) {
                 // Reset pagination untuk pencarian baru
                 this.currentPage = 1;
@@ -106,31 +114,13 @@ export default {
                 this.hasMorePages = true;
 
                 // Lakukan pencarian dengan query yang ada (atau kosong)
-                this.searchProducts(this.lastSearchQuery || "");
-            }
-        },
-        stockFilter(newVal, oldVal) {
-            if (newVal !== oldVal) {
-                // Reset pagination untuk pencarian baru
-                this.currentPage = 1;
-                this.options = [];
-                this.hasMorePages = true;
-
-                // Lakukan pencarian dengan query yang ada (atau kosong)
-                this.searchProducts(this.lastSearchQuery || "");
+                this.searchUsers(this.lastSearchQuery || "");
             }
         },
     },
     methods: {
-        searchProducts: debounce(function (query) {
+        searchUsers: debounce(function (query) {
             this.lastSearchQuery = query; // Simpan query terakhir
-
-            // if (!query || query.length < 2) {
-            //     this.options = [];
-            //     this.currentPage = 1;
-            //     this.hasMorePages = true;
-            //     return;
-            // }
 
             // Reset pagination untuk pencarian baru
             this.currentPage = 1;
@@ -141,6 +131,7 @@ export default {
             const params = {
                 per_page: 20,
                 page: this.currentPage,
+                json: true, // Menandakan request membutuhkan JSON response
             };
 
             if (query && query.length >= 2) {
@@ -148,18 +139,18 @@ export default {
             }
 
             // Tambahkan filter opsional
-            if (this.categoryFilter) {
-                params.category = this.categoryFilter;
-            }
-            if (this.unitFilter) {
-                params.unit = this.unitFilter;
-            }
-            if (this.stockFilter) {
-                params.stock_status = this.stockFilter;
+            if (this.roleFilter) {
+                params.role = this.roleFilter;
             }
 
+            if (this.statusFilter !== null) {
+                params.is_active = this.statusFilter ? 1 : 0;
+            }
+
+            console.log("Searching users with params:", params);
+
             axios
-                .get("/products/search", { params })
+                .get("/users", { params })
                 .then((response) => {
                     this.options = response.data.data;
                     this.hasMorePages = !!response.data.next_page_url;
@@ -172,7 +163,7 @@ export default {
         registerScrollEvent() {
             // Load data default jika belum ada
             if (this.options.length === 0 && !this.isLoading) {
-                this.searchProducts("");
+                this.searchUsers("");
             }
 
             // Tambahkan event listener saat dropdown terbuka
@@ -196,11 +187,11 @@ export default {
                 !this.isLoading &&
                 this.hasMorePages
             ) {
-                this.loadMoreProducts();
+                this.loadMoreUsers();
             }
         },
 
-        loadMoreProducts() {
+        loadMoreUsers() {
             if (this.isLoading || !this.hasMorePages) return;
 
             this.currentPage++;
@@ -209,6 +200,7 @@ export default {
             const params = {
                 per_page: 20,
                 page: this.currentPage,
+                json: true,
             };
 
             // Hanya tambahkan search jika query ada dan panjangnya >= 2
@@ -217,18 +209,16 @@ export default {
             }
 
             // Tambahkan filter opsional
-            if (this.categoryFilter) {
-                params.category = this.categoryFilter;
+            if (this.roleFilter) {
+                params.role = this.roleFilter;
             }
-            if (this.unitFilter) {
-                params.unit = this.unitFilter;
-            }
-            if (this.stockFilter) {
-                params.stock_status = this.stockFilter;
+
+            if (this.statusFilter !== null) {
+                params.is_active = this.statusFilter ? 1 : 0;
             }
 
             axios
-                .get("/products/search", { params })
+                .get("/users", { params })
                 .then((response) => {
                     this.hasMorePages = !!response.data.next_page_url;
                     // Append hasil baru ke options yang ada
@@ -240,7 +230,15 @@ export default {
         },
 
         customLabel(option) {
-            return `${option.name} (${option.sku})`;
+            return `${option.name} (${option.email})`;
+        },
+
+        getInitials(name) {
+            return name
+                .split(" ")
+                .map((part) => part.charAt(0).toUpperCase())
+                .slice(0, 2)
+                .join("");
         },
     },
     beforeUnmount() {

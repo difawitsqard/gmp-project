@@ -39,10 +39,14 @@ export function useInertiaFiltersDynamic(
         });
     };
 
-    const reset = () => {
-        filterKeys.forEach(
-            (key) => (filters[key] = Array.isArray(filters[key]) ? [] : "")
-        );
+    // Tambahkan parameter excludeKeys untuk mengecualikan filter tertentu dari reset
+    const reset = (excludeKeys = []) => {
+        filterKeys.forEach((key) => {
+            // Skip reset jika key ada dalam excludeKeys
+            if (!excludeKeys.includes(key)) {
+                filters[key] = Array.isArray(filters[key]) ? [] : "";
+            }
+        });
         fetch();
     };
 

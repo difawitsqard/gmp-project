@@ -170,15 +170,19 @@
                                     <div>
                                         <span
                                             :class="`badge bg-outline-${
-                                                getPaymentStatus(
-                                                    record.payment_status
-                                                ).color
+                                                !record.payment_status
+                                                    ? 'secondary'
+                                                    : getPaymentStatus(
+                                                          record.payment_status
+                                                      ).color
                                             } rounded`"
                                         >
                                             {{
-                                                getPaymentStatus(
-                                                    record.payment_status
-                                                ).label
+                                                !record.payment_status
+                                                    ? "Menunggu Konfirmasi"
+                                                    : getPaymentStatus(
+                                                          record.payment_status
+                                                      ).label
                                             }}
                                         </span>
                                     </div>

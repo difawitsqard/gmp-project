@@ -527,10 +527,10 @@
                             :href="route('products.index')"
                             class="btn btn-cancel me-2"
                         >
-                            Cancel
+                            Batal
                         </Link>
                         <button type="submit" class="btn btn-submit">
-                            Update Produk
+                            Perbarui Produk
                         </button>
                     </div>
                 </div>

@@ -135,7 +135,7 @@
                                         <div class="input-groupicon">
                                             <date-picker
                                                 v-model="filters.created"
-                                                placeholder="Choose Date"
+                                                placeholder="Pilih Tanggal Dibuat"
                                                 class="form-control"
                                             />
                                         </div>
@@ -151,7 +151,7 @@
                                             :options="CategoryStatus"
                                             v-model="filters.status"
                                             id="categorystatus"
-                                            placeholder="Choose Status"
+                                            placeholder="Pilih Status"
                                         />
                                     </div>
                                 </div>
@@ -159,21 +159,10 @@
                                     <div
                                         class="input-blocks d-flex justify-content-end"
                                     >
-                                        <a class="btn btn-filters me-2">
-                                            <i
-                                                data-feather="search"
-                                                class="feather-search"
-                                            ></i>
-                                            Search
-                                        </a>
                                         <a
                                             class="btn btn-filters btn-reset"
                                             @click="reset"
                                         >
-                                            <i
-                                                data-feather="x-circle"
-                                                class="feather-x-circle"
-                                            ></i>
                                             Reset
                                         </a>
                                     </div>
@@ -191,6 +180,18 @@
                             @change="handleTableChange"
                         >
                             <template #bodyCell="{ column, record }">
+                                <template v-if="column.key === 'name'">
+                                    <Link
+                                        :href="
+                                            route('products.index', {
+                                                category: record.id,
+                                            })
+                                        "
+                                    >
+                                        {{ record.name }}
+                                    </Link>
+                                </template>
+
                                 <template v-if="column.key === 'status'">
                                     <div>
                                         <span
@@ -202,11 +203,23 @@
                                         >
                                             {{
                                                 record.status
-                                                    ? "Active"
-                                                    : "Inactive"
+                                                    ? "Aktif"
+                                                    : "Tidak Aktif"
                                             }}</span
                                         >
                                     </div>
+                                </template>
+                                <template v-else-if="column.key === 'items'">
+                                    <Link
+                                        :href="
+                                            route('products.index', {
+                                                category: record.id,
+                                            })
+                                        "
+                                        class="fw-bold"
+                                    >
+                                        {{ record.items }}
+                                    </Link>
                                 </template>
                                 <template v-else-if="column.key === 'action'">
                                     <td class="action-table-data">
@@ -292,9 +305,9 @@ export default {
             search: this.filters?.search || "",
             CategoryStatusSelect: null,
             CategoryStatus: [
-                { id: null, text: "Choose Status" },
-                { id: 1, text: "Active" },
-                { id: 0, text: "Inactive" },
+                { id: null, text: "Pilih Status" },
+                { id: 1, text: "Aktif" },
+                { id: 0, text: "Tidak Aktif" },
             ],
             filterByDate: [],
             modalCategory: {
@@ -306,8 +319,9 @@ export default {
             },
             columns: [
                 {
-                    title: "Category",
+                    title: "Nama",
                     dataIndex: "name",
+                    key: "name",
                     sorter: {
                         compare: (a, b) =>
                             a.name.toLowerCase() > b.name.toLowerCase()
@@ -316,8 +330,9 @@ export default {
                     },
                 },
                 {
-                    title: "Total Products",
+                    title: "Total Produk",
                     dataIndex: "items",
+                    key: "items",
                     sorter: {
                         compare: (a, b) =>
                             String(a.items).toLowerCase() >
@@ -327,7 +342,7 @@ export default {
                     },
                 },
                 {
-                    title: "Created On",
+                    title: "Dibuat Pada",
                     dataIndex: "created_at",
                     sorter: {
                         compare: (a, b) =>
@@ -351,7 +366,7 @@ export default {
                     },
                 },
                 {
-                    title: "Action",
+                    title: "Aksi",
                     key: "action",
                     sorter: false,
                 },

@@ -1,9 +1,11 @@
 <template>
-    <LoadingOverlay />
-    <layout-header />
-    <layout-sidebar />
+    <div class="main-wrapper">
+        <LoadingOverlay />
+        <layout-header />
+        <layout-sidebar />
 
-    <slot />
+        <slot />
+    </div>
 </template>
 
 <script>

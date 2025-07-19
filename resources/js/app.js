@@ -5,6 +5,8 @@ import * as helpers from "@/utils/helpers";
 
 import { isPreloading, skipNextPreload } from "./stores/preload";
 
+import Permission from "@/utils/permission";
+
 import { createApp, h, ref } from "vue";
 import { createInertiaApp, router } from "@inertiajs/vue3";
 import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
@@ -44,7 +46,6 @@ import SideSettings from "@/Layouts/side-settings.vue";
 import Breadcrumb from "@/components/breadcrumb/layout-breadcrumb.vue";
 
 /********* Page component**********/
-import Product_Header from "@/Pages/inventory/product-list/product-header.vue";
 import Inputsize from "@/Pages/uiinterface/forms/form-elements/formbasic/input-size.vue";
 import Carouselthree from "@/Pages/uiinterface/baseui/carousel/carousel-three.vue";
 import Carouseltwo from "@/Pages/uiinterface/baseui/carousel/carousel-two.vue";
@@ -181,7 +182,6 @@ createInertiaApp({
         app.component("layout-breadcrumb", Breadcrumb);
 
         /********* Page component**********/
-        app.component("product-header", Product_Header);
         app.component("input-size", Inputsize);
         app.component("carousel-one", Carouselone);
         app.component("carousel-two", Carouseltwo);
@@ -275,6 +275,7 @@ createInertiaApp({
             attempt: 1,
         });
         app.use(VueEasyLightbox).use(Antd).use(BootstrapVue3).use(BToastPlugin);
+        app.mixin(Permission);
 
         app.mount(el);
     },

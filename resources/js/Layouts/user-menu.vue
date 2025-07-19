@@ -1,6 +1,6 @@
 <template>
     <ul>
-        <li class="submenu-open">
+        <li class="submenu-open" v-if="hasRole('Manajer Stok | Staff Gudang')">
             <h6 class="submenu-hdr">Inventaris</h6>
             <ul>
                 <li
@@ -24,10 +24,10 @@
                 </li>
                 <li
                     :class="{
-                        active: route().current('products.stock-management'),
+                        active: route().current('stock-management.index'),
                     }"
                 >
-                    <Link :href="route('products.stock-management')">
+                    <Link :href="route('stock-management.index')">
                         <vue-feather type="layers" />
                         <span>Kelola Stok</span>
                     </Link>
@@ -109,6 +109,12 @@
                         <span>Tarif Pajak</span>
                     </Link>
                 </li>
+                <li :class="{ active: route().current('users.index') }">
+                    <Link :href="route('users.index')">
+                        <vue-feather type="users" />
+                        <span>Kelola Pengguna</span>
+                    </Link>
+                </li>
                 <li :class="{ active: route().current('profile.show') }">
                     <Link :href="route('profile.show')">
                         <vue-feather type="settings" />
@@ -127,30 +133,5 @@ export default {
     components: {
         Link,
     },
-    // data() {
-    //     return {
-    //         openMenuItem: null,
-    //         openSubmenuOneItem: null,
-    //     };
-    // },
-    // methods: {
-    //     expandSubMenus(menu) {
-    //         this.sideBarData.forEach((item) => {
-    //             item.menu.forEach((subMenu) => {
-    //                 if (subMenu !== menu) {
-    //                     subMenu.showSubRoute = false;
-    //                 }
-    //             });
-    //         });
-    //         menu.showSubRoute = !menu.showSubRoute;
-    //     },
-    //     openMenu(menu) {
-    //         this.openMenuItem = this.openMenuItem === menu ? null : menu;
-    //     },
-    //     openSubmenuOne(subMenus) {
-    //         this.openSubmenuOneItem =
-    //             this.openSubmenuOneItem === subMenus ? null : subMenus;
-    //     },
-    // },
 };
 </script>

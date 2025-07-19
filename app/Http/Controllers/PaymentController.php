@@ -46,6 +46,9 @@ class PaymentController extends Controller
                 if ($getStatus == 'expire') {
                     // lakukan sesuatu jika pembayaran expired, seperti mengirim notifikasi ke customer
                     // bahwa pembayaran expired dan harap melakukan pembayaran ulang
+                    $order->update([
+                        'status' => 'cancelled',
+                    ]);
                     $lastPayment->update([
                         'payment_type' => $getPaymentType,
                         'status' => 'expired',

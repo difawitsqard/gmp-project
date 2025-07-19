@@ -36,6 +36,7 @@
             class="mobile_btn"
             href="javascript:void(0);"
             @click="toggleSidebar1"
+            v-if="!route().current('orders.create')"
         >
             <span class="bar-icon">
                 <span></span>
@@ -427,7 +428,7 @@
                         </span>
                         <span class="user-detail">
                             <span class="user-name">{{ user.name }}</span>
-                            <span class="user-role">Super Admin</span>
+                            <span class="user-role">{{ user.role }}</span>
                         </span>
                     </span>
                 </a>
@@ -514,6 +515,9 @@ export default {
     },
     mounted() {
         this.initMouseoverListener();
+        //  tambahkan class pada tag html
+        const htmlElment = document.getElementsByTagName("html")[0];
+        htmlElment.classList.add("menu-opened");
     },
     methods: {
         logout() {

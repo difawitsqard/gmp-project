@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('product_categories_id')->constrained()->onDelete('cascade');
             $table->string('name');
+            $table->text('description')->nullable();
             $table->string('sku')->unique();
             $table->integer('qty')->default(0);
             $table->integer('min_stock')->default(0);

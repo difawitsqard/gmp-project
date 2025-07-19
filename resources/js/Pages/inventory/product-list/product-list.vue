@@ -4,7 +4,42 @@
     <layout-sidebar></layout-sidebar>
     <div class="page-wrapper">
         <div class="content">
-            <product-header></product-header>
+            <div class="page-header">
+                <div class="add-item d-flex">
+                    <div class="page-title">
+                        <h4>Produk</h4>
+                        <h6>Kelola Produk</h6>
+                    </div>
+                </div>
+                <ul class="table-top-head">
+                    <li>
+                        <a
+                            ref="collapseHeader"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                            title="Collapse"
+                            @click="toggleCollapse"
+                        >
+                            <i
+                                data-feather="chevron-up"
+                                class="feather-chevron-up"
+                            ></i>
+                        </a>
+                    </li>
+                </ul>
+                <div class="page-btn">
+                    <Link
+                        :href="route('products.create')"
+                        class="btn btn-added"
+                    >
+                        <vue-feather
+                            type="plus-circle"
+                            class="me-2"
+                        ></vue-feather>
+                        Tambah Produk Baru
+                    </Link>
+                </div>
+            </div>
 
             <!-- /product list -->
             <div class="card table-list-card">
@@ -22,7 +57,7 @@
                                     href="javascript:void(0);"
                                     v-show="filters.search"
                                     class="btn btn-searchset"
-                                    @click="reset"
+                                    @click="resetExcept"
                                     ><i data-feather="x" class="feather-x"></i
                                 ></a>
                             </div>
@@ -33,7 +68,7 @@
                                 id="filter_search"
                                 v-on:click="
                                     filter = !filter;
-                                    if (!filter) reset();
+                                    if (!filter) resetExcept();
                                 "
                                 :class="{ setclose: filter }"
                             >
@@ -47,6 +82,21 @@
                                         alt="img"
                                 /></span>
                             </a>
+                        </div>
+                        <div class="form-sort">
+                            <vue-feather
+                                type="sliders"
+                                class="info-img"
+                            ></vue-feather>
+                            <vue-select
+                                :options="sortByNewOld"
+                                v-model="filters.sort"
+                                :settings="{
+                                    allowClear: true,
+                                    placeholder: 'Sortir Berdasarkan',
+                                }"
+                                id="sortfilter"
+                            />
                         </div>
                     </div>
 
@@ -108,13 +158,14 @@
                                         />
                                     </div>
                                 </div>
+
                                 <div class="col-lg-3 col-sm-6 col-12 ms-auto">
                                     <div
                                         class="input-blocks d-flex justify-content-end"
                                     >
                                         <a
                                             class="btn btn-filters btn-reset"
-                                            @click="reset"
+                                            @click="resetExcept"
                                         >
                                             Reset
                                         </a>
@@ -136,32 +187,43 @@
                             <template #bodyCell="{ column, record }">
                                 <template v-if="column.key === 'name'">
                                     <div class="productimgname">
-                                        <Link
-                                            :href="
-                                                route(
-                                                    'products.show',
-                                                    record.id
-                                                )
-                                            "
+                                        <a
+                                            :href="'#' + record.id"
                                             class="product-img stock-img"
+                                            @click.prevent="
+                                                openProductModal(record.id)
+                                            "
                                         >
                                             <img
                                                 v-lazy="record.image_url"
                                                 :src="record.image_url"
                                                 alt="product"
                                             />
-                                        </Link>
-                                        <Link
-                                            :href="
-                                                route(
-                                                    'products.show',
-                                                    record.id
-                                                )
-                                            "
-                                            class="fw-bold"
+                                        </a>
+                                        <a
+                                            :href="'#' + record.id"
+                                            class="product-img stock-img"
+                                            @click="openProductModal(record.id)"
                                         >
                                             {{ record.name }}
-                                        </Link>
+                                        </a>
+                                    </div>
+                                </template>
+
+                                <template v-else-if="column.key === 'qty'">
+                                    <div
+                                        class="fw-bold"
+                                        :class="
+                                            record.min_stock >= record.qty
+                                                ? 'text-danger'
+                                                : ''
+                                        "
+                                    >
+                                        {{ record.qty }}
+                                        {{
+                                            record.unit.short_name ??
+                                            record.unit.name
+                                        }}
                                     </div>
                                 </template>
 
@@ -240,24 +302,35 @@
             <!-- /product list -->
         </div>
     </div>
+
+    <ProductDescriptionModal
+        ref="productModal"
+        :product-id="selectedProductId"
+    />
 </template>
 <script>
 import { Head, Link, router, usePage } from "@inertiajs/vue3";
 import { useInertiaFiltersDynamic } from "@/composables/useInertiaFiltersDynamic";
+import ProductDescriptionModal from "@/components/modal/product-description-modal.vue";
 
 export default {
     setup() {
         const { filters, fetch, reset } = useInertiaFiltersDynamic(
             "products.index",
-            ["search", "category", "unit", "stock_status"],
+            ["search", "category", "unit", "stock_status", "sort"],
             { only: ["products"] }
         );
 
-        return { filters, fetch, reset };
+        const resetExcept = () => {
+            reset(["sort"]);
+        };
+
+        return { filters, fetch, reset, resetExcept };
     },
     components: {
         Head,
         Link,
+        ProductDescriptionModal,
     },
     props: {
         units: {
@@ -316,6 +389,12 @@ export default {
                 { id: "out", text: "Habis" },
             ];
         },
+        sortByNewOld() {
+            return [
+                { id: "newest", text: "Terbaru" },
+                { id: "oldest", text: "Terlama" },
+            ];
+        },
     },
     data() {
         return {
@@ -362,20 +441,9 @@ export default {
                     },
                 },
                 {
-                    title: "Satuan",
-                    dataIndex: ["unit", "name"],
-                    key: "unit",
-                    sorter: {
-                        compare: (a, b) => {
-                            a = a.unit.toLowerCase();
-                            b = b.unit.toLowerCase();
-                            return a > b ? -1 : b > a ? 1 : 0;
-                        },
-                    },
-                },
-                {
-                    title: "Qty",
+                    title: "Stok",
                     dataIndex: "qty",
+                    key: "qty",
                     sorter: {
                         compare: (a, b) => {
                             a = a.qty.toLowerCase();
@@ -397,9 +465,9 @@ export default {
                     },
                 },
                 {
-                    title: "Action",
+                    title: "Aksi",
                     key: "action",
-                    sorter: true,
+                    sorter: false,
                 },
             ],
         };
@@ -457,6 +525,17 @@ export default {
                     }
                 },
             });
+        },
+        openProductModal(id) {
+            this.$refs.productModal.showModal(id);
+        },
+        toggleCollapse() {
+            const collapseHeader = this.$refs.collapseHeader;
+
+            if (collapseHeader) {
+                collapseHeader.classList.toggle("active");
+                document.body.classList.toggle("header-collapse");
+            }
         },
     },
 };

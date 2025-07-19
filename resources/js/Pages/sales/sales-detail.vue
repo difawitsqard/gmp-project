@@ -1,5 +1,5 @@
 <template>
-    <Head title="Order List" />
+    <Head title="Detail Pesanan" />
     <layout-header></layout-header>
     <layout-sidebar></layout-sidebar>
 
@@ -120,14 +120,16 @@
                             <div
                                 class="col-12 col-sm-6 col-md-4 col-xl-4 pb-3 border-bottom mb-3"
                             >
-                                <h4 class="mb-3">Detail Pembayaran</h4>
-                                <div class="row">
+                                <h4 class="mb-3" v-if="order.latest_payment">
+                                    Detail Pembayaran
+                                </h4>
+                                <div class="row" v-if="order.latest_payment">
                                     <span class="col-6 mb-1"
                                         >Metode Pembayaran</span
                                     >
                                     <span class="col-6 mb-1">
                                         {{
-                                            order.latest_payment.payment_type
+                                            order.latest_payment?.payment_type
                                                 ? getPaymentInfo(
                                                       order.latest_payment
                                                           .payment_type
@@ -156,7 +158,7 @@
                                         </span>
                                     </span> -->
                                     <template
-                                        v-if="order.latest_payment.paid_at"
+                                        v-if="order.latest_payment?.paid_at"
                                     >
                                         <span class="col-6 mb-1"
                                             >Tanggal Pembayaran
@@ -176,8 +178,8 @@
                                     </template>
                                     <template
                                         v-else-if="
-                                            order.latest_payment.expired_at &&
-                                            order.latest_payment.payment_type
+                                            order.latest_payment?.expired_at &&
+                                            order.latest_payment?.payment_type
                                         "
                                     >
                                         <span class="col-6 mb-1"
@@ -185,7 +187,7 @@
                                         >
                                         <span class="col-6 mb-1">
                                             {{
-                                                order.latest_payment.expired_at
+                                                order.latest_payment?.expired_at
                                                     ? dayjs(
                                                           order.latest_payment
                                                               .expired_at
@@ -205,11 +207,9 @@
                                 <address>
                                     <strong>{{ order.name }}</strong
                                     ><br />
-                                    7657 NW Prairie View Rd<br />
-                                    Kansas City, Mississippi, 64151<br />
-                                    United States<br />
-                                    Phone: (816) 741-5790<br />
-                                    Email: email@client.com
+                                    {{ order.address }}<br />
+                                    Telepon: {{ order.phone }}<br />
+                                    Email: {{ order.email }}
                                 </address>
                             </div>
                             <div class="col-12">
@@ -317,7 +317,12 @@
                                                     'delivery'
                                                 "
                                             >
-                                                <h4 v-show="order.shipping_fee">
+                                                <h4
+                                                    v-show="
+                                                        order.shipping_method ===
+                                                        'delivery'
+                                                    "
+                                                >
                                                     Biaya Pengiriman
                                                 </h4>
                                                 <h5>
@@ -348,7 +353,7 @@
                         <div class="border-top py-3 d-flex justify-content-end">
                             <button
                                 v-show="
-                                    order.latest_payment.status === 'pending'
+                                    order.latest_payment?.status === 'pending'
                                 "
                                 @click="showSnap"
                                 type="button"

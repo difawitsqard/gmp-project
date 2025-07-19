@@ -61,6 +61,8 @@ class MidtransService
             'customer_details' => $this->getCustomerDetails($order),
         ];
 
+        $params['customer_details']['shipping_address'] = $this->getShippingAddress($order);
+
         try {
             // Membuat snap token
             return Snap::getSnapToken($params);
@@ -282,9 +284,21 @@ class MidtransService
     {
         // Sesuaikan data customer dengan informasi yang dimiliki oleh aplikasi Anda
         return [
-            'first_name' => 'Difa WRD', // Ganti dengan data nyata
-            'email' => 'difawitsqard@email.com', // Ganti dengan data nyata
-            'phone' => '081280788963', // Ganti dengan data nyata
+            'first_name' => $order->name,
+            'email' => $order->email,
+            'phone' => $order->phone,
+            'address' => $order->address,
+        ];
+    }
+
+    protected function getShippingAddress(Order $order): array
+    {
+        // Sesuaikan data alamat pengiriman dengan informasi yang dimiliki oleh aplikasi Anda
+        return [
+            'first_name' => $order->name,
+            'email' => $order->email,
+            'phone' => $order->phone,
+            'address' => $order->address,
         ];
     }
 

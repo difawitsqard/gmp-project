@@ -2,16 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Tax;
+use App\Models\User;
 use App\Models\Order;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use App\Models\ProductCategory;
-use App\Models\Tax;
 use App\Services\MidtransService;
 use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
+    protected $user;
+
+    public function __construct()
+    {
+        $this->user = auth()->user();
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -20,8 +28,13 @@ class OrderController extends Controller
         $perPage = is_numeric($request->per_page) ? $request->per_page :  10;
 
         $orders = Order::filter()
-            ->with(['items.product', 'payments'])
-            ->orderBy('created_at', 'desc')
+            ->with(['items.product', 'payments']);
+
+        if ($this->user->hasRole('Pelanggan')) {
+            $orders = $orders->where('customer_id', $this->user->id);
+        }
+
+        $orders = $orders->orderBy('created_at', 'desc')
             ->paginate($perPage);
 
         $orders->getCollection()->transform(function ($order) {
@@ -87,8 +100,23 @@ class OrderController extends Controller
      */
     public function store(MidtransService $midtransService, Request $request)
     {
+        $user = auth()->user();
+
+        if ($user->hasRole('Pelanggan')) {
+            $request->merge(['customer_id' => $user->id]);
+
+            // Jika pelanggan memilih delivery, status pesanan akan menjadi 'waiting_confirmation'
+            if ($request->shipping_method === 'delivery') {
+                $initialStatus = 'waiting_confirmation';
+            } else {
+                $initialStatus = 'pending';
+            }
+        } else {
+            $initialStatus = 'pending'; // Admin langsung pending (bisa bayar)
+        }
+
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'customer_id' => 'required|exists:users,id',
             'shipping_method' => 'required|in:pickup,delivery',
             'shipping_fee' => [
                 'required_if:shipping_method,delivery',
@@ -101,12 +129,22 @@ class OrderController extends Controller
             'addedProducts.*.qty' => 'required|integer|min:1',
         ]);
 
+        //dd($validated);
+
         DB::beginTransaction();
         try {
+
+            $customer = User::findOrFail($validated['customer_id']);
+
             $order = Order::create([
-                'name' => $validated['name'],
+                'name' => $customer->name,
+                'email' => $customer->email,
+                'phone' => $customer->phone,
+                'address' => $customer->address,
                 'shipping_method' => $validated['shipping_method'],
                 'shipping_fee' => $validated['shipping_method'] == 'delivery' ? $validated['shipping_fee'] : null,
+                'uplink_id' => $user->hasRole('Admin') ? $user->id : null,
+                'status' => $initialStatus,
                 'sub_total' => 0,
                 'total' => 0,
             ]);
@@ -149,40 +187,68 @@ class OrderController extends Controller
                 'total' =>  $total,
             ]);
 
-            // Buat Snap Token midtrans
-            $snapToken = $midtransService->createSnapToken($order, 'ord4-' . $order->id);
+            // Jika status waiting_confirmation, jangan buat token midtrans dulu
+            if ($initialStatus === 'waiting_confirmation') {
+                // Tidak perlu buat token midtrans, akan dibuat setelah admin konfirmasi
+                DB::commit();
 
-            // create payment
-            $order->payments()->create([
-                'order_id' => $order->id,
-                'status' => 'pending',
-                'midtrans_order_id' => 'ord4-' . $order->id,
-                'snap_token' => $snapToken,
-            ]);
+                if ($request->wantsJson()) {
+                    return response()->json([
+                        'status' => true,
+                        'code' => 200,
+                        'message' => 'Pesanan berhasil dibuat dan menunggu konfirmasi admin',
+                        'data' => [
+                            'id' => $order->id,
+                            'name' => $order->name,
+                            'sub_total' => $order->sub_total,
+                            'total' => $order->total,
+                            'status' => $order->status,
+                            'items' => $order->items,
+                            'created_at' => $order->created_at->format('Y-m-d H:i:s'),
+                        ],
+                    ], 200);
+                }
 
-            DB::commit();
+                return redirect()->route('orders.show', ['order' => $order->id])->with([
+                    'success' => 'Pesanan berhasil dibuat dan menunggu konfirmasi admin',
+                ]);
+            } else {
 
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'status' => true,
-                    'code' => 200,
-                    'message' => 'Order created successfully',
-                    'data' => [
-                        'id' => $order->id,
-                        'name' => $order->name,
-                        'sub_total' => $order->sub_total,
-                        'total' => $order->total,
-                        'status' => $order->status,
-                        'items' => $order->items,
-                        'created_at' => $order->created_at->format('Y-m-d H:i:s'),
-                    ],
-                ], 200);
+                // Buat Snap Token midtrans
+                $snapToken = $midtransService->createSnapToken($order, 'ord5-' . $order->id);
+
+                // create payment
+                $order->payments()->create([
+                    'order_id' => $order->id,
+                    'status' => 'pending',
+                    'midtrans_order_id' => 'ord5-' . $order->id,
+                    'snap_token' => $snapToken,
+                ]);
+
+                DB::commit();
+
+                if ($request->wantsJson()) {
+                    return response()->json([
+                        'status' => true,
+                        'code' => 200,
+                        'message' => 'Order created successfully',
+                        'data' => [
+                            'id' => $order->id,
+                            'name' => $order->name,
+                            'sub_total' => $order->sub_total,
+                            'total' => $order->total,
+                            'status' => $order->status,
+                            'items' => $order->items,
+                            'created_at' => $order->created_at->format('Y-m-d H:i:s'),
+                        ],
+                    ], 200);
+                }
+
+                return redirect()->route('orders.show', ['order' => $order->id])->with([
+                    'success' => 'Order created successfully',
+                    'midtrans_show_snap' => true,
+                ]);
             }
-
-            return redirect()->route('orders.show', ['order' => $order->id])->with([
-                'success' => 'Order created successfully',
-                'midtrans_show_snap' => true,
-            ]);
         } catch (\Exception $e) {
             DB::rollBack();
             if ($request->wantsJson()) {
@@ -215,7 +281,7 @@ class OrderController extends Controller
         return inertia('sales/sales-detail', [
             'order' => $order,
             'midtrans_show_snap' => $midtrans_show_snap ?? false,
-            'midtrans_snap_token' => $order->latestPayment->status == 'pending' ? $order->latestPayment->snap_token : null,
+            'midtrans_snap_token' => $order->latestPayment?->status == 'pending' ? $order->latestPayment?->snap_token : null,
             'midtrans_client_key' => config('midtrans.client_key'),
         ]);
     }

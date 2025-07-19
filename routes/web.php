@@ -10,7 +10,9 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ForecastController;
 use App\Http\Controllers\NixtlaTestController;
+use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\ProductCategoryController;
+use App\Http\Controllers\StockManagementController;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -38,8 +40,14 @@ Route::middleware([
         ]);
     })->name('dashboard');
 
-    Route::get('/products/stock-management', [ProductController::class, 'stockManagement'])
-        ->name('products.stock-management');
+    Route::resource('users', UserManagementController::class)
+        ->only(['index', 'store', 'show', 'update']);
+
+    Route::get('/stock-transactions', [StockManagementController::class, 'stockTransactions'])->name('stock.transactions');
+
+    Route::resource('/products/stock-management', StockManagementController::class)
+        ->only(['index', 'store']);
+
     Route::get('/products/search', [ProductController::class, 'search'])->name('products.search');
     Route::resource('products', ProductController::class)
         ->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);

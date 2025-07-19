@@ -25,6 +25,9 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
+        // $user = auth()->user();
+        // $user->assignRole('Manajer Stok');
+
         $perPage = is_numeric($request->perPage) ? $request->perPage :  10;
 
         $productsCategories = ProductCategory::where('status', 1)
@@ -36,8 +39,8 @@ class ProductController extends Controller
             ->get();
 
         $products = Product::filter()
+            ->sorting()
             ->with(['category', 'unit'])
-            ->orderBy('name', 'asc')
             ->paginate($perPage);
         $products->appends(['search' => $request->search]);
 
@@ -93,15 +96,26 @@ class ProductController extends Controller
     public function show(string $id)
     {
         $product = Product::find($id);
-        $product->load('category', 'unit', 'images');
 
-        if ($product) {
-            return inertia('inventory/product-details', [
-                'product' => $product,
+        if (!$product) {
+            if (request()->expectsJson()) {
+                return response()->json(['error' => 'Product not found'], 404);
+            }
+            return back()->withErrors([
+                'error' => 'Product not found'
             ]);
         }
-        return back()->withErrors([
-            'error' => 'Product not found'
+
+        $product->load('category', 'unit', 'images');
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'product' => $product
+            ]);
+        }
+
+        return inertia('inventory/product-details', [
+            'product' => $product,
         ]);
     }
 
@@ -263,7 +277,7 @@ class ProductController extends Controller
                 'name' => $product->name,
                 'category' => $product->category->name ?? null,
                 'unit' => $product->unit->name ?? null,
-                'image_url' => $image ? $image->image_url : null,
+                'image_url' => $product->image_url,
                 'totalOrderItems' => $orderCount,
                 'qty' => $product->qty,
                 'price' => $product->price,
@@ -284,26 +298,5 @@ class ProductController extends Controller
         });
 
         return response()->json($products);
-    }
-
-    public function stockManagement()
-    {
-
-        $productsCategories = ProductCategory::where('status', 1)
-            ->orderBy('name', 'asc')
-            ->get();
-
-        $units = Unit::where('status', 1)
-            ->orderBy('name', 'asc')
-            ->get();
-
-        return inertia(
-            'inventory/stock-management',
-            [
-                'units' => $units,
-                'productsCategories' => $productsCategories,
-                'component' => 'stock-management',
-            ]
-        );
     }
 }
