@@ -6,6 +6,7 @@ use App\Models\Tax;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
@@ -33,10 +34,18 @@ class DatabaseSeeder extends Seeder
             Tax::create($tax);
         }
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        $roles = Role::pluck('name');
+
+        foreach ($roles as $roleName) {
+            // Buat user baru
+            $user = User::factory()->create([
+                'name' => $roleName . ' User',
+                'email' => strtolower($roleName) . '@example.com',
+            ]);
+
+            // Assign role ke user
+            $user->assignRole($roleName);
+        }
 
         $this->call([
             UnitSeeder::class,
