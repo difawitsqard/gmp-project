@@ -9,7 +9,7 @@
                 <div class="add-item d-flex">
                     <div class="page-title">
                         <h4>Detail Pesanan</h4>
-                        <h6 class="fw-bold">#{{ order.id }}</h6>
+                        <h6 class="fw-bold">#{{ order.uuid }}</h6>
                     </div>
                 </div>
                 <ul class="table-top-head">
@@ -63,6 +63,20 @@
                 </div>
             </div>
 
+            <div
+                class="alert alert-primary alert-dismissible fade show custom-alert-icon shadow-sm d-flex align-items-center"
+                role="alert"
+                v-if="
+                    order.shipping_method === 'delivery' &&
+                    order.status === 'waiting_confirmation' &&
+                    hasRole('Pelanggan')
+                "
+            >
+                <i class="feather-info flex-shrink-0 me-2"></i>
+                Menunggu konfirmasi biaya pengiriman dari admin, sebelum
+                melanjutkan pembayaran.
+            </div>
+
             <div class="card">
                 <div class="card-body">
                     <form @submit.prevent="submitForm">
@@ -74,7 +88,7 @@
                                 <div class="row">
                                     <span class="col-6 mb-1">ID Pesanan</span>
                                     <span class="col-6 fw-bold mb-1">
-                                        #{{ order.id }}
+                                        #{{ order.uuid }}
                                     </span>
                                     <span class="col-6 mb-1"
                                         >Status Pesanan</span
@@ -352,7 +366,7 @@
 
                         <div class="border-top py-3 d-flex justify-content-end">
                             <button
-                                v-show="
+                                v-if="
                                     order.latest_payment?.status === 'pending'
                                 "
                                 @click="showSnap"
@@ -361,12 +375,56 @@
                             >
                                 Lanjutkan Pembayaran
                             </button>
+
+                            <button
+                                v-if="
+                                    order.status === 'waiting_confirmation' &&
+                                    hasRole('Admin')
+                                "
+                                type="button"
+                                class="btn btn-primary rounded-8 me-2"
+                                @click="
+                                    $refs.orderConfirmationModal.showModal()
+                                "
+                            >
+                                Konfirmasi Pesanan
+                            </button>
+
+                            <button
+                                v-if="
+                                    order.status === 'waiting_processing' &&
+                                    hasRole('Staff Gudang')
+                                "
+                                type="button"
+                                class="btn btn-success rounded-8 me-2"
+                                @click="$refs.orderProcessModal.showModal()"
+                            >
+                                Tandai Pesanan Telah Diproses
+                            </button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
     </div>
+
+    <Teleport to="body">
+        <OrderConfirmationModal
+            ref="orderConfirmationModal"
+            :order-id="order.id"
+            :initial-shipping-fee="0"
+            modal-id="order-confirmation-modal"
+            v-if="hasRole('Admin')"
+        />
+
+        <OrderProcessModal
+            ref="orderProcessModal"
+            :order-id="order.id"
+            :initial-status="order.status"
+            modal-id="order-process-modal"
+            v-if="hasRole('Staff Gudang')"
+        />
+    </Teleport>
 </template>
 
 <script>
@@ -376,6 +434,9 @@ import { getPaymentStatus } from "@/constants/paymentStatus";
 import { getPaymentInfo } from "@/constants/paymentType";
 import useMidtransPayment from "@/composables/useMidtransPayment";
 import { skipPreloadNextRequest } from "@/composables/usePreloadControl";
+import OrderConfirmationModal from "@/components/modal/order-confirmation-modal.vue";
+import OrderProcessModal from "@/components/modal/order-process-modal.vue";
+
 const { payWithMidtrans, closeSnap } = useMidtransPayment();
 
 export default {
@@ -397,10 +458,16 @@ export default {
             type: Boolean,
             default: false,
         },
+        midtrans_is_production: {
+            type: Boolean,
+            default: false,
+        },
     },
     components: {
         Head,
         Link,
+        OrderConfirmationModal,
+        OrderProcessModal,
     },
     mounted() {
         // Initialize Snap.js if needed
@@ -425,6 +492,7 @@ export default {
             payWithMidtrans({
                 snapToken: this.midtrans_snap_token,
                 clientKey: this.midtrans_client_key,
+                isProduction: this.midtrans_is_production,
                 onSuccess: () => {
                     this.refreshData();
                 },
@@ -479,6 +547,7 @@ export default {
                             "midtrans_snap_token",
                             "midtrans_client_key",
                             "midtrans_show_snap",
+                            "midtrans_is_production",
                         ],
                         onSuccess: () => {
                             this.showSnap();
@@ -498,6 +567,7 @@ export default {
                     "midtrans_snap_token",
                     "midtrans_client_key",
                     "midtrans_show_snap",
+                    "midtrans_is_production",
                 ],
             });
         },

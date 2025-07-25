@@ -4,12 +4,13 @@ export default function useMidtransPayment() {
     const payWithMidtrans = async ({
         snapToken,
         clientKey,
+        isProduction = false,
         onSuccess,
         onPending,
         onError,
         onClose,
     }) => {
-        const snap = await loadMidtransSnap(clientKey);
+        const snap = await loadMidtransSnap(clientKey, isProduction);
         snap.pay(snapToken, {
             // onSuccess: function (result) {
             //     onSuccess(result);
