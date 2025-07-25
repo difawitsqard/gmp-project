@@ -47,8 +47,6 @@ import Breadcrumb from "@/components/breadcrumb/layout-breadcrumb.vue";
 
 import "@fontsource/montserrat";
 import "bootstrap/dist/css/bootstrap.min.css";
-import "bootstrap/dist/css/bootstrap.css";
-import "@fortawesome/fontawesome-free/css/fontawesome.min.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "boxicons/css/boxicons.min.css";
 import "sweetalert2/dist/sweetalert2.min.css";
