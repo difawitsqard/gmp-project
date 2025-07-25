@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
             $table->foreignIdFor(\App\Models\Order::class, 'order_id')->nullable()->constrained()->cascadeOnDelete();
-            $table->string('midtrans_order_id')->unique()->nullable(); // contoh: ORD-123-1
+            $table->string('midtrans_uuid')->unique()->nullable(); // contoh: ORD-123-1
             $table->string('payment_type')->nullable(); // qris, bank_transfer, etc
             $table->string('snap_token')->nullable(); // Token Snap Midtrans (jika pakai)
             $table->enum('status', ['pending', 'paid', 'failed', 'expired', 'cancelled'])->default('pending');

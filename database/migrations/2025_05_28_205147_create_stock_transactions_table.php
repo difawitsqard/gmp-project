@@ -25,7 +25,7 @@ return new class extends Migration
             $table->text('note')->nullable();
             $table->string('batch_reference')->nullable(); // referensi batch untuk transaksi ini
             // catat oleh siapa transaksi ini dibuat
-            $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
+            $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('cascade');
             $table->timestamps();
         });
     }

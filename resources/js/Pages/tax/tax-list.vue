@@ -57,7 +57,7 @@
                             <div class="search-input">
                                 <input
                                     type="text"
-                                    placeholder="Search"
+                                    placeholder="Cari.."
                                     class="dark-input"
                                     v-model="filters.search"
                                 />
@@ -65,7 +65,7 @@
                                     href="javascript:void(0);"
                                     v-show="filters.search"
                                     class="btn btn-searchset"
-                                    @click="reset"
+                                    @click="resetExcept"
                                     ><i data-feather="x" class="feather-x"></i
                                 ></a>
                             </div>
@@ -107,7 +107,7 @@
                                             :options="CategoryStatus"
                                             v-model="filters.status"
                                             id="categorystatus"
-                                            placeholder="Choose Status"
+                                            placeholder="Pilih Status"
                                         />
                                     </div>
                                 </div>
@@ -115,21 +115,10 @@
                                     <div
                                         class="input-blocks d-flex justify-content-end"
                                     >
-                                        <a class="btn btn-filters me-2">
-                                            <i
-                                                data-feather="search"
-                                                class="feather-search"
-                                            ></i>
-                                            Search
-                                        </a>
                                         <a
                                             class="btn btn-filters btn-reset"
-                                            @click="reset"
+                                            @click="resetExcept"
                                         >
-                                            <i
-                                                data-feather="x-circle"
-                                                class="feather-x-circle"
-                                            ></i>
                                             Reset
                                         </a>
                                     </div>
@@ -241,7 +230,11 @@ export default {
             { only: ["taxes"] }
         );
 
-        return { filters, fetch, reset };
+        const resetExcept = () => {
+            reset(["sort_order", "sort_field"]);
+        };
+
+        return { filters, fetch, reset, resetExcept };
     },
     components: {
         Head,
@@ -275,24 +268,12 @@ export default {
                     title: "Name",
                     dataIndex: "name",
                     key: "name",
-                    sorter: {
-                        compare: (a, b) => {
-                            a = a.name.toLowerCase();
-                            b = b.name.toLowerCase();
-                            return a > b ? -1 : b > a ? 1 : 0;
-                        },
-                    },
+                    sorter: true,
                 },
                 {
                     title: "Tax Rate %",
                     dataIndex: "percent",
-                    sorter: {
-                        compare: (a, b) => {
-                            a = parseFloat(a.percent);
-                            b = parseFloat(b.percent);
-                            return a > b ? -1 : b > a ? 1 : 0;
-                        },
-                    },
+                    sorter: true,
                     customRender: ({ text }) => {
                         // Tampilkan nilai float apa adanya, misal 2.5 jadi 2.5%
                         const percent = parseFloat(text);
@@ -303,36 +284,19 @@ export default {
                     title: "Jumlah Tetap (Rp)",
                     dataIndex: "fixed_amount",
                     key: "fixed_amount",
-                    sorter: {
-                        compare: (a, b) => {
-                            a = a.fixed_amount.toLowerCase();
-                            b = b.fixed_amount.toLowerCase();
-                            return a > b ? -1 : b > a ? 1 : 0;
-                        },
-                    },
+                    sorter: true,
                 },
                 {
                     title: "Status",
                     dataIndex: "status",
                     key: "status",
-                    sorter: {
-                        compare: (a, b) =>
-                            a.status.toLowerCase() > b.status.toLowerCase()
-                                ? -1
-                                : 1,
-                    },
+                    sorter: false,
                 },
                 {
                     title: "Dibuat",
                     dataIndex: "created_at",
                     key: "created_at",
-                    sorter: {
-                        compare: (a, b) => {
-                            a = a.created_at.toLowerCase();
-                            b = b.created_at.toLowerCase();
-                            return a > b ? -1 : b > a ? 1 : 0;
-                        },
-                    },
+                    sorter: true,
                     customRender: ({ text }) =>
                         dayjs(text).format("D MMMM YYYY HH:mm"),
                 },
@@ -357,14 +321,20 @@ export default {
         },
     },
     methods: {
-        handleTableChange(pagination) {
+        handleTableChange(pagination, filters, sorter) {
             this.filters.page = pagination.current;
             this.filters.per_page = pagination.pageSize;
-            this.fetch();
-        },
 
-        reset() {
-            this.reset();
+            // Handle sorting
+            if (sorter.order) {
+                this.filters.sort_field = sorter.field;
+                this.filters.sort_order = sorter.order;
+            } else {
+                // Reset sorting jika header diklik untuk ketiga kalinya (hapus sort)
+                this.filters.sort_field = null;
+                this.filters.sort_order = null;
+            }
+            this.fetch();
         },
 
         addTax() {

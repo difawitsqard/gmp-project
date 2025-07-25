@@ -2,15 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Forecast;
+use Throwable;
 use App\Models\Product;
+use App\Models\Forecast;
 use App\Models\OrderItem;
+use Illuminate\Bus\Batch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use App\Services\NixtlaService;
 use App\Services\OpenAIService;
+use App\Jobs\AnalyzeForecastJob;
+use App\Jobs\ForecastProductJob;
 use Illuminate\Support\Facades\DB;
 use OpenAI\Laravel\Facades\OpenAI;
+use Illuminate\Support\Facades\Bus;
 
 class ForecastController extends Controller
 {
@@ -142,7 +147,7 @@ class ForecastController extends Controller
         );
     }
 
-    public function requestForecast(NixtlaService $nixtla, OpenAIService $openaiService, Request $request)
+    public function requestForecast(Request $request)
     {
         $validatedData = $request->validate([
             'products' => 'required|array',
@@ -155,10 +160,8 @@ class ForecastController extends Controller
             'includeConfidenceIntervals' => 'boolean',
         ]);
 
-        // Generate time series data dari request
         $result = $this->generateTimeSeriesFromRequest($request);
 
-        // Pisahkan produk valid dan tidak valid
         $validProducts = [];
         $invalidProducts = [];
 
@@ -176,14 +179,13 @@ class ForecastController extends Controller
                         'non_zero_ratio' => $validation['non_zero_ratio'],
                     ]
                 ];
-
-                // Tandai produk yang tidak valid untuk OpenAI
                 $result['openai_ready'][$productId]['is_valid'] = false;
                 $result['openai_ready'][$productId]['issues'] = $validation['issues'];
             }
         }
 
-        // SKENARIO 1: Jika enforceDataQuality = true dan ada produk tidak valid
+        //dd($result);
+
         if ($validatedData['enforceDataQuality'] && count($invalidProducts) > 0) {
             return response()->json([
                 'success' => false,
@@ -193,12 +195,17 @@ class ForecastController extends Controller
             ], 422);
         }
 
-        // dd($result);
+        // Buat forecast record di awal
+        $forecast  = Forecast::create([
+            'forecasted_at' => now(),
+            'frequency' => $result['frequency'],
+            'horizon' => $result['horizon'],
+            'model' => 'timegpt-1',
+            'input_start_date' => $result['start_date'],
+            'input_end_date' => $result['end_date'],
+            'created_by' => auth()->id(),
+        ]);
 
-        // SKENARIO 2: Lanjutkan proses dengan produk valid saja
-        $forecast = [];
-
-        // Siapkan opsi untuk Nixtla
         $options = [
             'h' => (int)$validatedData['horizon'],
             'freq' => $validatedData['frequency'],
@@ -206,55 +213,184 @@ class ForecastController extends Controller
             'level' => $request->input('includeConfidenceIntervals', false) ? [80, 95] : null,
         ];
 
-        // Kirim ke Nixtla hanya untuk produk valid
-        if (count($validProducts) > 0) {
-            $forecast = $nixtla->forecast($validProducts, $options);
+        // ForecastProductJob: per 3 produk
+        $jobs = [];
+        $validProductChunks = array_chunk($validProducts, 3, true); // key: productId, value: series
+        foreach ($validProductChunks as $chunk) {
+            $jobs[] = new ForecastProductJob($forecast->id, $chunk, $options);
+        }
+        // Gabungkan produk valid dan tidak valid
+        $allProductIds = array_merge(array_keys($validProducts), array_keys($invalidProducts));
+        $analyzeChunks = array_chunk($allProductIds, 2);
 
-            // Update struktur data dengan hasil forecast
-            foreach ($forecast as $productId => $forecastData) {
-                $result['openai_ready'][$productId]['forecast'] = $forecastData;
-                $result['openai_ready'][$productId]['is_valid'] = true;
-            }
+        // Bagi juga $invalidProducts sesuai chunk
+        foreach ($analyzeChunks as $chunkIds) {
+            // Ambil data invalid untuk chunk ini
+            $chunkInvalidProducts = array_filter(
+                $invalidProducts,
+                fn($item) => in_array($item['product_id'], $chunkIds)
+            );
+
+            $jobs[] = new AnalyzeForecastJob(
+                $forecast->id,
+                $result,
+                $chunkIds, // berisi id produk valid & tidak valid
+                $chunkInvalidProducts, // hanya invalid yang ada di chunk ini
+                $request->only([
+                    'products',
+                    'frequency',
+                    'horizon',
+                    'startDate',
+                    'endDate',
+                    'enforceDataQuality',
+                    'includeConfidenceIntervals'
+                ]),
+                $validatedData['frequency'],
+                auth()->id(),
+            );
         }
 
-        // Siapkan data untuk analisis oleh OpenAI
-        $validProductIds = array_keys($validProducts);
+        $batch = Bus::batch($jobs)
+            ->then(function (Batch $batch) use ($forecast) {
+                // Dipanggil jika SEMUA job dalam batch selesai tanpa error
+                $forecast->update(['status' => 'done']);
+            })
+            ->catch(function (Batch $batch, Throwable $e) use ($forecast) {
+                // Dipanggil jika ADA job dalam batch yang gagal
+                $forecast->update(['status' => 'failed']);
+            })
+            ->finally(function (Batch $batch) {
+                // Selalu dipanggil di akhir batch (opsional)
+                // Bisa untuk logging, dsb
+            })
+            ->dispatch();
 
-        // Kirim data ke OpenAI Service
-        $openaiResults = $openaiService->analyzeTimeSeriesAndForecast(
-            $result,
-            $validProductIds,
-            $invalidProducts,
-            $validatedData['frequency']
-        );
-
-        // TAMBAHAN BARU: Simpan hasil forecast ke database
-        $forecastId = $this->storeForecastResults(
-            $request,
-            $result,
-            $forecast,
-            $openaiResults['analysis']
-        );
-
-        // Return response dengan hasil lengkap
-        // return response()->json([
-        //     'success' => true,
-        //     'data' => [
-        //         'time_series_info' => [
-        //             'start_date' => $result['start_date'],
-        //             'end_date' => $result['end_date'],
-        //             'frequency' => $result['frequency'],
-        //             'horizon' => $result['horizon'],
-        //         ],
-        //         'valid_products' => array_keys($validProducts),
-        //         'invalid_products' => $invalidProducts,
-        //         'forecast' => $forecast,
-        //         'analysis' => $openaiResults['analysis'],
-        //     ]
-        // ]);
-
-        return redirect()->route('forecasting.show', ['forecasting' => $forecastId]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Forecast sedang diproses di latar belakang.',
+            'batch_id' => $batch->id,
+            'forecast_id' => $forecast->id,
+            'invalid_products' => $invalidProducts,
+            'valid_products' => array_keys($validProducts),
+        ]);
     }
+
+
+    // public function requestForecast(NixtlaService $nixtla, OpenAIService $openaiService, Request $request)
+    // {
+    //     $validatedData = $request->validate([
+    //         'products' => 'required|array',
+    //         'products.*.id' => 'required|exists:products,id',
+    //         'frequency' => 'required|in:D,W,M',
+    //         'horizon' => 'required|integer|min:1',
+    //         'startDate' => 'required|date',
+    //         'endDate' => 'required|date|after_or_equal:startDate',
+    //         'enforceDataQuality' => 'boolean',
+    //         'includeConfidenceIntervals' => 'boolean',
+    //     ]);
+
+    //     // Generate time series data dari request
+    //     $result = $this->generateTimeSeriesFromRequest($request);
+
+    //     // Pisahkan produk valid dan tidak valid
+    //     $validProducts = [];
+    //     $invalidProducts = [];
+
+    //     foreach ($result['validation_results'] as $productId => $validation) {
+    //         if ($validation['valid']) {
+    //             $validProducts[$productId] = $result['series'][$productId];
+    //         } else {
+    //             $invalidProducts[$productId] = [
+    //                 'product_id' => $productId,
+    //                 'name' => $result['openai_ready'][$productId]['name'],
+    //                 'issues' => $validation['issues'],
+    //                 'metrics' => [
+    //                     'total_points' => $validation['total_points'],
+    //                     'non_zero_points' => $validation['non_zero_points'],
+    //                     'non_zero_ratio' => $validation['non_zero_ratio'],
+    //                 ]
+    //             ];
+
+    //             // Tandai produk yang tidak valid untuk OpenAI
+    //             $result['openai_ready'][$productId]['is_valid'] = false;
+    //             $result['openai_ready'][$productId]['issues'] = $validation['issues'];
+    //         }
+    //     }
+
+    //     // SKENARIO 1: Jika enforceDataQuality = true dan ada produk tidak valid
+    //     if ($validatedData['enforceDataQuality'] && count($invalidProducts) > 0) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Beberapa produk memiliki data yang tidak layak untuk forecast',
+    //             'invalid_products' => $invalidProducts,
+    //             'validation_results' => $result['validation_results']
+    //         ], 422);
+    //     }
+
+    //     // dd($result);
+
+    //     // SKENARIO 2: Lanjutkan proses dengan produk valid saja
+    //     $forecast = [];
+
+    //     // Siapkan opsi untuk Nixtla
+    //     $options = [
+    //         'h' => (int)$validatedData['horizon'],
+    //         'freq' => $validatedData['frequency'],
+    //         'model' => 'timegpt-1',
+    //         'level' => $request->input('includeConfidenceIntervals', false) ? [80, 95] : null,
+    //     ];
+
+    //     dd($validProducts, $options);
+
+    //     // Kirim ke Nixtla hanya untuk produk valid
+    //     if (count($validProducts) > 0) {
+    //         $forecast = $nixtla->forecast($validProducts, $options);
+
+    //         // Update struktur data dengan hasil forecast
+    //         foreach ($forecast as $productId => $forecastData) {
+    //             $result['openai_ready'][$productId]['forecast'] = $forecastData;
+    //             $result['openai_ready'][$productId]['is_valid'] = true;
+    //         }
+    //     }
+
+    //     // Siapkan data untuk analisis oleh OpenAI
+    //     $validProductIds = array_keys($validProducts);
+
+    //     // Kirim data ke OpenAI Service
+    //     $openaiResults = $openaiService->analyzeTimeSeriesAndForecast(
+    //         $result,
+    //         $validProductIds,
+    //         $invalidProducts,
+    //         $validatedData['frequency']
+    //     );
+
+    //     // TAMBAHAN BARU: Simpan hasil forecast ke database
+    //     $forecastId = $this->storeForecastResults(
+    //         $request,
+    //         $result,
+    //         $forecast,
+    //         $openaiResults['analysis']
+    //     );
+
+    //     // Return response dengan hasil lengkap
+    //     // return response()->json([
+    //     //     'success' => true,
+    //     //     'data' => [
+    //     //         'time_series_info' => [
+    //     //             'start_date' => $result['start_date'],
+    //     //             'end_date' => $result['end_date'],
+    //     //             'frequency' => $result['frequency'],
+    //     //             'horizon' => $result['horizon'],
+    //     //         ],
+    //     //         'valid_products' => array_keys($validProducts),
+    //     //         'invalid_products' => $invalidProducts,
+    //     //         'forecast' => $forecast,
+    //     //         'analysis' => $openaiResults['analysis'],
+    //     //     ]
+    //     // ]);
+
+    //     return redirect()->route('forecasting.show', ['forecasting' => $forecastId]);
+    // }
 
     /**
      * Store forecast results in database
@@ -265,7 +401,7 @@ class ForecastController extends Controller
      * @param array $analysis Analysis results from OpenAI
      * @return int ID of created forecast
      */
-    private function storeForecastResults(Request $request, array $result, array $forecast, array $analysis)
+    public function storeForecastResults(Request $request, array $result, array $forecast, array $analysis, $createdBy = null): int
     {
         // 1. Insert ke tabel forecasts (data utama)
         $forecastRecord = \App\Models\Forecast::create([
@@ -275,7 +411,7 @@ class ForecastController extends Controller
             'model' => 'timegpt-1', // Bisa diambil dari config atau parameter
             'input_start_date' => $result['start_date'],
             'input_end_date' => $result['end_date'],
-            'created_by' => auth()->id(),
+            'created_by' => $createdBy,
         ]);
 
         // 2. Insert forecast results untuk setiap produk

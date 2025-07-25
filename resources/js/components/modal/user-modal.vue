@@ -50,13 +50,37 @@
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label">Email</label>
+                                    <label class="form-label"
+                                        >Email
+                                        <span
+                                            v-show="isEdit"
+                                            class="text-muted small"
+                                        >
+                                            (<span
+                                                :class="
+                                                    !model.email_verified_at
+                                                        ? 'text-danger'
+                                                        : 'text-success'
+                                                "
+                                            >
+                                                {{
+                                                    model.email_verified_at
+                                                        ? "Terverifikasi"
+                                                        : "Belum Terverifikasi"
+                                                }} </span
+                                            >)
+                                        </span>
+                                    </label>
                                     <input
                                         type="email"
                                         v-model="model.email"
                                         class="form-control"
                                         :class="{ 'is-invalid': errors.email }"
                                         placeholder="contoh@email.com"
+                                        :readonly="
+                                            $page.props.auth.user.id !==
+                                                model.id && isEdit
+                                        "
                                     />
                                     <div
                                         v-if="errors.email"
@@ -176,6 +200,8 @@
 
 <script>
 import { Link, router } from "@inertiajs/vue3";
+import { error } from "jquery";
+import { set } from "lodash";
 
 export default {
     components: {
@@ -195,6 +221,10 @@ export default {
         defaultRole: {
             type: String,
             default: "Pelanggan",
+        },
+        setErrors: {
+            type: Object,
+            default: () => ({}),
         },
     },
     data() {
@@ -241,6 +271,13 @@ export default {
                 }
             },
         },
+        setErrors: {
+            immediate: true,
+            handler(newErrors) {
+                console.log("Received errors:", newErrors);
+                this.errors = newErrors;
+            },
+        },
     },
     mounted() {
         const el = document.getElementById(this.modalId);
@@ -257,6 +294,19 @@ export default {
                     params: { json: true },
                 })
                 .then((response) => {
+                    // jika ada emeail_verified_at null maka arahkan ke route verifikasi email
+
+                    if (
+                        response.data.email_verified_at == null &&
+                        this.$page.props.auth.user.id == id
+                    ) {
+                        this.$router.push({
+                            name: "email-verification",
+                            params: { userId: id },
+                        });
+                        return;
+                    }
+
                     this.model = {
                         ...response.data,
                         phone: String(response.data.phone ?? ""),
@@ -344,6 +394,10 @@ export default {
                     this.closeModal();
                 })
                 .catch((error) => {
+                    console.error(
+                        "Error submitting form:",
+                        error.response.data.errors
+                    );
                     if (error.response && error.response.status === 422) {
                         this.errors = error.response.data.errors;
                     } else {

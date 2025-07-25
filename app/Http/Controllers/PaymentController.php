@@ -22,7 +22,7 @@ class PaymentController extends Controller
                 // Log informasi status pembayaran
                 Log::info('Midtrans Callback Expire: ' . $getExpiryTime);
 
-                if ($getStatus == 'success') {
+                if ($getStatus == 'success' && $order->status == 'pending') {
                     $order->update([
                         'status' => 'waiting_processing',
                     ]);
@@ -31,6 +31,57 @@ class PaymentController extends Controller
                         'status' => 'paid',
                         'paid_at' => now(),
                     ]);
+
+
+                    // Buat batch reference unik untuk transaksi stok
+                    $batchReference = 'ORDER-' . $order->uuid;
+
+                    // Kurangi stok produk menggunakan decreaseStock seperti di StockManagementController
+                    foreach ($order->items as $item) {
+                        $product = $item->product;
+
+
+                        if ($product) {
+                            try {
+                                $product->decreaseStock(
+                                    $item->quantity,
+                                    $order, // source: order
+                                    "Pengurangan stok Order #{$order->uuid}",
+                                    $batchReference // batch_reference
+                                );
+                            } catch (\Exception $e) {
+                                // Jika stok tidak cukup, batalkan pesanan ini
+                                $order->update(['status' => 'cancelled']);
+                                $lastPayment->update(['status' => 'cancelled']);
+                                return response()->json([
+                                    'success' => false,
+                                    'message' => 'Stok produk tidak cukup, pesanan dibatalkan.',
+                                ]);
+                            }
+                        }
+                    }
+
+                    // Batalkan pesanan lain yang belum diproses jika stok produk sudah habis
+                    foreach ($order->items as $item) {
+                        $product = $item->product;
+                        if ($product && $product->quantity <= 0) {
+                            $otherOrders = Order::whereIn('status', ['pending', 'waiting_confirmation'])
+                                ->whereHas('items', function ($q) use ($product) {
+                                    $q->where('product_id', $product->id);
+                                })
+                                ->get();
+
+                            foreach ($otherOrders as $otherOrder) {
+                                $otherOrder->update([
+                                    'status' => 'cancelled',
+                                    'note'   => 'Stok produk habis, pesanan dibatalkan'
+                                ]);
+                                if ($otherOrder->latestPayment) {
+                                    $otherOrder->latestPayment->update(['status' => 'cancelled']);
+                                }
+                            }
+                        }
+                    }
                 }
 
                 if ($getStatus == 'pending') {
@@ -44,8 +95,6 @@ class PaymentController extends Controller
                 }
 
                 if ($getStatus == 'expire') {
-                    // lakukan sesuatu jika pembayaran expired, seperti mengirim notifikasi ke customer
-                    // bahwa pembayaran expired dan harap melakukan pembayaran ulang
                     $order->update([
                         'status' => 'cancelled',
                     ]);
@@ -56,11 +105,25 @@ class PaymentController extends Controller
                 }
 
                 if ($getStatus == 'cancel') {
-                    // lakukan sesuatu jika pembayaran dibatalkan
+
+                    $order->update([
+                        'status' => 'cancelled',
+                    ]);
+                    $lastPayment->update([
+                        'payment_type' => $getPaymentType,
+                        'status' => 'cancelled',
+                    ]);
                 }
 
                 if ($getStatus == 'failed') {
-                    // lakukan sesuatu jika pembayaran gagal
+                    $order->update([
+                        'status' => 'cancelled',
+                        'note' => 'Pembayaran gagal',
+                    ]);
+                    $lastPayment->update([
+                        'payment_type' => $getPaymentType,
+                        'status' => 'failed',
+                    ]);
                 }
 
                 return response()
@@ -85,7 +148,7 @@ class PaymentController extends Controller
     {
         try {
             // Buat order_id baru untuk keperluan Midtrans (harus unik)
-            $newOrderId =  $order->id . '-' . now()->timestamp;
+            $newUUID =  $order->uuid . '-' . now()->timestamp;
 
             if (!$order->canbe_change_payment_method) {
                 return response()->json([
@@ -99,16 +162,16 @@ class PaymentController extends Controller
             ]);
 
             // cancel transaction di Midtrans
-            $midtransService->cancelTransaction($order->latestPayment->midtrans_order_id);
+            $midtransService->cancelTransaction($order->latestPayment->midtrans_uuid);
 
             // Buat Snap Token berdasarkan order_id unik tersebut
-            $snapToken = $midtransService->createSnapToken($order, $newOrderId);
+            $snapToken = $midtransService->createSnapToken($order, $newUUID);
 
             // Simpan entri payment baru
             $order->payments()->create([
                 'order_id' => $order->id,
+                'midtrans_uuid' => $newUUID,
                 'snap_token' => $snapToken,
-                'midtrans_order_id' => $newOrderId,
                 'status' => 'pending',
             ]);
 

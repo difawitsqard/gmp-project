@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
+            $table->string('uuid')->unique(); // Nomor pesanan unik
             $table->foreignId('customer_id')->nullable()->constrained('users', 'id')->onDelete('restrict'); // User pemilik pesanan
             $table->string('name')->nullable(); // Nama 
             $table->string('email')->nullable(); // Email pemesan
@@ -22,6 +23,7 @@ return new class extends Migration
             $table->bigInteger('shipping_fee')->nullable();
             $table->bigInteger('sub_total'); // Sub total harga pesanan
             $table->bigInteger('total'); // Total harga pesanan
+            $table->text('note')->nullable(); // Catatan untuk pesanan
             $table->enum('status', [
                 'waiting_confirmation', // Menunggu konfirmasi admin ( Menentukan Ongkir )
                 'pending',              // Menunggu pembayaran

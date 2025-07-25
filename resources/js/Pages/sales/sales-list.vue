@@ -1,5 +1,7 @@
 <template>
-    <Head title="Riwayat Pesanan" />
+    <Head
+        :title="hasRole('Staff Gudang') ? 'Pesanan Masuk' : 'Riwayat Pesanan'"
+    />
     <layout-header></layout-header>
     <layout-sidebar></layout-sidebar>
 
@@ -8,8 +10,20 @@
             <div class="page-header">
                 <div class="add-item d-flex">
                     <div class="page-title">
-                        <h4>Riwayat Pesanan</h4>
-                        <h6>Kelola Pesanan</h6>
+                        <h4>
+                            {{
+                                hasRole("Staff Gudang")
+                                    ? "Pesanan Masuk"
+                                    : "Riwayat Pesanan"
+                            }}
+                        </h4>
+                        <h6>
+                            {{
+                                hasRole("Staff Gudang")
+                                    ? "Kelola pesanan masuk"
+                                    : "Kelola Pesanan "
+                            }}
+                        </h6>
                     </div>
                 </div>
                 <ul class="table-top-head">
@@ -40,7 +54,7 @@
                         </a>
                     </li>
                 </ul>
-                <div class="page-btn">
+                <div class="page-btn" v-if="!hasRole('Staff Gudang')">
                     <Link :href="route('orders.create')" class="btn btn-added"
                         ><vue-feather
                             type="plus-circle"
@@ -58,15 +72,16 @@
                             <div class="search-input">
                                 <input
                                     type="text"
-                                    placeholder="Search"
+                                    placeholder="Cari.."
                                     class="dark-input"
                                     v-model="filters.search"
                                 />
-                                <a href="" class="btn btn-searchset"
-                                    ><i
-                                        data-feather="search"
-                                        class="feather-search"
-                                    ></i
+                                <a
+                                    href="javascript:void(0);"
+                                    v-show="filters.search"
+                                    class="btn btn-searchset"
+                                    @click="resetExcept"
+                                    ><i data-feather="x" class="feather-x"></i
                                 ></a>
                             </div>
                         </div>
@@ -77,7 +92,7 @@
                                     id="filter_search"
                                     v-on:click="
                                         filter = !filter;
-                                        if (!filter) reset();
+                                        if (!filter) resetExcept();
                                     "
                                     :class="{ setclose: filter }"
                                 >
@@ -128,6 +143,18 @@
                                         />
                                     </div>
                                 </div>
+                                <div class="col-lg-3 col-sm-6 col-12 ms-auto">
+                                    <div
+                                        class="input-blocks d-flex justify-content-end"
+                                    >
+                                        <a
+                                            class="btn btn-filters btn-reset"
+                                            @click="resetExcept"
+                                        >
+                                            Reset
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -140,15 +167,23 @@
                             @change="handleTableChange"
                         >
                             <template #bodyCell="{ column, record }">
+                                <template v-if="column.key === 'uuid'">
+                                    <Link
+                                        class="fw-bold"
+                                        :href="
+                                            route('orders.show', record.uuid)
+                                        "
+                                    >
+                                        #{{ record.uuid }}
+                                    </Link>
+                                </template>
                                 <template v-if="column.key === 'name'">
-                                    <div class="fw-bold">
-                                        <Link
-                                            :href="
-                                                route('orders.show', record.id)
-                                            "
-                                            >{{ record.name }}</Link
-                                        >
-                                    </div>
+                                    <Link
+                                        :href="
+                                            route('orders.show', record.uuid)
+                                        "
+                                        >{{ record.name }}</Link
+                                    >
                                 </template>
                                 <template v-if="column.key === 'status'">
                                     <div>
@@ -171,7 +206,10 @@
                                         <span
                                             :class="`badge bg-outline-${
                                                 !record.payment_status
-                                                    ? 'secondary'
+                                                    ? record.status ===
+                                                      'cancelled'
+                                                        ? 'danger'
+                                                        : 'warning'
                                                     : getPaymentStatus(
                                                           record.payment_status
                                                       ).color
@@ -179,7 +217,10 @@
                                         >
                                             {{
                                                 !record.payment_status
-                                                    ? "Menunggu Konfirmasi"
+                                                    ? record.status ===
+                                                      "cancelled"
+                                                        ? "Dibatalkan"
+                                                        : "Menunggu Konfirmasi"
                                                     : getPaymentStatus(
                                                           record.payment_status
                                                       ).label
@@ -187,40 +228,31 @@
                                         </span>
                                     </div>
                                 </template>
+                                <template v-if="column.key === 'uplink_id'">
+                                    {{ record.uplink?.name ?? "-" }}
+                                </template>
+                                <template v-if="column.key === 'processed_by'">
+                                    {{ record.processed_by?.name ?? "-" }}
+                                </template>
                                 <template v-else-if="column.key === 'action'">
-                                    <div class="text-center">
-                                        <a
-                                            class="action-set"
-                                            href="javascript:void(0);"
-                                            data-bs-toggle="dropdown"
-                                            aria-expanded="true"
-                                        >
-                                            <i
-                                                class="fa fa-ellipsis-v"
-                                                aria-hidden="true"
-                                            ></i>
-                                        </a>
-                                        <ul
-                                            class="dropdown-menu sales-list-icon"
-                                        >
-                                            <li>
-                                                <Link
-                                                    :href="
-                                                        route(
-                                                            'orders.show',
-                                                            record.id
-                                                        )
-                                                    "
-                                                    class="dropdown-item"
-                                                    ><vue-feather
-                                                        type="eye"
-                                                        class="info-img"
-                                                    ></vue-feather
-                                                    >Detail Pesanan</Link
-                                                >
-                                            </li>
-                                        </ul>
-                                    </div>
+                                    <td class="action-table-data">
+                                        <div class="edit-delete-action">
+                                            <Link
+                                                :href="
+                                                    route(
+                                                        'orders.show',
+                                                        record.uuid
+                                                    )
+                                                "
+                                                class="me-2 p-2 mb-0"
+                                            >
+                                                <vue-feather
+                                                    type="eye"
+                                                    class="info-img"
+                                                ></vue-feather>
+                                            </Link>
+                                        </div>
+                                    </td>
                                 </template>
                             </template>
                         </a-table>
@@ -239,6 +271,7 @@ import {
     getPaymentStatus,
     getAllPaymentStatus,
 } from "@/constants/paymentStatus";
+import { has } from "lodash";
 
 export default {
     setup() {
@@ -247,7 +280,12 @@ export default {
             ["search", "status", "payment_status"],
             { only: ["orders"] }
         );
-        return { filters, fetch, reset };
+
+        const resetExcept = () => {
+            reset(["sort_order", "sort_field"]);
+        };
+
+        return { filters, fetch, reset, resetExcept };
     },
     components: {
         Head,
@@ -266,39 +304,21 @@ export default {
             OrderPaymentStatus: getAllPaymentStatus(),
             columns: [
                 {
+                    title: "ID Pesanan",
+                    dataIndex: "uuid",
+                    key: "uuid",
+                },
+                {
                     title: "Pelanggan",
                     dataIndex: "name",
                     key: "name",
-                    sorter: {
-                        compare: (a, b) => {
-                            a = a.name.toLowerCase();
-                            b = b.name.toLowerCase();
-                            return a > b ? -1 : b > a ? 1 : 0;
-                        },
-                    },
-                },
-                {
-                    title: "ID Pesanan",
-                    dataIndex: "id",
-                    sorter: {
-                        compare: (a, b) => {
-                            a = a.id.toLowerCase();
-                            b = b.id.toLowerCase();
-                            return a > b ? -1 : b > a ? 1 : 0;
-                        },
-                    },
-                    customRender: ({ text }) => `#${text}`,
+                    sorter: true,
                 },
                 {
                     title: "Tanggal",
                     dataIndex: "created_at",
-                    sorter: {
-                        compare: (a, b) => {
-                            a = a.created_at.toLowerCase();
-                            b = b.created_at.toLowerCase();
-                            return a > b ? -1 : b > a ? 1 : 0;
-                        },
-                    },
+                    key: "created_at",
+                    sorter: true,
                     customRender: ({ text }) =>
                         dayjs(text).format("D MMMM YYYY HH:mm"),
                 },
@@ -306,24 +326,13 @@ export default {
                     title: "Status",
                     dataIndex: "status",
                     key: "status",
-                    sorter: {
-                        compare: (a, b) => {
-                            a = a.status.toLowerCase();
-                            b = b.status.toLowerCase();
-                            return a > b ? -1 : b > a ? 1 : 0;
-                        },
-                    },
+                    sorter: false,
                 },
                 {
                     title: "Total",
                     dataIndex: "total",
-                    sorter: {
-                        compare: (a, b) => {
-                            a = parseFloat(a.total);
-                            b = parseFloat(b.total);
-                            return a > b ? -1 : b > a ? 1 : 0;
-                        },
-                    },
+                    key: "total",
+                    sorter: true,
                     customRender: ({ text }) =>
                         this.$helpers.formatRupiah(text),
                 },
@@ -331,30 +340,24 @@ export default {
                     title: "Status Pembayaran",
                     dataIndex: "payment_status",
                     key: "payment_status",
-                    sorter: {
-                        compare: (a, b) => {
-                            a = a.Payment_Status.toLowerCase();
-                            b = b.Payment_Status.toLowerCase();
-                            return a > b ? -1 : b > a ? 1 : 0;
-                        },
-                    },
+                    sorter: false,
                 },
                 {
-                    title: "Biller",
-                    dataIndex: "Biller",
-                    sorter: {
-                        compare: (a, b) => {
-                            a = a.Biller.toLowerCase();
-                            b = b.Biller.toLowerCase();
-                            return a > b ? -1 : b > a ? 1 : 0;
-                        },
-                    },
-                    customRender: () => "Admin",
-                },
-                {
-                    title: "Action",
-                    key: "action",
+                    title: "Oleh",
+                    dataIndex: "uplink_id",
+                    key: "uplink_id",
                     sorter: true,
+                },
+                {
+                    title: "Diproses Oleh",
+                    dataIndex: "processed_by",
+                    key: "processed_by",
+                    sorter: true,
+                },
+                {
+                    title: "Aksi",
+                    key: "action",
+                    sorter: false,
                 },
             ],
         };
@@ -378,12 +381,20 @@ export default {
     methods: {
         getOrderStatus,
         getPaymentStatus,
-        handleTableChange(pagination) {
+        handleTableChange(pagination, filters, sorter) {
             this.filters.page = pagination.current;
             this.filters.per_page = pagination.pageSize;
+
+            if (sorter.order) {
+                this.filters.sort_field = sorter.field;
+                this.filters.sort_order = sorter.order;
+            } else {
+                this.filters.sort_field = null;
+                this.filters.sort_order = null;
+            }
+
             this.fetch();
         },
-
         toggleCollapse() {
             const collapseHeader = this.$refs.collapseHeader;
 

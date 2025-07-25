@@ -168,9 +168,11 @@
                                                     class="img-bg"
                                                 >
                                                     <img
-                                                        v-lazy="product.image"
-                                                        alt="Products"
-                                                        class="product-image"
+                                                        v-lazy="
+                                                            product.image_url
+                                                        "
+                                                        :alt="product.name"
+                                                        class="product-image rounded"
                                                     />
                                                     <span>
                                                         <vue-feather
@@ -298,27 +300,55 @@
                                     </a>
                                 </div>
                             </div>
-                        </div>
-                        <div
-                            v-else
-                            class="d-flex align-items-center justify-content-between"
-                        >
-                            <div class="flex-grow-1">
-                                <h6 class="mb-0">
-                                    {{ $page.props.auth.user.name }}
-                                </h6>
+                            <div v-if="errors.customer_id" class="text-danger">
+                                {{ errors.customer_id[0] }}
                             </div>
-                            <div class="d-flex">
-                                <a
-                                    href="javascript:void(0);"
-                                    class="btn btn-outline-primary btn-icon"
-                                    @click="editCustomer"
+                        </div>
+                        <div v-else>
+                            <div
+                                class="d-flex align-items-center justify-content-between"
+                            >
+                                <div
+                                    class="flex-grow-1 d-flex align-items-center"
                                 >
-                                    <vue-feather
-                                        type="edit"
-                                        class="feather-16"
-                                    ></vue-feather>
-                                </a>
+                                    <img
+                                        v-lazy="
+                                            $page.props.auth.user
+                                                .profile_photo_url
+                                        "
+                                        :alt="$page.props.auth.user.name"
+                                        class="rounded-circle me-2"
+                                        style="
+                                            width: 40px;
+                                            height: 40px;
+                                            object-fit: cover;
+                                        "
+                                    />
+                                    <h6 class="mb-0">
+                                        {{ $page.props.auth.user.name }}
+                                        <br />
+                                        <span class="text-muted small">{{
+                                            $page.props.auth.user.email
+                                        }}</span>
+                                    </h6>
+                                </div>
+                                <div class="d-flex">
+                                    <a
+                                        href="javascript:void(0);"
+                                        class="btn btn-outline-primary"
+                                        @click="editCustomer"
+                                    >
+                                        <vue-feather
+                                            type="edit"
+                                            class="feather-16"
+                                        ></vue-feather>
+
+                                        Edit Profile
+                                    </a>
+                                </div>
+                            </div>
+                            <div v-if="errors.customer_id" class="text-danger">
+                                {{ errors.customer_id[0] }}
                             </div>
                         </div>
 
@@ -357,6 +387,7 @@
                                         >
                                             <img
                                                 v-lazy="product.image"
+                                                class="rounded me-2"
                                                 :alt="product.name"
                                             />
                                         </a>
@@ -431,78 +462,101 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="block-section">
-                            <div class="selling-info">
-                                <div class="row">
-                                    <div
-                                        class="col-12"
-                                        :class="
-                                            hasRole('Admin') ? 'col-sm-6' : ''
-                                        "
-                                    >
-                                        <div class="input-block">
-                                            <label>Pengiriman</label>
-                                            <vue-select
-                                                :options="shipping_method"
-                                                v-model="form.shipping_method"
-                                                id="shipping_method"
-                                                label="text"
-                                                :reduce="(option) => option.id"
-                                                placeholder="Pilih Pengiriman"
-                                                @update:modelValue="
-                                                    (val) => {
-                                                        if (val === 'pickup') {
-                                                            form.shipping_fee =
-                                                                null;
-                                                        }
-                                                    }
-                                                "
-                                            />
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="col-12 col-sm-6"
-                                        v-show="
-                                            form.shipping_method ===
-                                                'delivery' && hasRole('Admin')
-                                        "
-                                    >
-                                        <div class="input-block">
-                                            <label>Biaya Pengiriman</label>
-                                            <input
-                                                type="text"
-                                                class="form-control"
-                                                v-model="form.shipping_fee"
-                                                placeholder="Rp. 0"
-                                                :disabled="
+                        <transition name="fade">
+                            <div v-if="form.addedProducts.length">
+                                <div class="block-section">
+                                    <div class="selling-info">
+                                        <div class="row">
+                                            <div
+                                                class="col-12"
+                                                :class="
+                                                    hasRole('Admin') &&
                                                     form.shipping_method ===
-                                                    'pickup'
+                                                        'delivery'
+                                                        ? 'col-sm-6'
+                                                        : ''
                                                 "
-                                            />
-                                        </div>
-                                    </div>
-                                    <!-- Tampilkan pesan info untuk pelanggan -->
-                                    <div
-                                        class="col-12 mt-3"
-                                        v-if="
-                                            form.shipping_method ===
-                                                'delivery' && !hasRole('Admin')
-                                        "
-                                    >
-                                        <div
-                                            class="alert alert-primary alert-dismissible fade show custom-alert-icon shadow-sm d-flex align-items-center"
-                                            role="alert"
-                                        >
-                                            <i
-                                                class="feather-info flex-shrink-0 me-2"
-                                            ></i>
-                                            Biaya pengiriman saat ini masih
-                                            membutuhkan konfirmasi dari admin,
-                                            setelah pesanan dibuat.
-                                        </div>
-                                    </div>
+                                            >
+                                                <div class="input-block">
+                                                    <label>Pengiriman</label>
+                                                    <vue-select
+                                                        :options="
+                                                            shipping_method
+                                                        "
+                                                        v-model="
+                                                            form.shipping_method
+                                                        "
+                                                        id="shipping_method"
+                                                        label="text"
+                                                        :reduce="
+                                                            (option) =>
+                                                                option.id
+                                                        "
+                                                        placeholder="Pilih Pengiriman"
+                                                        @update:modelValue="
+                                                            (val) => {
+                                                                if (
+                                                                    val ===
+                                                                    'pickup'
+                                                                ) {
+                                                                    form.shipping_fee =
+                                                                        null;
+                                                                }
+                                                            }
+                                                        "
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div
+                                                class="col-12 col-sm-6"
+                                                v-show="
+                                                    form.shipping_method ===
+                                                        'delivery' &&
+                                                    hasRole('Admin')
+                                                "
+                                            >
+                                                <div class="input-block">
+                                                    <label
+                                                        >Biaya Pengiriman</label
+                                                    >
+                                                    <input
+                                                        type="text"
+                                                        class="form-control"
+                                                        v-model="
+                                                            form.shipping_fee
+                                                        "
+                                                        placeholder="Rp. 0"
+                                                        :disabled="
+                                                            form.shipping_method ===
+                                                            'pickup'
+                                                        "
+                                                    />
+                                                </div>
+                                            </div>
+                                            <!-- Tampilkan pesan info untuk pelanggan -->
+                                            <div
+                                                class="col-12 mt-3"
+                                                v-if="
+                                                    form.shipping_method ===
+                                                        'delivery' &&
+                                                    !hasRole('Admin')
+                                                "
+                                            >
+                                                <div
+                                                    class="alert alert-primary alert-dismissible fade show custom-alert-icon shadow-sm d-flex align-items-center"
+                                                    role="alert"
+                                                >
+                                                    <i
+                                                        class="feather-info flex-shrink-0 me-2"
+                                                    ></i>
+                                                    Biaya pengiriman saat ini
+                                                    masih membutuhkan konfirmasi
+                                                    dari admin setelah pesanan
+                                                    dibuat.
+                                                </div>
+                                            </div>
 
-                                    <!-- <div class="col-12 col-sm-6">
+                                            <!-- <div class="col-12 col-sm-6">
                                         <div class="input-block">
                                             <label>Discount</label>
                                             <vue-select
@@ -512,106 +566,120 @@
                                             />
                                         </div>
                                     </div> -->
+                                        </div>
+                                    </div>
+                                    <div class="order-total">
+                                        <table
+                                            class="table table-responsive table-borderless"
+                                        >
+                                            <tr>
+                                                <td>Sub Total</td>
+                                                <td class="text-end">
+                                                    Rp.
+                                                    {{
+                                                        $helpers.formatRupiah(
+                                                            subtotal
+                                                        )
+                                                    }}
+                                                </td>
+                                            </tr>
+                                            <tr
+                                                v-for="tax in taxes"
+                                                :key="tax.id"
+                                            >
+                                                <td>
+                                                    {{ tax.name }}
+                                                    <template
+                                                        v-if="tax.percent"
+                                                    >
+                                                        ( {{ tax.percent }}% )
+                                                    </template>
+                                                </td>
+                                                <td class="text-end">
+                                                    Rp.
+                                                    {{
+                                                        $helpers.formatRupiah(
+                                                            tax.percent
+                                                                ? (subtotal *
+                                                                      tax.percent) /
+                                                                      100
+                                                                : Number(
+                                                                      tax.fixed_amount
+                                                                  ) || 0
+                                                        )
+                                                    }}
+                                                </td>
+                                            </tr>
+                                            <tr
+                                                v-show="
+                                                    form.shipping_method ===
+                                                    'delivery'
+                                                "
+                                            >
+                                                <td>Pengiriman</td>
+                                                <td class="text-end">
+                                                    Rp.
+                                                    {{
+                                                        $helpers.formatRupiah(
+                                                            Number(
+                                                                form.shipping_fee
+                                                            )
+                                                        )
+                                                    }}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Total</td>
+                                                <td class="text-end">
+                                                    Rp.
+                                                    {{
+                                                        $helpers.formatRupiah(
+                                                            subtotal +
+                                                                (Array.isArray(
+                                                                    taxes
+                                                                )
+                                                                    ? taxes.reduce(
+                                                                          (
+                                                                              total,
+                                                                              tax
+                                                                          ) =>
+                                                                              total +
+                                                                              (tax.percent
+                                                                                  ? (subtotal *
+                                                                                        tax.percent) /
+                                                                                    100
+                                                                                  : Number(
+                                                                                        tax.fixed_amount
+                                                                                    ) ||
+                                                                                    0),
+                                                                          0
+                                                                      )
+                                                                    : 0) +
+                                                                (form.shipping_method ===
+                                                                "delivery"
+                                                                    ? Number(
+                                                                          form.shipping_fee
+                                                                      ) || 0
+                                                                    : 0)
+                                                        )
+                                                    }}
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div class="d-grid btn-block">
+                                    <button
+                                        type="submit"
+                                        class="btn btn-secondary"
+                                        @click="submitForm"
+                                    >
+                                        Submit
+                                    </button>
                                 </div>
                             </div>
-                            <div class="order-total">
-                                <table
-                                    class="table table-responsive table-borderless"
-                                >
-                                    <tr>
-                                        <td>Sub Total</td>
-                                        <td class="text-end">
-                                            Rp.
-                                            {{
-                                                $helpers.formatRupiah(subtotal)
-                                            }}
-                                        </td>
-                                    </tr>
-                                    <tr v-for="tax in taxes" :key="tax.id">
-                                        <td>
-                                            {{ tax.name }}
-                                            <template v-if="tax.percent">
-                                                ( {{ tax.percent }}% )
-                                            </template>
-                                        </td>
-                                        <td class="text-end">
-                                            Rp.
-                                            {{
-                                                $helpers.formatRupiah(
-                                                    tax.percent
-                                                        ? (subtotal *
-                                                              tax.percent) /
-                                                              100
-                                                        : Number(
-                                                              tax.fixed_amount
-                                                          ) || 0
-                                                )
-                                            }}
-                                        </td>
-                                    </tr>
-                                    <tr
-                                        v-show="
-                                            form.shipping_method === 'delivery'
-                                        "
-                                    >
-                                        <td>Pengiriman</td>
-                                        <td class="text-end">
-                                            Rp.
-                                            {{
-                                                $helpers.formatRupiah(
-                                                    Number(form.shipping_fee)
-                                                )
-                                            }}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Total</td>
-                                        <td class="text-end">
-                                            Rp.
-                                            {{
-                                                $helpers.formatRupiah(
-                                                    subtotal +
-                                                        (Array.isArray(taxes)
-                                                            ? taxes.reduce(
-                                                                  (
-                                                                      total,
-                                                                      tax
-                                                                  ) =>
-                                                                      total +
-                                                                      (tax.percent
-                                                                          ? (subtotal *
-                                                                                tax.percent) /
-                                                                            100
-                                                                          : Number(
-                                                                                tax.fixed_amount
-                                                                            ) ||
-                                                                            0),
-                                                                  0
-                                                              )
-                                                            : 0) +
-                                                        (form.shipping_method ===
-                                                        "delivery"
-                                                            ? Number(
-                                                                  form.shipping_fee
-                                                              ) || 0
-                                                            : 0)
-                                                )
-                                            }}
-                                        </td>
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
-
-                        <div class="d-grid btn-block">
-                            <button
-                                type="submit"
-                                class="btn btn-secondary"
-                                @click="submitForm"
-                            >
-                                Submit
-                            </button>
-                        </div>
+                        </transition>
                     </aside>
                 </div>
             </div>
@@ -630,6 +698,7 @@
             :user-id="customerSelectedOpenModal"
             modal-id="customer-modal"
             default-role="Pelanggan"
+            :setErrors="userModalErrors"
             @user-submit="handleCustomerSubmit"
         />
     </Teleport>
@@ -747,6 +816,8 @@ export default {
     data() {
         return {
             errors: [],
+            userModalErrors: {},
+            selectedProductId: null,
             isLoading: false,
             perPageOptions: [
                 { value: 12, text: "12" },
@@ -840,6 +911,8 @@ export default {
         },
 
         addProduct(product) {
+            if (!product.qty || product.qty <= 0) return;
+
             const existingProductIndex = this.form.addedProducts.findIndex(
                 (p) => p.id === product.id
             );
@@ -852,6 +925,7 @@ export default {
                 this.form.addedProducts.push({
                     id: product.id,
                     name: product.name,
+                    image: product.image_url,
                     sku: product.sku,
                     price: product.price,
                     max_qty: product.qty,
@@ -889,15 +963,59 @@ export default {
 
             this.form.post(this.route("orders.store"), {
                 onError: (errors) => {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Uups...",
-                        text: errors
-                            ? typeof errors === "object"
-                                ? Object.values(errors)[0]
-                                : errors
-                            : "Something went wrong!",
-                    });
+                    const fieldErrors = [
+                        "customer_id",
+                        "name",
+                        "phone",
+                        "address",
+                        "email",
+                    ];
+                    const hasFieldError = fieldErrors.some(
+                        (field) => errors[field]
+                    );
+                    if (hasFieldError) {
+                        // Filter only fieldErrors and convert to array format
+                        this.errors = {};
+                        this.userModalErrors = {};
+                        fieldErrors.forEach((field) => {
+                            if (errors[field]) {
+                                this.userModalErrors[field] = [errors[field]];
+                                this.errors[field] = [errors[field]];
+                            }
+                        });
+
+                        if (this.form.customer_id && !this.hasRole("Admin")) {
+                            this.customerSelectedOpenModal = this.hasRole(
+                                "Pelanggan"
+                            )
+                                ? this.$page.props.auth.user.id
+                                : this.form.customer_id;
+                            this.$refs.userModal.showModal();
+                        }
+                    } else {
+                        Object.keys(errors).forEach((key) => {
+                            const match = key.match(
+                                /^addedProducts\.(\d+)\.qty$/
+                            );
+                            if (match) {
+                                const idx = Number(match[1]);
+                                // Hapus produk dari keranjang
+                                if (this.form.addedProducts[idx]) {
+                                    this.form.addedProducts.splice(idx, 1);
+                                }
+                            }
+                        });
+
+                        Swal.fire({
+                            icon: "error",
+                            title: "Uups...",
+                            text: errors
+                                ? typeof errors === "object"
+                                    ? Object.values(errors)[0]
+                                    : errors
+                                : "Something went wrong!",
+                        });
+                    }
                 },
             });
         },
@@ -967,5 +1085,18 @@ export default {
 <style>
 .select2-container {
     z-index: 1 !important;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.3s;
+}
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+.fade-enter-to,
+.fade-leave-from {
+    opacity: 1;
 }
 </style>

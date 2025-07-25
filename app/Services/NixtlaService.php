@@ -22,6 +22,18 @@ class NixtlaService
     $this->endpoint = 'https://api.nixtla.io/v2/forecast';
   }
 
+  /**
+   * Membuat payload permintaan untuk API peramalan berdasarkan data deret waktu yang dikelompokkan.
+   *
+   * @param array $seriesGrouped Array asosiatif UID ke array pasangan timestamp => nilai.
+   * @param int $h Horizon peramalan (jumlah periode yang diprediksi).
+   * @param string $freq Frekuensi data deret waktu.
+   * @param string $model Model peramalan yang digunakan.
+   * @return array Berisi:
+   *   - array $payload: Payload permintaan untuk API.
+   *   - array $uids: Daftar UID sesuai input.
+   *   - array $lastTimestamps: Timestamp terakhir untuk setiap UID dalam bentuk instance Carbon.
+   */
   public function forecast(array $seriesGrouped, array $options = []): array
   {
     $this->validateInput($seriesGrouped, $options);
@@ -29,8 +41,6 @@ class NixtlaService
     $model = $options['model'] ?? self::DEFAULT_MODEL;
     $freq = $options['freq'] ?? self::DEFAULT_FREQ;
     $h = $options['h'] ?? self::DEFAULT_H;
-    $X = $options['X'] ?? null;
-    $X_future = $options['X_future'] ?? null;
 
     // === Step 1: Build Request Payload ===
     [$payload, $uids, $lastTimestamps] = $this->buildRequest($seriesGrouped, $h, $freq, $model);
@@ -42,6 +52,14 @@ class NixtlaService
     return $this->buildForecast($response, $uids, $lastTimestamps, $h, $freq);
   }
 
+  /**
+   * Membangun payload permintaan untuk API Nixtla berdasarkan data deret waktu yang dikelompokkan.
+   * @param array $seriesGrouped Array asosiatif yang berisi UID sebagai kunci dan array pasangan timestamp => nilai sebagai nilai.
+   * @param int $h Jumlah periode yang akan diprediksi.
+   * @param string $freq Frekuensi data deret waktu (misalnya 'D' untuk harian).
+   * @param string $model Model peramalan yang digunakan.
+   * @return array Berisi payload permintaan, daftar UID, dan timestamp terakhir untuk setiap UID.
+   */
   protected function buildRequest(array $seriesGrouped, int $h, string $freq, string $model): array
   {
     $y = [];
@@ -73,12 +91,18 @@ class NixtlaService
       'finetune_depth' => 5,
       'finetune_loss' => 'default',
       'finetuned_model_id' => null,
-      'feature_contributions' => false
     ];
 
     return [$payload, array_keys($seriesGrouped), $lastTimestamps];
   }
 
+  /**
+   * Mengirim permintaan ke API Nixtla untuk mendapatkan hasil peramalan.
+   *
+   * @param array $payload Payload permintaan yang akan dikirim.
+   * @return array Hasil respons dari API Nixtla.
+   * @throws \Exception Jika terjadi kesalahan saat mengirim permintaan.
+   */
   protected function sendRequest(array $payload): array
   {
     Log::info('Sending request to Nixtla API', ['payload' => $payload]);
@@ -97,40 +121,16 @@ class NixtlaService
     return $response->json();
   }
 
-  // protected function buildForecast(array $response, array $uids, array $lastTimestamps, int $h, string $freq): array
-  // {
-  //   $forecast = [];
-  //   $mean = $response['mean'] ?? [];
-  //   $index = 0;
-
-  //   foreach ($uids as $uid) {
-  //     $last = $lastTimestamps[$uid];
-
-  //     for ($i = 0; $i < $h; $i++) {
-  //       if (!isset($mean[$index])) break;
-
-  //       // Hitung tanggal berdasarkan frekuensi
-  //       $ds = match (strtoupper($freq)) {
-  //         'H' => $last->copy()->addHours($i + 1)->format('Y-m-d H:00:00'),
-  //         'D' => $last->copy()->addDays($i + 1)->format('Y-m-d'),
-  //         'W' => $last->copy()->addWeeks($i + 1)->startOfWeek()->format('Y-m-d'),
-  //         'M' => $last->copy()->addMonths($i + 1)->startOfMonth()->format('Y-m-d'),
-  //         default => $last->copy()->addDays($i + 1)->format('Y-m-d'),
-  //       };
-
-  //       $forecast[] = [
-  //         'unique_id' => $uid,
-  //         'ds' => $ds,
-  //         'TimeGPT' => $mean[$index],
-  //       ];
-
-  //       $index++;
-  //     }
-  //   }
-
-  //   return $forecast;
-  // }
-
+  /**
+   * Membangun hasil peramalan berdasarkan respons dari API Nixtla.
+   *
+   * @param array $response Respons dari API Nixtla.
+   * @param array $uids Daftar UID yang sesuai dengan input.
+   * @param array $lastTimestamps Timestamp terakhir untuk setiap UID.
+   * @param int $h Jumlah periode yang diprediksi.
+   * @param string $freq Frekuensi data deret waktu.
+   * @return array Hasil peramalan yang telah dibangun.
+   */
   protected function buildForecast(array $response, array $uids, array $lastTimestamps, int $h, string $freq): array
   {
     $forecast = [];
@@ -162,93 +162,27 @@ class NixtlaService
     return $forecast;
   }
 
-
+  /**
+   * Validasi input untuk memastikan bahwa data deret waktu yang diberikan sesuai dengan format yang diharapkan.
+   *
+   * @param array $seriesGrouped Array asosiatif yang berisi UID sebagai kunci dan array pasangan timestamp => nilai sebagai nilai.
+   * @param array $options Opsi tambahan seperti 'h', 'freq', dan 'model'.
+   * @throws \InvalidArgumentException Jika input tidak valid.
+   */
   protected function validateInput(array $seriesGrouped, array $options): void
   {
     if (empty($seriesGrouped)) {
-      throw new \InvalidArgumentException("The seriesGrouped array cannot be empty.");
+      throw new \InvalidArgumentException("Array seriesGrouped tidak boleh kosong.");
     }
 
     foreach ($seriesGrouped as $uid => $series) {
       if (!is_array($series)) {
-        throw new \InvalidArgumentException("Each series in seriesGrouped must be an array.");
+        throw new \InvalidArgumentException("Setiap series dalam seriesGrouped harus berupa array.");
       }
     }
 
     if (!isset($options['h']) || !is_int($options['h']) || $options['h'] <= 0) {
-      throw new \InvalidArgumentException("The 'h' option must be a positive integer.");
+      throw new \InvalidArgumentException("Opsi 'h' harus berupa integer positif.");
     }
-  }
-
-  /**
-   * Validasi apakah produk layak untuk forecast berdasarkan time series-nya.
-   *
-   * @param array $series ['2024-01-01' => 10, '2024-01-02' => 0, ...]
-   * @param float $minRatio Rasio minimum non-zero agar layak forecast
-   * @param int $maxGap Jarak maksimum antar titik non-zero
-   * @param string $freq 'H' (hour), 'D' (day), 'W' (week), 'M' (month)
-   * @return array ['valid' => bool, 'reason' => string|null]
-   */
-  public function validate(array $series, float $minRatio = 0.2, int $maxGap = 5, string $freq = 'D'): array
-  {
-    $dates = array_keys($series);
-    $total = count($series);
-
-    if ($total < 8) {
-      return ['valid' => false, 'reason' => 'Data terlalu sedikit'];
-    }
-
-    $nonZeroDates = collect($series)->filter(fn($v) => $v > 0)->keys()->all();
-    $nonZeroCount = count($nonZeroDates);
-    $ratio = $nonZeroCount / $total;
-
-    if ($ratio < $minRatio) {
-      return ['valid' => false, 'reason' => 'Rasio data non-zero terlalu kecil'];
-    }
-
-    // Hitung jarak antar titik non-zero berdasarkan freq
-    $gapUnits = [];
-    for ($i = 1; $i < count($nonZeroDates); $i++) {
-      $start = Carbon::parse($nonZeroDates[$i - 1]);
-      $end = Carbon::parse($nonZeroDates[$i]);
-
-      $gap = match ($freq) {
-        'H' => $start->diffInHours($end),
-        'D' => $start->diffInDays($end),
-        'W' => $start->diffInWeeks($end),
-        'M' => $start->diffInMonths($end),
-        default => $start->diffInDays($end),
-      };
-
-      $gapUnits[] = $gap;
-    }
-
-    $maxDetectedGap = count($gapUnits) ? max($gapUnits) : 0;
-
-    if ($maxDetectedGap > $maxGap) {
-      return ['valid' => false, 'reason' => "Jarak antar titik terlalu jauh ($maxDetectedGap $freq)"];
-    }
-
-    return ['valid' => true, 'reason' => null];
-  }
-
-
-  function generateXFutureFromDates(string $lastDate, int $horizon, array $featureCallbacks): array
-  {
-    $result = [];
-    $start = Carbon::parse($lastDate);
-
-    for ($i = 1; $i <= $horizon; $i++) {
-      $date = $start->copy()->addDays($i);
-      $featureRow = [];
-
-      foreach ($featureCallbacks as $callback) {
-        $featureRow[] = $callback($date);
-      }
-
-      $result[] = $featureRow;
-    }
-
-    return $result;
   }
 }

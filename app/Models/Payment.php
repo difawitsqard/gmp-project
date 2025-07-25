@@ -8,7 +8,7 @@ class Payment extends Model
 {
     protected $fillable = [
         'order_id',
-        'midtrans_order_id',
+        'midtrans_uuid',
         'payment_type',
         'snap_token',
         'status',

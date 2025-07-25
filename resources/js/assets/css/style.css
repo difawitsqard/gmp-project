@@ -20785,6 +20785,15 @@ body.mini-sidebar.expand-menu
     top: 16px;
     right: 20px;
 }
+
+.login-wrapper .login-content .form-login .form-addons i {
+    position: absolute;
+    top: 12px;
+    right: 18px;
+    width: 18px;
+    height: 16px;
+}
+
 .login-wrapper .login-content .form-login input {
     width: 100%;
     height: 40px;

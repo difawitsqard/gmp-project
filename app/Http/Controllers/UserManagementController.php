@@ -8,6 +8,14 @@ use Spatie\Permission\Models\Role;
 
 class UserManagementController extends Controller
 {
+
+    protected $user;
+
+    public function __construct()
+    {
+        $this->user = auth()->user();
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -21,7 +29,21 @@ class UserManagementController extends Controller
 
         $perPage = is_numeric($request->perPage) ? $request->perPage :  10;
 
-        $users = User::with(['roles:id,name', 'permissions'])
+        if ($this->user->hasRole('Admin')) {
+            // Admin hanya melihat user dengan role 'Pelanggan'
+            $users = User::whereHas('roles', function ($query) {
+                $query->where('name', 'Pelanggan');
+            });
+        } elseif ($this->user->hasRole('Manajer Stok')) {
+            // Manajer Stok hanya melihat user dengan role 'Manajer Stok' atau 'Staff Gudang'
+            $users = User::whereHas('roles', function ($query) {
+                $query->whereIn('name', ['Manajer Stok', 'Staff Gudang']);
+            });
+        } else {
+            abort(403);
+        }
+
+        $users = $users->with(['roles:id,name', 'permissions'])
             ->Filter()
             ->Sorting()
             ->paginate($perPage);
@@ -146,6 +168,11 @@ class UserManagementController extends Controller
 
         $user = User::find($id);
 
+        // Jika user sudah verifikasi email dan yang update bukan dirinya sendiri, larang update email
+        if ($user->hasVerifiedEmail() && auth()->id() != $user->id) {
+            $request->merge(['email' => $user->email]); // Pakai email lama
+        }
+
         $validate = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $id,
@@ -158,6 +185,8 @@ class UserManagementController extends Controller
             'is_active' => 'boolean',
         ]);
 
+        $emailChanged = $validate['email'] !== $user->email;
+
         $user->update([
             'name' => $validate['name'],
             'email' => $validate['email'],
@@ -168,6 +197,13 @@ class UserManagementController extends Controller
 
         if ($request->has('role')) {
             $user->syncRoles($validate['role']);
+        }
+
+        // Jika email diubah oleh dirinya sendiri, kirim email verifikasi ulang
+        if ($emailChanged && auth()->id() == $user->id) {
+            $user->email_verified_at = null;
+            $user->save();
+            $user->sendEmailVerificationNotification();
         }
 
         if ($request->wantsJson()) {

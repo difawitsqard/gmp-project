@@ -151,12 +151,12 @@
                     <div class="userimgname">
                         <a href="javascript:void(0);" class="product-img me-3">
                             <img
-                                v-lazy="record.created_by.profile_photo_url"
-                                :alt="record.created_by.id"
+                                v-lazy="record.created_by?.profile_photo_url"
+                                :alt="record.created_by?.id"
                             />
                         </a>
                         <a href="javascript:void(0);">{{
-                            record.created_by.name
+                            record.created_by?.name
                         }}</a>
                     </div>
                 </template>

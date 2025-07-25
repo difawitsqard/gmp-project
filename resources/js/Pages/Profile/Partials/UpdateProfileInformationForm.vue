@@ -125,7 +125,7 @@ const clearPhotoFileInput = () => {
                             </div>
                             <div class="profile-contentname">
                                 <h2>{{ user.name }}</h2>
-                                <h4>Super Admin</h4>
+                                <h4>{{ user.roles[0] || "No Role" }}</h4>
                             </div>
                         </div>
                     </div>

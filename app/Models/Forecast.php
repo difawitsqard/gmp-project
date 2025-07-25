@@ -8,12 +8,14 @@ class Forecast extends Model
 {
     // fillable
     protected $fillable = [
+        'name',
         'forecasted_at',
         'frequency',
         'horizon',
         'model',
         'input_start_date',
         'input_end_date',
+        'status',
         'created_by',
     ];
 

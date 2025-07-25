@@ -48,20 +48,20 @@ class MidtransService
      */
     public function createSnapToken(Order $order, $costumOrderId = null): string
     {
-        // Jika order_id tidak diberikan, gunakan ID order yang ada
-        $orderId = $costumOrderId ?? $order->id;
+        // Jika uuid tidak diberikan, gunakan nomor order yang ada
+        $orderNumber = $costumOrderId ?? $order->uuid;
 
         // data transaksi
         $params = [
             'transaction_details' => [
-                'order_id' => $orderId,
+                'order_id' => $orderNumber,
                 'gross_amount' => $order->total,
             ],
             'item_details' => $this->mapItemsToDetails($order),
             'customer_details' => $this->getCustomerDetails($order),
         ];
 
-        $params['customer_details']['shipping_address'] = $this->getShippingAddress($order);
+        $params['customer_details']['shipping_address'] = $this->getCustomerDetails($order);
 
         try {
             // Membuat snap token
@@ -105,8 +105,8 @@ class MidtransService
 
         $notification = $this->notification(); // Ambil data dari Midtrans payload
 
-        $payment = Payment::with('order')
-            ->where('midtrans_order_id', $notification->order_id)
+        $payment = Payment::with('order',  'order.items')
+            ->where('midtrans_uuid', $notification->order_id)
             ->firstOrFail();
 
         return $payment->order;
@@ -275,7 +275,6 @@ class MidtransService
 
     /**
      * Mendapatkan informasi customer dari order.
-     * Data ini dapat diambil dari relasi dengan tabel lain seperti users atau tabel khusus customer.
      *
      * @param Order $order Objek order yang berisi informasi tentang customer.
      * @return array Data customer yang akan dikirim ke Midtrans.
@@ -283,17 +282,6 @@ class MidtransService
     protected function getCustomerDetails(Order $order): array
     {
         // Sesuaikan data customer dengan informasi yang dimiliki oleh aplikasi Anda
-        return [
-            'first_name' => $order->name,
-            'email' => $order->email,
-            'phone' => $order->phone,
-            'address' => $order->address,
-        ];
-    }
-
-    protected function getShippingAddress(Order $order): array
-    {
-        // Sesuaikan data alamat pengiriman dengan informasi yang dimiliki oleh aplikasi Anda
         return [
             'first_name' => $order->name,
             'email' => $order->email,

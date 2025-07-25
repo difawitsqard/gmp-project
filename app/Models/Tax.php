@@ -13,6 +13,11 @@ class Tax extends Model
         'status',
     ];
 
+    public function orders()
+    {
+        return $this->belongsToMany(Order::class, 'order_taxes')->withPivot('amount');
+    }
+
     public function scopeFilter($query)
     {
         $columns = ['name'];
@@ -32,8 +37,23 @@ class Tax extends Model
         });
     }
 
-    public function orders()
+    public function scopeSorting($query)
     {
-        return $this->belongsToMany(Order::class, 'order_taxes')->withPivot('amount');
+        $query->when(
+            request()->filled('sort_field') && request()->filled('sort_order'),
+            function ($query) {
+                $field = request()->get('sort_field', 'name');
+                $order = request()->get('sort_order', 'ascend') === 'ascend' ? 'asc' : 'desc';
+                // Abaikan jika kolom takde
+                if (in_array($field, array_merge($this->getFillable(), ['created_at', 'updated_at']))) {
+                    $query->orderBy($field, $order);
+                } else {
+                    $query->orderBy('name', 'asc');
+                }
+            },
+            function ($query) {
+                $query->orderBy('name', 'asc');
+            }
+        );
     }
 }

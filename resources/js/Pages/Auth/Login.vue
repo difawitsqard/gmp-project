@@ -56,7 +56,7 @@ const onSubmit = async () => {
 </script>
 
 <template>
-    <Head title="Log in" />
+    <Head title="Masuk" />
 
     <div class="account-page">
         <div class="account-content">

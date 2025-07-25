@@ -28,10 +28,14 @@ class OrderController extends Controller
         $perPage = is_numeric($request->per_page) ? $request->per_page :  10;
 
         $orders = Order::filter()
-            ->with(['items.product', 'payments']);
+            ->Sorting()
+            ->with(['items.product', 'payments', 'customer', 'uplink', 'processedBy']);
 
         if ($this->user->hasRole('Pelanggan')) {
             $orders = $orders->where('customer_id', $this->user->id);
+        } elseif ($this->user->hasRole('Staff Gudang')) {
+            // dan statusnya hanya 'waiting_processing' atau 'completed'
+            $orders = $orders->whereIn('status', ['waiting_processing', 'completed']);
         }
 
         $orders = $orders->orderBy('created_at', 'desc')
@@ -40,8 +44,24 @@ class OrderController extends Controller
         $orders->getCollection()->transform(function ($order) {
             return [
                 'id' => $order->id,
+                'uuid' => $order->uuid,
                 'name' => $order->name,
+                'customer' => $order->customer ? [
+                    'name' => $order->customer->name,
+                    'email' => $order->customer->email,
+                    'phone' => $order->customer->phone,
+                ] : null,
                 'sub_total' => $order->sub_total,
+                'uplink' => $order->uplink ? [
+                    'name' => $order->uplink->name,
+                    'email' => $order->uplink->email,
+                    'phone' => $order->uplink->phone,
+                ] : null,
+                'processed_by' => $order->processedBy ? [
+                    'name' => $order->processedBy->name,
+                    'email' => $order->processedBy->email,
+                    'phone' => $order->processedBy->phone,
+                ] : null,
                 'total' => $order->total,
                 'status' => $order->status,
                 'payment_status' => $order->latestPayment ? $order->latestPayment->status : null,
@@ -100,10 +120,8 @@ class OrderController extends Controller
      */
     public function store(MidtransService $midtransService, Request $request)
     {
-        $user = auth()->user();
-
-        if ($user->hasRole('Pelanggan')) {
-            $request->merge(['customer_id' => $user->id]);
+        if ($this->user->hasRole('Pelanggan')) {
+            $request->merge(['customer_id' => $this->user->id]);
 
             // Jika pelanggan memilih delivery, status pesanan akan menjadi 'waiting_confirmation'
             if ($request->shipping_method === 'delivery') {
@@ -115,8 +133,27 @@ class OrderController extends Controller
             $initialStatus = 'pending'; // Admin langsung pending (bisa bayar)
         }
 
+        // validasi customer_id
+        $request->validate([
+            'customer_id' => 'required|exists:users,id',
+        ]);
+
+        $customer = User::findOrFail($request->customer_id);
+
+        // Merge Request
+        $request->merge([
+            'name' => $customer->name,
+            'email' => $customer->email,
+            'phone' => (string) $customer->phone,
+            'address' => $customer->address,
+        ]);
+
         $validated = $request->validate([
             'customer_id' => 'required|exists:users,id',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email',
+            'phone' => 'required|string|max:20',
+            'address' => 'required|string|max:255',
             'shipping_method' => 'required|in:pickup,delivery',
             'shipping_fee' => [
                 'required_if:shipping_method,delivery',
@@ -134,16 +171,15 @@ class OrderController extends Controller
         DB::beginTransaction();
         try {
 
-            $customer = User::findOrFail($validated['customer_id']);
-
             $order = Order::create([
+                'customer_id' => $customer->id,
                 'name' => $customer->name,
                 'email' => $customer->email,
                 'phone' => $customer->phone,
                 'address' => $customer->address,
                 'shipping_method' => $validated['shipping_method'],
                 'shipping_fee' => $validated['shipping_method'] == 'delivery' ? $validated['shipping_fee'] : null,
-                'uplink_id' => $user->hasRole('Admin') ? $user->id : null,
+                'uplink_id' => $this->user->hasRole('Admin') ? $this->user->id : null,
                 'status' => $initialStatus,
                 'sub_total' => 0,
                 'total' => 0,
@@ -155,6 +191,27 @@ class OrderController extends Controller
                 $price = Product::find($product['id'])->price;
                 $quantity = $product['qty'];
                 $subtotal = $price * $quantity;
+
+                // periksa stok apakah cukup
+                $productModel = Product::findOrFail($product['id']);
+                if ($productModel->qty < $quantity) {
+                    DB::rollBack();
+                    $errorKey = 'addedProducts.' . array_search($product, $validated['addedProducts']) . '.qty';
+                    $errorMessage = 'Stok tidak cukup untuk produk ' . $productModel->name;
+                    if ($request->wantsJson()) {
+                        return response()->json([
+                            'status' => false,
+                            'code' => 422,
+                            'message' => $errorMessage,
+                            'errors' => [
+                                $errorKey => [$errorMessage]
+                            ]
+                        ], 422);
+                    }
+                    return redirect()->back()->withErrors([
+                        $errorKey => $errorMessage,
+                    ]);
+                }
 
                 $order->items()->create([
                     'product_id' => $product['id'],
@@ -199,6 +256,7 @@ class OrderController extends Controller
                         'message' => 'Pesanan berhasil dibuat dan menunggu konfirmasi admin',
                         'data' => [
                             'id' => $order->id,
+                            'uuid' => $order->uuid,
                             'name' => $order->name,
                             'sub_total' => $order->sub_total,
                             'total' => $order->total,
@@ -209,19 +267,19 @@ class OrderController extends Controller
                     ], 200);
                 }
 
-                return redirect()->route('orders.show', ['order' => $order->id])->with([
+                return redirect()->route('orders.show', ['uuid' => $order->uuid])->with([
                     'success' => 'Pesanan berhasil dibuat dan menunggu konfirmasi admin',
                 ]);
             } else {
 
                 // Buat Snap Token midtrans
-                $snapToken = $midtransService->createSnapToken($order, 'ord5-' . $order->id);
+                $snapToken = $midtransService->createSnapToken($order);
 
                 // create payment
                 $order->payments()->create([
                     'order_id' => $order->id,
+                    'midtrans_uuid' => $order->uuid,
                     'status' => 'pending',
-                    'midtrans_order_id' => 'ord5-' . $order->id,
                     'snap_token' => $snapToken,
                 ]);
 
@@ -234,6 +292,7 @@ class OrderController extends Controller
                         'message' => 'Order created successfully',
                         'data' => [
                             'id' => $order->id,
+                            'uuid' => $order->uuid,
                             'name' => $order->name,
                             'sub_total' => $order->sub_total,
                             'total' => $order->total,
@@ -244,7 +303,7 @@ class OrderController extends Controller
                     ], 200);
                 }
 
-                return redirect()->route('orders.show', ['order' => $order->id])->with([
+                return redirect()->route('orders.show', ['uuid' => $order->uuid])->with([
                     'success' => 'Order created successfully',
                     'midtrans_show_snap' => true,
                 ]);
@@ -269,9 +328,9 @@ class OrderController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(string $uuid)
     {
-        $order = Order::with('items.product')->findOrFail($id);
+        $order = Order::with('items.product')->where('uuid', $uuid)->firstOrFail();
         $order->load('items.product.category', 'items.product.unit', 'latestPayment', 'taxes');
 
         //$midtransService = new MidtransService();
@@ -283,7 +342,75 @@ class OrderController extends Controller
             'midtrans_show_snap' => $midtrans_show_snap ?? false,
             'midtrans_snap_token' => $order->latestPayment?->status == 'pending' ? $order->latestPayment?->snap_token : null,
             'midtrans_client_key' => config('midtrans.client_key'),
+            'midtrans_is_production' => config('midtrans.is_production'),
         ]);
+    }
+
+    public function confirm(Request $request, $id)
+    {
+        if (!$this->user || !$this->user->hasRole('Admin')) {
+            return back()->withErrors(['error' => 'Hanya admin yang dapat mengkonfirmasi pesanan.']);
+        }
+
+        $request->validate([
+            'shipping_fee' => 'required|integer|min:0',
+        ]);
+
+        $order =  Order::findOrFail($id);
+
+
+        if ($order->status !== 'waiting_confirmation') {
+            return back()->withErrors(['error' => 'Pesanan tidak memerlukan konfirmasi.']);
+        }
+
+        DB::beginTransaction();
+        try {
+            $order->shipping_fee = $request->shipping_fee;
+            $order->status = 'pending';
+            // Hitung ulang total jika perlu
+            $order->total = $order->sub_total + $order->taxes->sum('pivot.amount') + $order->shipping_fee;
+            $order->save();
+
+            // Buat Snap Token Midtrans jika belum ada
+            if (!$order->latestPayment) {
+                $midtransService = app(\App\Services\MidtransService::class);
+                $snapToken = $midtransService->createSnapToken($order);
+                $order->payments()->create([
+                    'order_id' => $order->id,
+                    'midtrans_uuid' => $order->uuid,
+                    'status' => 'pending',
+                    'snap_token' => $snapToken,
+                ]);
+            }
+
+            DB::commit();
+            return back()->with('success', 'Pesanan berhasil dikonfirmasi dan siap dibayar.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Gagal konfirmasi pesanan: ' . $e->getMessage()]);
+        }
+    }
+
+    public function process(Request $request, $id)
+    {
+        if (!$this->user || !$this->user->hasRole('Staff Gudang')) {
+            return back()->withErrors(['error' => 'Hanya staff gudang yang dapat memproses pesanan.']);
+        }
+
+        $request->validate([
+            'note' => 'nullable|string|max:255',
+        ]);
+
+        $order = Order::findOrFail($id);
+        $order->status = 'completed';
+        $order->processed_by = $this->user->id;
+
+        if ($request->filled('note')) {
+            $order->note = $request->note;
+        }
+        $order->save();
+
+        return back()->with('success', 'Status pesanan berhasil diperbarui.');
     }
 
     public function cancel(MidtransService $midtransService, string $id)
@@ -292,8 +419,12 @@ class OrderController extends Controller
             $order = Order::findOrFail($id);
             $order->load('items.product.category', 'items.product.unit', 'latestPayment', 'taxes');
 
+            if (!$order->canbe_cancelled) {
+                return back()->withErrors(['error' => 'Order tidak dapat dibatalkan.']);
+            }
+
             if ($order->latestPayment) {
-                $midtransService->cancelTransaction($order->latestPayment->midtrans_order_id);
+                $midtransService->cancelTransaction($order->latestPayment->midtrans_uuid);
                 $order->latestPayment->update(['status' => 'cancelled']);
             }
 
@@ -305,20 +436,6 @@ class OrderController extends Controller
         } catch (\Exception $e) {
             return back()->withErrors([
                 'error' => 'Failed to cancel order: ' . $e->getMessage(),
-            ]);
-        }
-    }
-
-    public function markAsCompleted(string $id)
-    {
-        try {
-            $order = Order::findOrFail($id);
-            $order->update(['status' => 'completed']);
-
-            return back()->with('success', 'Pesanan telah ditandai selesai diproses.');
-        } catch (\Exception $e) {
-            return back()->withErrors([
-                'error' => 'Gagal menandai pesanan selesai: ' . $e->getMessage(),
             ]);
         }
     }

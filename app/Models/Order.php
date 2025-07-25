@@ -6,7 +6,20 @@ use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
+    protected static function boot()
+    {
+        parent::boot();
+        static::creating(function ($model) {
+            do {
+                $uuid = self::generateCustomUUID();
+            } while (self::where('uuid', $uuid)->exists());
+
+            $model->uuid = $uuid;
+        });
+    }
+
     protected $fillable = [
+        'customer_id',
         'name',
         'email',
         'phone',
@@ -15,6 +28,7 @@ class Order extends Model
         'shipping_fee',
         'sub_total',
         'total',
+        'note',
         'status',
         'uplink_id',
     ];
@@ -42,6 +56,21 @@ class Order extends Model
     public function taxes()
     {
         return $this->belongsToMany(Tax::class, 'order_taxes')->withPivot('amount');
+    }
+
+    public function customer()
+    {
+        return $this->belongsTo(User::class, 'customer_id');
+    }
+
+    public function uplink()
+    {
+        return $this->belongsTo(User::class, 'uplink_id');
+    }
+
+    public function processedBy()
+    {
+        return $this->belongsTo(User::class, 'processed_by');
     }
 
     public function scopeFilter($query)
@@ -78,15 +107,44 @@ class Order extends Model
         });
     }
 
+    public function scopeSorting($query)
+    {
+        $query->when(
+            request()->filled('sort_field') && request()->filled('sort_order'),
+            function ($query) {
+                $field = request()->get('sort_field', 'name');
+                $order = request()->get('sort_order', 'ascend') === 'ascend' ? 'asc' : 'desc';
+                // Abaikan jika kolom takde
+                if (in_array($field, array_merge($this->getFillable(), ['created_at', 'updated_at', 'processed_by', 'uplink_id', 'name', 'total']))) {
+                    $query->orderBy($field, $order);
+                }
+            },
+            function ($query) {
+                $query->orderBy('created_at', 'desc');
+            }
+        );
+    }
+
     // Check if order can be cancelled
     public function getCanbeCancelledAttribute()
     {
-        return $this->status == 'pending' && $this->latestPayment && $this->latestPayment->status == 'pending';
+        return in_array($this->status, ['pending', 'waiting_confirmation']) &&
+            (
+                !$this->latestPayment ||
+                $this->latestPayment->status == 'pending'
+            );
     }
 
     // Chek if order can change payment method
     public function getCanbeChangePaymentMethodAttribute()
     {
         return $this->status == 'pending' && $this->latestPayment && $this->latestPayment->status == 'pending' && $this->latestPayment->payment_type != null;
+    }
+
+
+    public static function generateCustomUUID($prefix = 'ORD')
+    {
+        $random = strtoupper(bin2hex(random_bytes(6)));
+        return $prefix . substr($random, 0, 12);
     }
 }

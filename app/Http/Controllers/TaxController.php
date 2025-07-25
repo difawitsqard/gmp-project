@@ -15,6 +15,7 @@ class TaxController extends Controller
         $perPage = is_numeric($request->perPage) ? $request->perPage : 10;
 
         $taxes = Tax::filter()
+            ->sorting()
             ->orderBy('name', 'asc')
             ->paginate($perPage);
 

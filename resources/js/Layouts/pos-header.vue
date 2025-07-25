@@ -428,7 +428,9 @@
                         </span>
                         <span class="user-detail">
                             <span class="user-name">{{ user.name }}</span>
-                            <span class="user-role">{{ user.role }}</span>
+                            <span class="user-role">{{
+                                user.roles[0] || "No Role"
+                            }}</span>
                         </span>
                     </span>
                 </a>
@@ -441,7 +443,7 @@
                             ></span>
                             <div class="profilesets">
                                 <h6>{{ user.name }}</h6>
-                                <h5>Super Admin</h5>
+                                <h5>{{ user.roles[0] || "No Role" }}</h5>
                             </div>
                         </div>
                         <hr class="m-0" />
@@ -498,8 +500,6 @@
         <!-- /Mobile Menu -->
     </div>
     <!-- /Header -->
-
-    <side-settings></side-settings>
 </template>
 
 <script>
