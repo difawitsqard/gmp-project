@@ -210,6 +210,18 @@
                                     </div>
                                 </template>
 
+                                <template v-else-if="column.key === 'description'">
+                                <span>
+                                    {{
+                                        record.description
+                                            ? (record.description.replace(/<[^>]+>/g, '').length > 30
+                                                ? record.description.replace(/<[^>]+>/g, '').slice(0, 30) + '...'
+                                                : record.description.replace(/<[^>]+>/g, ''))
+                                            : ''
+                                    }}
+                                </span>
+                                </template>
+
                                 <template v-else-if="column.key === 'qty'">
                                     <div
                                         class="fw-bold"
@@ -231,23 +243,6 @@
                                     {{ $helpers.formatRupiah(record.price) }}
                                 </template>
 
-                                <template
-                                    v-else-if="column.key === 'CreatedBy'"
-                                >
-                                    <td class="userimgname">
-                                        <a
-                                            href="javascript:void(0);"
-                                            class="product-img me-2"
-                                        >
-                                            <img
-                                                v-lazy="record.image"
-                                                :src="record.image"
-                                                :alt="record.name"
-                                            />
-                                        </a>
-                                        <a href="javascript:void(0);">x</a>
-                                    </td>
-                                </template>
                                 <template v-else-if="column.key === 'action'">
                                     <td class="action-table-data">
                                         <div class="edit-delete-action">
@@ -413,6 +408,12 @@ export default {
                     },
                 },
                 {
+                    title: "Deskripsi",
+                    dataIndex: "description",
+                    key: "description",
+                    sorter: false,
+                },
+                {
                     title: "SKU",
                     dataIndex: "sku",
                     sorter: {
@@ -448,18 +449,6 @@ export default {
                         compare: (a, b) => {
                             a = a.qty.toLowerCase();
                             b = b.qty.toLowerCase();
-                            return a > b ? -1 : b > a ? 1 : 0;
-                        },
-                    },
-                },
-                {
-                    title: "Dibuat Oleh",
-                    dataIndex: "CreatedBy",
-                    key: "CreatedBy",
-                    sorter: {
-                        compare: (a, b) => {
-                            a = a.CreatedBy.toLowerCase();
-                            b = b.CreatedBy.toLowerCase();
                             return a > b ? -1 : b > a ? 1 : 0;
                         },
                     },
