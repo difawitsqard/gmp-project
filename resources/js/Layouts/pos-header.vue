@@ -464,11 +464,7 @@
                                 type="submit"
                                 class="dropdown-item logout pb-0"
                             >
-                                <img
-                                    src="@/assets/img/icons/log-out.svg"
-                                    class="me-2"
-                                    alt="img"
-                                />
+                                <vue-feather type="log-out" class="me-2" />
                                 Keluar
                             </button>
                         </form>

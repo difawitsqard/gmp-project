@@ -92,9 +92,8 @@ const submit = async () => {
                                                 form.errors.email
                                             }}
                                         </div>
-                                        <img
-                                            src="@/assets/img/icons/mail.svg"
-                                            alt="img"
+                                        <vue-feather
+                                            type="mail"
                                             v-if="
                                                 !errors.email &&
                                                 !form.errors.email

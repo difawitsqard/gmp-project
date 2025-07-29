@@ -116,11 +116,13 @@ const clearPhotoFileInput = () => {
                                         class="hidden"
                                         @change="updatePhotoPreview"
                                     />
-                                    <a href="javascript:void(0);"
-                                        ><img
-                                            src="@/assets/img/icons/edit-set.svg"
-                                            alt="img"
-                                    /></a>
+                                    <a href="javascript:void(0);">
+                                        <vue-feather
+                                            type="camera"
+                                            class="text-white"
+                                            style="width: 16px; height: 16px"
+                                        />
+                                    </a>
                                 </div>
                             </div>
                             <div class="profile-contentname">

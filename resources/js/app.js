@@ -36,9 +36,7 @@ import LoadingOverlay from "@/components/LoadingOverlay.vue";
 import Header from "@/Layouts/pos-header.vue";
 import Sidebar from "@/Layouts/pos-sidebar.vue";
 import UserMenu from "@/Layouts/user-menu.vue";
-import FilesSidebar from "@/Layouts/files-sidebar.vue";
 import Settings_Sidebar from "@/Layouts/settings-sidebar.vue";
-import Collapsed_Sidebar from "@/Layouts/collapsed-sidebar.vue";
 import Horizontal_Sidebar from "@/Layouts/horizontal-sidebar.vue";
 import SideSettings from "@/Layouts/side-settings.vue";
 
@@ -95,9 +93,7 @@ createInertiaApp({
         app.component("layout-header", Header);
         app.component("layout-sidebar", Sidebar);
         app.component("user-menu", UserMenu);
-        app.component("files-sidebar", FilesSidebar);
         app.component("settings-sidebar", Settings_Sidebar);
-        app.component("collapsed-sidebar", Collapsed_Sidebar);
         app.component("horizontal-sidebar", Horizontal_Sidebar);
         app.component("side-settings", SideSettings);
 

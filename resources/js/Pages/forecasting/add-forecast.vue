@@ -50,6 +50,73 @@
                         <div class="card">
                             <div class="card-body add-product">
                                 <div
+                                    class="alert alert-outline-info border border-info py-3"
+                                >
+                                    <div class="d-flex align-items-start">
+                                        <div class="me-2">
+                                            <vue-feather
+                                                type="info"
+                                                class="flex-shrink-0 me-2"
+                                                style="
+                                                    width: 30px;
+                                                    height: 30px;
+                                                "
+                                            ></vue-feather>
+                                        </div>
+                                        <div class="w-100">
+                                            <div
+                                                class="fw-semibold d-flex justify-content-between"
+                                            >
+                                                <h5 class="mb-1 text-info">
+                                                    Informasi
+                                                </h5>
+                                                <button
+                                                    type="button"
+                                                    class="btn-close p-0"
+                                                    data-bs-dismiss="alert"
+                                                    aria-label="Close"
+                                                >
+                                                    <i class="fas fa-xmark"></i>
+                                                </button>
+                                            </div>
+                                            <div class="fs-12 op-8 mb-1">
+                                                <ul>
+                                                    <li>
+                                                        <strong
+                                                            >Frekuensi</strong
+                                                        >
+                                                        menentukan interval data
+                                                        yang digunakan untuk
+                                                        analisis, misalnya
+                                                        harian, mingguan, atau
+                                                        bulanan.
+                                                    </li>
+                                                    <li>
+                                                        <strong>Horison</strong>
+                                                        adalah jumlah periode ke
+                                                        depan yang akan
+                                                        diprediksi. Misalnya,
+                                                        jika horison diatur ke 3
+                                                        dan frekuensi adalah
+                                                        bulanan, maka prediksi
+                                                        akan dibuat untuk 3
+                                                        bulan ke depan.
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label">Nama</label
+                                    ><input
+                                        type="text"
+                                        class="form-control"
+                                        placeholder="e.g Prediksi Stok Bulan Ini"
+                                        v-model="form.name"
+                                    />
+                                </div>
+                                <div
                                     class="accordion-card-one accordion"
                                     id="accordionForecasting"
                                 >
@@ -68,7 +135,7 @@
                                                 <div class="addproduct-icon">
                                                     <h5>
                                                         <vue-feather
-                                                            type="info"
+                                                            type="database"
                                                             class="add-info"
                                                         ></vue-feather
                                                         ><span>Data Input</span>
@@ -256,7 +323,7 @@
                                                 <div class="addproduct-icon">
                                                     <h5>
                                                         <vue-feather
-                                                            type="info"
+                                                            type="activity"
                                                             class="add-info"
                                                         ></vue-feather
                                                         ><span>Prediksi</span>
@@ -283,7 +350,7 @@
                                                     >
                                                         <label
                                                             class="form-label"
-                                                            >Horizon</label
+                                                            >Horison</label
                                                         >
                                                         <input
                                                             type="number"
@@ -291,7 +358,7 @@
                                                             v-model="
                                                                 form.horizon
                                                             "
-                                                            placeholder="Horizon"
+                                                            placeholder="Horison"
                                                             min="1"
                                                             max="12"
                                                             :class="{
@@ -387,9 +454,13 @@ export default {
             ? new Date(this.initialData.start_date)
             : new Date(new Date().setFullYear(new Date().getFullYear() - 1));
 
+        const now = new Date();
+        const defaultName = `Prediksi ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+
         return {
             errors: {},
             form: {
+                name: defaultName,
                 products: [],
                 frequency: "D",
                 horizon: 1,

@@ -41,7 +41,11 @@
                         <div class="mb-1">
                             <div class="d-flex">
                                 <strong class="me-2">Frekuensi</strong>
-                                <span>{{ frequencyLabel }}</span>
+                                <span>{{
+                                    getForecastFrequencyLabel(
+                                        forecast.frequency
+                                    )
+                                }}</span>
                             </div>
                         </div>
                         <div class="mb-1">
@@ -62,12 +66,26 @@
                                 >
                             </div>
                         </div>
+                        <div class="mb-1">
+                            <div class="d-flex">
+                                <strong class="me-2">Status</strong>
+                                <span
+                                    :class="`text-${
+                                        getForecastStatus(forecast.status).color
+                                    }`"
+                                >
+                                    {{
+                                        getForecastStatus(forecast.status).label
+                                    }}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Tampilkan chart jika produk dipilih -->
-            <div class="card">
+            <div class="card" v-if="selectedProductId">
                 <div
                     class="card-header d-flex justify-content-between align-items-center"
                 >
@@ -119,28 +137,77 @@
                     </div>
                     <div class="analysis-item mb-3">
                         <h6 class="fw-bold">Analisis Data Historis</h6>
-                        <p>{{ selectedAnalysis.historical_analysis }}</p>
+                        <p>{{ selectedAnalysis?.historical_analysis }}</p>
                     </div>
 
                     <div
                         class="analysis-item mb-3"
-                        v-if="selectedAnalysis.forecast_analysis"
+                        v-if="selectedAnalysis?.forecast_analysis"
                     >
                         <h6 class="fw-bold">Analisis Hasil Forecast</h6>
-                        <p>{{ selectedAnalysis.forecast_analysis }}</p>
+                        <p>{{ selectedAnalysis?.forecast_analysis }}</p>
                     </div>
 
                     <div class="analysis-item mb-3">
                         <h6 class="fw-bold">Rekomendasi</h6>
-                        <p>{{ selectedAnalysis.recommendations }}</p>
+                        <p>{{ selectedAnalysis?.recommendations }}</p>
                     </div>
 
                     <div
                         class="analysis-item mb-3"
-                        v-if="selectedAnalysis.data_quality"
+                        v-if="selectedAnalysis?.data_quality"
                     >
                         <h6 class="fw-bold">Kualitas Data</h6>
-                        <p>{{ selectedAnalysis.data_quality }}</p>
+                        <p>{{ selectedAnalysis?.data_quality }}</p>
+                    </div>
+                </div>
+            </div>
+            <div v-else>
+                <div
+                    v-if="forecast.status === 'processing'"
+                    class="alert custom-alert1 alert-info"
+                >
+                    <div class="text-center px-5 mt-4">
+                        <div class="spinner-border mb-3" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <h3 class="my-3">
+                            {{ getForecastStatus(forecast.status).label }}
+                        </h3>
+                        <p>Proses prediksi sedang berjalan. Mohon tunggu...</p>
+                    </div>
+                </div>
+                <div
+                    v-else
+                    class="alert custom-alert1"
+                    :class="`alert-${getForecastStatus(forecast.status).color}`"
+                >
+                    <button
+                        type="button"
+                        class="btn-close ms-auto"
+                        data-bs-dismiss="alert"
+                        aria-label="Close"
+                    >
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                    <div class="text-center px-5 pb-0">
+                        <vue-feather
+                            :type="
+                                getForecastStatus(forecast.status).icon ||
+                                'alert-octagon'
+                            "
+                            class="flex-shrink-0"
+                            :class="`text-${
+                                getForecastStatus(forecast.status).color
+                            }`"
+                            style="width: 50px; height: 50px"
+                        ></vue-feather>
+                        <h3 class="my-3">
+                            {{ getForecastStatus(forecast.status).label }}
+                        </h3>
+                        <p>
+                            {{ $page.props.forecast.note }}
+                        </p>
                     </div>
                 </div>
             </div>
@@ -151,6 +218,15 @@
 <script>
 import { Head, Link, router } from "@inertiajs/vue3";
 import { skipPreloadNextRequest } from "@/composables/usePreloadControl";
+import {
+    getForecastFrequencyLabel,
+    getAllForecastFrequencies,
+} from "@/constants/forecastFrequency";
+import {
+    getForecastStatus,
+    getAllForecastStatus,
+} from "@/constants/forecastStatus";
+import { get } from "lodash";
 
 export default {
     name: "ForecastDetail",
@@ -176,10 +252,15 @@ export default {
     },
     data() {
         return {
+            autoRefreshInterval: null,
             productId: this.selectedProductId,
         };
     },
     methods: {
+        getForecastStatus,
+        getAllForecastStatus,
+        getForecastFrequencyLabel,
+        getAllForecastFrequencies,
         formatDate(date, format = "D MMM YYYY") {
             if (!date) return "-";
             return dayjs(date).format(format);
@@ -203,15 +284,23 @@ export default {
             });
         },
     },
+    mounted() {
+        // Auto refresh jika status processing/pending
+        if (["processing", "pending"].includes(this.forecast.status)) {
+            this.autoRefreshInterval = setInterval(() => {
+                skipPreloadNextRequest();
+                router.reload({
+                    only: ["forecast", "selectedProductId", "timeSeriesData"],
+                });
+            }, 5000); // refresh setiap 5 detik
+        }
+    },
+    beforeUnmount() {
+        if (this.autoRefreshInterval) {
+            clearInterval(this.autoRefreshInterval);
+        }
+    },
     computed: {
-        frequencyLabel() {
-            const labels = {
-                D: "Harian",
-                W: "Mingguan",
-                M: "Bulanan",
-            };
-            return labels[this.forecast.frequency] || this.forecast.frequency;
-        },
         selectedResult() {
             return this.forecast.results.find(
                 (r) => r.product_id == this.productId
@@ -404,6 +493,16 @@ export default {
         // Perbarui productId jika selectedProductId berubah dari server
         selectedProductId(newVal) {
             this.productId = newVal;
+        },
+        // Hentikan auto refresh jika status forecast sudah bukan processing/pending
+        "forecast.status"(newStatus) {
+            if (
+                this.autoRefreshInterval &&
+                !["processing", "pending"].includes(newStatus)
+            ) {
+                clearInterval(this.autoRefreshInterval);
+                this.autoRefreshInterval = null;
+            }
         },
     },
 };
