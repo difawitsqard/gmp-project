@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -177,6 +178,18 @@ class Product extends Model
 
     public function scopeSorting($query)
     {
+        $query->when(
+            request()->filled('sort_field') && request()->filled('sort_order'),
+            function ($query) {
+                $field = request()->get('sort_field', 'name');
+                $order = request()->get('sort_order', 'ascend') === 'ascend' ? 'asc' : 'desc';
+                // Abaikan jika kolom takde
+                if (in_array($field, array_merge($this->getFillable(), ['created_at', 'updated_at']))) {
+                    $query->orderBy($field, $order);
+                }
+            }
+        );
+
         $query->when(request()->filled('sort') ?? false, function ($query) {
             $sort = request()->sort;
 
@@ -184,11 +197,17 @@ class Product extends Model
                 $query->orderBy('created_at', 'desc');
             } elseif ($sort === 'latest') {
                 $query->orderBy('created_at', 'asc');
+            } elseif ($sort === 'bestseller') {
+                // Sorting berdasarkan total quantity terjual
+                $query->leftJoin('order_items', 'products.id', '=', 'order_items.product_id')
+                    ->select('products.*', DB::raw('COALESCE(SUM(order_items.quantity),0) as total_sold'))
+                    ->groupBy('products.id')
+                    ->orderByDesc('total_sold');
             }
         });
 
-        if (!request()->filled('sort')) {
-            $query->orderBy('name', 'asc'); // Default sort by name
-        }
+        $query->when(!request()->filled('sort') && !request()->filled('sort_field'), function ($query) {
+            $query->orderBy('created_at', 'desc');
+        });
     }
 }

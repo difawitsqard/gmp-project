@@ -76,11 +76,14 @@
                                     type="filter"
                                     class="filter-icon"
                                 ></vue-feather>
-                                <span
-                                    ><img
-                                        src="@/assets/img/icons/closes.svg"
-                                        alt="img"
-                                /></span>
+                                <span>
+                                    <span
+                                        class="d-flex justify-content-center align-items-center"
+                                        style="height: 100%"
+                                    >
+                                        <vue-feather type="x"></vue-feather>
+                                    </span>
+                                </span>
                             </a>
                         </div>
                         <div class="form-sort">
@@ -197,6 +200,7 @@
                                             <img
                                                 v-lazy="record.image_url"
                                                 :src="record.image_url"
+                                                class="rounded"
                                                 alt="product"
                                             />
                                         </a>
@@ -210,16 +214,29 @@
                                     </div>
                                 </template>
 
-                                <template v-else-if="column.key === 'description'">
-                                <span>
-                                    {{
-                                        record.description
-                                            ? (record.description.replace(/<[^>]+>/g, '').length > 30
-                                                ? record.description.replace(/<[^>]+>/g, '').slice(0, 30) + '...'
-                                                : record.description.replace(/<[^>]+>/g, ''))
-                                            : ''
-                                    }}
-                                </span>
+                                <template
+                                    v-else-if="column.key === 'description'"
+                                >
+                                    <span>
+                                        {{
+                                            record.description
+                                                ? record.description.replace(
+                                                      /<[^>]+>/g,
+                                                      ""
+                                                  ).length > 30
+                                                    ? record.description
+                                                          .replace(
+                                                              /<[^>]+>/g,
+                                                              ""
+                                                          )
+                                                          .slice(0, 30) + "..."
+                                                    : record.description.replace(
+                                                          /<[^>]+>/g,
+                                                          ""
+                                                      )
+                                                : "Tidak ada deskripsi"
+                                        }}
+                                    </span>
                                 </template>
 
                                 <template v-else-if="column.key === 'qty'">
@@ -317,7 +334,7 @@ export default {
         );
 
         const resetExcept = () => {
-            reset(["sort"]);
+            reset(["sort", "sort_order", "sort_field"]);
         };
 
         return { filters, fetch, reset, resetExcept };
@@ -386,6 +403,7 @@ export default {
         },
         sortByNewOld() {
             return [
+                { id: "bestseller", text: "Terlaris" },
                 { id: "newest", text: "Terbaru" },
                 { id: "oldest", text: "Terlama" },
             ];
@@ -399,13 +417,7 @@ export default {
                     title: "Produk",
                     dataIndex: "name",
                     key: "name",
-                    sorter: {
-                        compare: (a, b) => {
-                            a = a.name.toLowerCase();
-                            b = b.name.toLowerCase();
-                            return a > b ? -1 : b > a ? 1 : 0;
-                        },
-                    },
+                    sorter: true,
                 },
                 {
                     title: "Deskripsi",
@@ -416,13 +428,7 @@ export default {
                 {
                     title: "SKU",
                     dataIndex: "sku",
-                    sorter: {
-                        compare: (a, b) => {
-                            a = a.sku.toLowerCase();
-                            b = b.sku.toLowerCase();
-                            return a > b ? -1 : b > a ? 1 : 0;
-                        },
-                    },
+                    sorter: false,
                 },
                 {
                     title: "Kategori",
@@ -433,25 +439,13 @@ export default {
                     title: "Harga",
                     dataIndex: "price",
                     key: "price",
-                    sorter: {
-                        compare: (a, b) => {
-                            a = a.price.toLowerCase();
-                            b = b.price.toLowerCase();
-                            return a > b ? -1 : b > a ? 1 : 0;
-                        },
-                    },
+                    sorter: true,
                 },
                 {
                     title: "Stok",
                     dataIndex: "qty",
                     key: "qty",
-                    sorter: {
-                        compare: (a, b) => {
-                            a = a.qty.toLowerCase();
-                            b = b.qty.toLowerCase();
-                            return a > b ? -1 : b > a ? 1 : 0;
-                        },
-                    },
+                    sorter: true,
                 },
                 {
                     title: "Aksi",
@@ -462,9 +456,18 @@ export default {
         };
     },
     methods: {
-        handleTableChange(pagination) {
+        handleTableChange(pagination, filters, sorter) {
             this.filters.page = pagination.current;
             this.filters.per_page = pagination.pageSize;
+
+            if (sorter.order) {
+                this.filters.sort_field = sorter.field;
+                this.filters.sort_order = sorter.order;
+            } else {
+                this.filters.sort_field = null;
+                this.filters.sort_order = null;
+            }
+
             this.fetch();
         },
 
