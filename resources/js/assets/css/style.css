@@ -11689,7 +11689,6 @@ table.dataTable thead > tr > th.no-sort.sorting::after {
 }
 .btn-white:hover {
     border: 1px solid rgba(145, 158, 171, 0.32);
-    
 }
 
 .mail-search .form-control {
@@ -29820,3 +29819,8 @@ label span {
 }
 
 /*# sourceMappingURL=style.css.map */
+
+/* vue select */
+.form-sort .vue-select .control {
+    padding-left: 23px;
+}

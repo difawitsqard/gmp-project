@@ -557,6 +557,7 @@ import { Head, Link, useForm } from "@inertiajs/vue3";
 import UnitsModal from "@/components/modal/units-modal.vue";
 import ProductCategoryModal from "@/components/modal/product-category-modal.vue";
 import QuillEditor from "@/components/QuillEditor.vue";
+
 // import CropperjsModal from "@/components/modal/cropperjs-modal.vue";
 
 export default {
@@ -603,13 +604,13 @@ export default {
         }
 
         this.ChooseCategory = this.categories.map((category) => ({
-            id: category.id,
-            text: category.name,
+            value: category.id,
+            label: category.name,
         }));
 
         this.ChooseUnit = this.units.map(({ name, short_name, id }) => ({
-            text: short_name ? `${name} (${short_name})` : name,
-            id: id,
+            label: short_name ? `${name} (${short_name})` : name,
+            value: id,
         }));
     },
     data() {
@@ -700,25 +701,25 @@ export default {
             console.log(response);
             if (response.status) {
                 const newCategory = {
-                    text: response.data.name,
-                    id: response.data.id,
+                    label: response.data.name,
+                    value: response.data.id,
                 };
 
                 this.ChooseCategory.push(newCategory);
-                this.form.product_categories_id = newCategory.id;
+                this.form.product_categories_id = newCategory.value;
             }
         },
         addUnitToList(response) {
             if (response.status) {
                 const newUnit = {
-                    text: response.data.short_name
+                    label: response.data.short_name
                         ? `${response.data.name} (${response.data.short_name})`
                         : response.data.name,
-                    id: response.data.id,
+                    value: response.data.id,
                 };
 
                 this.ChooseUnit.push(newUnit);
-                this.form.unit_id = newUnit.id;
+                this.form.unit_id = newUnit.value;
             }
         },
         generateSku() {

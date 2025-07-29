@@ -16,7 +16,7 @@ import { BootstrapVue3, BToastPlugin } from "bootstrap-vue-3";
 import VueLazyload from "vue-lazyload";
 import Vue3Autocounter from "vue3-autocounter";
 import VueApexCharts from "vue3-apexcharts";
-import VueSelect from "vue3-select2-component";
+import VueSelect from "vue3-select-component";
 import VueMultiSelect from "vue-multiselect";
 import DatePicker from "vue3-datepicker";
 import StarRating from "vue-star-rating";

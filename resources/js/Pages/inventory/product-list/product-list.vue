@@ -89,15 +89,12 @@
                         <div class="form-sort">
                             <vue-feather
                                 type="sliders"
-                                class="info-img"
+                                class="info-img me-3"
                             ></vue-feather>
                             <vue-select
                                 :options="sortByNewOld"
                                 v-model="filters.sort"
-                                :settings="{
-                                    allowClear: true,
-                                    placeholder: 'Sortir Berdasarkan',
-                                }"
+                                placeholder="Sortir"
                                 id="sortfilter"
                             />
                         </div>
@@ -110,56 +107,29 @@
                     >
                         <div class="card-body pb-0">
                             <div class="row">
-                                <div class="col-lg-2 col-sm-6 col-12">
-                                    <div class="input-blocks">
-                                        <vue-feather
-                                            type="stop-circle"
-                                            class="info-img"
-                                        ></vue-feather>
-                                        <vue-select
-                                            :options="categoryOptions"
-                                            v-model="filters.category"
-                                            id="categroyfilter"
-                                            :settings="{
-                                                allowClear: true,
-                                                placeholder: 'Pilih Kategori',
-                                            }"
-                                        />
-                                    </div>
+                                <div class="col-lg-2 col-sm-6 col-12 mb-3">
+                                    <vue-select
+                                        :options="categoryOptions"
+                                        v-model="filters.category"
+                                        id="categroyfilter"
+                                        placeholder="Filter Kategori"
+                                    />
                                 </div>
-                                <div class="col-lg-2 col-sm-6 col-12">
-                                    <div class="input-blocks">
-                                        <vue-feather
-                                            type="speaker"
-                                            class="info-img"
-                                        ></vue-feather>
-                                        <vue-select
-                                            :options="unitOptions"
-                                            v-model="filters.unit"
-                                            :settings="{
-                                                allowClear: true,
-                                                placeholder: 'Pilih Satuan',
-                                            }"
-                                            id="unitfilter"
-                                        />
-                                    </div>
+                                <div class="col-lg-2 col-sm-6 col-12 mb-3">
+                                    <vue-select
+                                        :options="unitOptions"
+                                        v-model="filters.unit"
+                                        placeholder="Filter Unit"
+                                        id="unitfilter"
+                                    />
                                 </div>
-                                <div class="col-lg-2 col-sm-6 col-12">
-                                    <div class="input-blocks">
-                                        <vue-feather
-                                            type="package"
-                                            class="info-img"
-                                        ></vue-feather>
-                                        <vue-select
-                                            :options="stockStatusOptions"
-                                            v-model="filters.stock_status"
-                                            :settings="{
-                                                allowClear: true,
-                                                placeholder: 'Pilih Status',
-                                            }"
-                                            id="stockfilter"
-                                        />
-                                    </div>
+                                <div class="col-lg-2 col-sm-6 col-12 mb-3">
+                                    <vue-select
+                                        :options="stockStatusOptions"
+                                        v-model="filters.stock_status"
+                                        placeholder="Filter Status Stok"
+                                        id="stockfilter"
+                                    />
                                 </div>
 
                                 <div class="col-lg-3 col-sm-6 col-12 ms-auto">
@@ -370,42 +340,37 @@ export default {
             };
         },
         categoryOptions() {
-            const defaultOption = {
-                id: null,
-                text: "Pilih Kategori",
-            };
             const category = this.productsCategories.map((category) => ({
-                id: category.id,
-                text: category.name,
+                value: category.id,
+                label: category.name,
             }));
 
-            return [defaultOption, ...category];
+            return [...category];
         },
         unitOptions() {
-            const defaultOption = {
-                id: null,
-                text: "Pilih Satuan",
-            };
+            // const defaultOption = {
+            //     value: null,
+            //     label: "Pilih Satuan",
+            // };
             const unit = this.units.map((unit) => ({
-                id: unit.id,
-                text: unit.name,
+                value: unit.id,
+                label: unit.name,
             }));
 
-            return [defaultOption, ...unit];
+            return [...unit];
         },
         stockStatusOptions() {
             return [
-                { id: null, text: "Pilih Status" },
-                { id: "available", text: "Tersedia" },
-                { id: "low", text: "Stok Rendah" },
-                { id: "out", text: "Habis" },
+                { value: "available", label: "Tersedia" },
+                { value: "low", label: "Stok Rendah" },
+                { value: "out", label: "Habis" },
             ];
         },
         sortByNewOld() {
             return [
-                { id: "bestseller", text: "Terlaris" },
-                { id: "newest", text: "Terbaru" },
-                { id: "oldest", text: "Terlama" },
+                { value: "bestseller", label: "Terlaris" },
+                { value: "newest", label: "Terbaru" },
+                { value: "oldest", label: "Terlama" },
             ];
         },
     },

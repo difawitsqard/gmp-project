@@ -617,13 +617,13 @@ export default {
         this.form.unit_id = this.product.unit_id;
 
         this.ChooseCategory = this.categories.map((category) => ({
-            id: category.id,
-            text: category.name,
+            value: category.id,
+            label: category.name,
         }));
 
         this.ChooseUnit = this.units.map(({ name, short_name, id }) => ({
-            text: short_name ? `${name} (${short_name})` : name,
-            id: id,
+            label: short_name ? `${name} (${short_name})` : name,
+            value: id,
         }));
 
         // Inisialisasi gambar yang sudah ada
@@ -738,25 +738,25 @@ export default {
             console.log(response);
             if (response.status) {
                 const newCategory = {
-                    text: response.data.name,
-                    id: response.data.id,
+                    label: response.data.name,
+                    value: response.data.id,
                 };
 
                 this.ChooseCategory.push(newCategory);
-                this.form.product_categories_id = newCategory.id;
+                this.form.product_categories_id = newCategory.value;
             }
         },
         addUnitToList(response) {
             if (response.status) {
                 const newUnit = {
-                    text: response.data.short_name
+                    label: response.data.short_name
                         ? `${response.data.name} (${response.data.short_name})`
                         : response.data.name,
-                    id: response.data.id,
+                    value: response.data.id,
                 };
 
                 this.ChooseUnit.push(newUnit);
-                this.form.unit_id = newUnit.id;
+                this.form.unit_id = newUnit.value;
             }
         },
         generateSku() {

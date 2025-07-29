@@ -81,11 +81,14 @@
                                     type="filter"
                                     class="filter-icon"
                                 ></vue-feather>
-                                <span
-                                    ><img
-                                        src="@/assets/img/icons/closes.svg"
-                                        alt="img"
-                                /></span>
+                                <span>
+                                    <span
+                                        class="d-flex justify-content-center align-items-center"
+                                        style="height: 100%"
+                                    >
+                                        <vue-feather type="x"></vue-feather>
+                                    </span>
+                                </span>
                             </a>
                         </div>
                     </div>

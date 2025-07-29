@@ -18,11 +18,12 @@ use Illuminate\Support\Facades\Mail;
 
 Route::get('/', function () {
     if (auth()->check()) {
-        return Inertia::render('dashboard/admin-dashboard', [
-            'canLogin' => Route::has('login'),
-            'laravelVersion' => Application::VERSION,
-            'phpVersion' => PHP_VERSION,
-        ]);
+        // return Inertia::render('dashboard/admin-dashboard', [
+        //     'canLogin' => Route::has('login'),
+        //     'laravelVersion' => Application::VERSION,
+        //     'phpVersion' => PHP_VERSION,
+        // ]);
+        return redirect()->route('dashboard');
     }
 
     return redirect()->route('login');
