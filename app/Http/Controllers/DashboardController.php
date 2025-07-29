@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Models\Order;
 use App\Models\Product;
-use App\Models\User;
+use App\Models\Forecast;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -77,7 +79,40 @@ class DashboardController extends Controller
 
     private function dashboardManajerStok()
     {
-        // Logic to get admin dashboard data
+        // 5 produk terlaris
+        $topProducts = Product::select('products.*', DB::raw('SUM(order_items.quantity) as total_sold'))
+            ->join('order_items', 'products.id', '=', 'order_items.product_id')
+            ->groupBy('products.id')
+            ->orderByDesc('total_sold')
+            ->take(5)
+            ->get();
+
+        // 5 Riwayat Prediksi
+        $recentForecasts = Forecast::with(['createdBy', 'analyses'])
+            ->where('status', '=', 'done')
+            ->orderBy('created_at', 'desc')
+            ->take(5)
+            ->get()
+            ->map(function ($forecast) {
+                $forecast->analysed_products_count = $forecast->analyses->count();
+                return $forecast;
+            });
+
+        $data = [
+            'totalProducts' => Product::count(),
+            'lowStockProducts' => Product::whereColumn('qty', '<=', 'min_stock')->count(),
+            'outOfStockProducts' => Product::where('qty', 0)->count(),
+            'waitingProcessingOrders' => Order::where('status', 'waiting_processing')->count(),
+            'topProducts' => $topProducts,
+            'recentForecasts' => $recentForecasts,
+        ];
+
+        return inertia(
+            'dashboard/dashboard-manajer-stok',
+            [
+                'dashboardData' => $data,
+            ]
+        );
     }
 
 
