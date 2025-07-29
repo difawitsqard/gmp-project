@@ -9,16 +9,14 @@ class OpenAIService
   /**
    * Menganalisis data time series dan hasil forecast
    *
-   * @param array $timeSeriesData Data time series dan forecast
-   * @param array $validProducts List product IDs valid
-   * @param array $invalidProducts List produk invalid dengan detail masalah
+   * @param array $data Data time series dan forecast
    * @param string $frequency Frekuensi data (D,W,M)
    * @return array Hasil analisis dari OpenAI
    */
-  public function analyzeTimeSeriesAndForecast(array $timeSeriesData, array $validProducts, array $invalidProducts, string $frequency)
+  public function analyzeTimeSeriesAndForecast(array $data, string $frequency)
   {
     // Bangun prompt untuk OpenAI
-    $prompt = $this->buildPrompt($timeSeriesData['openai_ready'], $frequency);
+    $prompt = $this->buildPrompt($data, $frequency);
 
     // Kirim ke OpenAI
     $response = OpenAI::chat()->create([
@@ -47,7 +45,7 @@ class OpenAIService
   /**
    * Membangun prompt untuk OpenAI berdasarkan data
    */
-  private function buildPrompt(array $openaiReady, string $frequency)
+  private function buildPrompt(array $data, string $frequency)
   {
     $freqName = [
       'D' => 'harian',
@@ -58,36 +56,34 @@ class OpenAIService
     $prompt = "# Analisis Data Penjualan dan Forecast\n\n";
     $prompt .= "Berikut adalah data penjualan {$freqName} dari beberapa produk beserta hasil forecast (jika tersedia).\n\n";
 
-    foreach ($openaiReady as $productId => $info) {
+    foreach ($data as $productId => $info) {
       $prompt .= "## Produk ID: {$productId}\n";
-      $prompt .= "Nama: {$info['name']}\n\n";
+      $prompt .= "Nama: {$info['product_name']}\n\n";
 
       $prompt .= "### Data Penjualan {$freqName}:\n";
-      $prompt .= "```json\n" . json_encode($info['data'], JSON_PRETTY_PRINT) . "\n```\n\n";
+      $prompt .= "```json\n" . json_encode($info['series'], JSON_PRETTY_PRINT) . "\n```\n\n";
 
-      if (isset($info['is_valid']) && !$info['is_valid']) {
-        $prompt .= "### Masalah Data:\n";
-        $prompt .= "Data untuk produk ini tidak memenuhi kriteria kualitas untuk forecast.\n";
-        $prompt .= "Masalah: " . implode(", ", $info['issues']) . "\n\n";
-      } elseif (isset($info['forecast'])) {
+      // Data Quality
+      if (isset($info['data_quality'])) {
+        $prompt .= "### Kualitas Data:\n";
+        $prompt .= "Valid: " . ($info['data_quality']['valid'] ? 'Ya' : 'Tidak') . "\n";
+        if (!$info['data_quality']['valid']) {
+          $prompt .= "Masalah: " . implode(", ", $info['data_quality']['issues']) . "\n";
+        }
+        $prompt .= "Total Points: {$info['data_quality']['total_points']}\n";
+        $prompt .= "Non Zero Points: {$info['data_quality']['non_zero_points']}\n";
+        $prompt .= "Non Zero Ratio: {$info['data_quality']['non_zero_ratio']}\n\n";
+      }
+
+      // Forecast
+      if (isset($info['predictions']) && is_array($info['predictions']) && count($info['predictions'])) {
         $prompt .= "### Hasil Forecast:\n";
-        $prompt .= "```json\n" . json_encode($info['forecast'], JSON_PRETTY_PRINT) . "\n```\n\n";
+        $prompt .= "```json\n" . json_encode($info['predictions'], JSON_PRETTY_PRINT) . "\n```\n\n";
       }
     }
 
     $prompt .= "# Tugas Anda\n\n";
     $prompt .= "Analisis setiap produk dan berikan insight yang komprehensif berdasarkan data historis dan forecast (jika tersedia).\n\n";
-
-    $prompt .= "Untuk produk dengan data valid dan forecast:\n";
-    $prompt .= "1. Analisis pola penjualan historis (tren, seasonality, outlier)\n";
-    $prompt .= "2. Analisis hasil forecast (peningkatan/penurunan yang diperkirakan)\n";
-    $prompt .= "3. Berikan rekomendasi untuk manajemen inventory dan strategi penjualan\n\n";
-
-    $prompt .= "Untuk produk dengan data tidak valid (tanpa forecast):\n";
-    $prompt .= "1. Analisis pola penjualan historis untuk mendapatkan insight\n";
-    $prompt .= "2. Identifikasi kemungkinan penyebab kualitas data rendah\n";
-    $prompt .= "3. Berikan saran untuk perbaikan pengumpulan data dan pola penjualan\n\n";
-
     $prompt .= "Berikan hasil analisis dalam format JSON berikut:\n\n";
     $prompt .= "```json\n";
     $prompt .= "{\n";

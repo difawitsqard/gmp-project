@@ -16,9 +16,75 @@ use App\Jobs\ForecastProductJob;
 use Illuminate\Support\Facades\DB;
 use OpenAI\Laravel\Facades\OpenAI;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class ForecastController extends Controller
 {
+
+    /**
+     * Generate time series data dari request parameters
+     */
+    public function generateTimeSeriesFromRequest2(Request $request)
+    {
+        $validatedData = $request->validate([
+            'products' => 'required|array',
+            'products.*.id' => 'required|exists:products,id',
+            'frequency' => 'required|in:D,W,M',
+            'horizon' => 'required|integer|min:1',
+            'startDate' => 'required|date',
+            'endDate' => 'required|date|after_or_equal:startDate',
+        ]);
+
+        $productIds = collect($validatedData['products'])->pluck('id')->toArray();
+        $frequency = $validatedData['frequency'];
+        $horizon = $validatedData['horizon'];
+        $startDate = Carbon::parse($validatedData['startDate']);
+        $endDate = Carbon::parse($validatedData['endDate']);
+
+        // Generate semua titik waktu berdasarkan frekuensi
+        $dates = $this->generateDatesFromRange($startDate, $endDate, $frequency);
+
+        // Inisialisasi series
+        $series = [];
+        foreach ($productIds as $productId) {
+            // Panggil method terpisah untuk mendapatkan time series data
+            $series[$productId] = $this->getTimeSeriesData(
+                $productId,
+                $frequency,
+                $startDate,
+                $endDate,
+                $dates
+            );
+        }
+
+        $productNames = Product::whereIn('id', $productIds)->pluck('name', 'id')->toArray();
+
+        // Struktur data untuk OpenAI dan validasi
+        $openaiStructured = [];
+        $validationResults = [];
+
+        foreach ($series as $productId => $dateSeries) {
+            $openaiStructured[$productId] = [
+                'name' => $productNames[$productId] ?? "Produk ID {$productId}",
+                'data' => $dateSeries
+            ];
+
+            $validationResult = $this->validateTimeSeriesQuality($dateSeries, $frequency);
+            $validationResults[$productId] = $validationResult;
+            $openaiStructured[$productId]['data_quality'] = $validationResult;
+        }
+
+        return [
+            'start_date' => $startDate->toDateString(),
+            'end_date' => $endDate->toDateString(),
+            'frequency' => $frequency,
+            'horizon' => $horizon,
+            'series' => $series,
+            'openai_ready' => $openaiStructured,
+            'validation_results' => $validationResults,
+        ];
+    }
 
     /**
      * Generate time series data dari request parameters
@@ -92,6 +158,7 @@ class ForecastController extends Controller
         $perPage = is_numeric($request->per_page) ? $request->per_page :  10;
 
         $forecasts = Forecast::filter()
+            ->sorting()
             ->with(['results.product', 'analyses.product'])
             ->orderBy('created_at', 'desc')
             ->paginate($perPage);
@@ -99,6 +166,7 @@ class ForecastController extends Controller
         $forecasts->getCollection()->transform(function ($forecasts) {
             return [
                 'id' => $forecasts->id,
+                'name' => $forecasts->name,
                 'forecasted_at' => $forecasts->forecasted_at,
                 'frequency' => $forecasts->frequency,
                 'horizon' => $forecasts->horizon,
@@ -106,6 +174,7 @@ class ForecastController extends Controller
                 'input_start_date' => $forecasts->input_start_date,
                 'input_end_date' => $forecasts->input_end_date,
                 'total_products' => $forecasts->analyses->count(),
+                'status' => $forecasts->status,
                 'created_by' => $forecasts->createdBy ? [
                     'id' => $forecasts->createdBy->id,
                     'name' => $forecasts->createdBy->name,
@@ -150,6 +219,7 @@ class ForecastController extends Controller
     public function requestForecast(Request $request)
     {
         $validatedData = $request->validate([
+            'name' => 'required|string|max:255',
             'products' => 'required|array',
             'products.*.id' => 'required|exists:products,id',
             'frequency' => 'required|in:D,W,M',
@@ -160,237 +230,131 @@ class ForecastController extends Controller
             'includeConfidenceIntervals' => 'boolean',
         ]);
 
-        $result = $this->generateTimeSeriesFromRequest($request);
+        // dd($validatedData);
 
-        $validProducts = [];
-        $invalidProducts = [];
-
-        foreach ($result['validation_results'] as $productId => $validation) {
-            if ($validation['valid']) {
-                $validProducts[$productId] = $result['series'][$productId];
-            } else {
-                $invalidProducts[$productId] = [
-                    'product_id' => $productId,
-                    'name' => $result['openai_ready'][$productId]['name'],
-                    'issues' => $validation['issues'],
-                    'metrics' => [
-                        'total_points' => $validation['total_points'],
-                        'non_zero_points' => $validation['non_zero_points'],
-                        'non_zero_ratio' => $validation['non_zero_ratio'],
-                    ]
-                ];
-                $result['openai_ready'][$productId]['is_valid'] = false;
-                $result['openai_ready'][$productId]['issues'] = $validation['issues'];
-            }
-        }
-
-        //dd($result);
-
-        if ($validatedData['enforceDataQuality'] && count($invalidProducts) > 0) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Beberapa produk memiliki data yang tidak layak untuk forecast',
-                'invalid_products' => $invalidProducts,
-                'validation_results' => $result['validation_results']
-            ], 422);
-        }
-
-        // Buat forecast record di awal
         $forecast  = Forecast::create([
+            'name' =>  $validatedData['name'],
             'forecasted_at' => now(),
-            'frequency' => $result['frequency'],
-            'horizon' => $result['horizon'],
+            'frequency' => $validatedData['frequency'],
+            'horizon' => $validatedData['horizon'],
             'model' => 'timegpt-1',
-            'input_start_date' => $result['start_date'],
-            'input_end_date' => $result['end_date'],
-            'created_by' => auth()->id(),
+            'input_start_date' => Carbon::parse($validatedData['startDate'])->format('Y-m-d'),
+            'input_end_date' => Carbon::parse($validatedData['endDate'])->format('Y-m-d'),
+            'created_by' => auth()->user() ? auth()->user()->id : null,
         ]);
 
-        $options = [
-            'h' => (int)$validatedData['horizon'],
-            'freq' => $validatedData['frequency'],
-            'model' => 'timegpt-1',
-            'level' => $request->input('includeConfidenceIntervals', false) ? [80, 95] : null,
-        ];
+        // $result = $this->generateTimeSeriesFromRequest($request);
 
-        // ForecastProductJob: per 3 produk
-        $jobs = [];
-        $validProductChunks = array_chunk($validProducts, 3, true); // key: productId, value: series
-        foreach ($validProductChunks as $chunk) {
-            $jobs[] = new ForecastProductJob($forecast->id, $chunk, $options);
-        }
-        // Gabungkan produk valid dan tidak valid
-        $allProductIds = array_merge(array_keys($validProducts), array_keys($invalidProducts));
-        $analyzeChunks = array_chunk($allProductIds, 2);
+        // dd($result);
 
-        // Bagi juga $invalidProducts sesuai chunk
-        foreach ($analyzeChunks as $chunkIds) {
-            // Ambil data invalid untuk chunk ini
-            $chunkInvalidProducts = array_filter(
-                $invalidProducts,
-                fn($item) => in_array($item['product_id'], $chunkIds)
-            );
+        $productIds = collect($validatedData['products'])->pluck('id')->toArray();
+        $chunks = array_chunk($productIds, 5);
 
-            $jobs[] = new AnalyzeForecastJob(
-                $forecast->id,
-                $result,
-                $chunkIds, // berisi id produk valid & tidak valid
-                $chunkInvalidProducts, // hanya invalid yang ada di chunk ini
-                $request->only([
-                    'products',
-                    'frequency',
-                    'horizon',
-                    'startDate',
-                    'endDate',
-                    'enforceDataQuality',
-                    'includeConfidenceIntervals'
-                ]),
-                $validatedData['frequency'],
-                auth()->id(),
-            );
+        $generateJobs = [];
+
+        foreach ($chunks as $chunk) {
+            $generateJobs[] = new \App\Jobs\GenerateTimeSeriesJob($forecast->id, $chunk);
         }
 
-        $batch = Bus::batch($jobs)
-            ->then(function (Batch $batch) use ($forecast) {
-                // Dipanggil jika SEMUA job dalam batch selesai tanpa error
-                $forecast->update(['status' => 'done']);
-            })
-            ->catch(function (Batch $batch, Throwable $e) use ($forecast) {
-                // Dipanggil jika ADA job dalam batch yang gagal
-                $forecast->update(['status' => 'failed']);
-            })
-            ->finally(function (Batch $batch) {
-                // Selalu dipanggil di akhir batch (opsional)
-                // Bisa untuk logging, dsb
+        // Batch GenerateTimeSeriesJob
+        Bus::batch($generateJobs)
+            ->then(function () use ($forecast, $validatedData, $productIds) {
+
+                $forecast->update(['status' => 'processing']);
+
+                // Setelah semua GenerateTimeSeriesJob selesai, jalankan ForecastProductJob
+                $options = [
+                    'h' => (int)$validatedData['horizon'],
+                    'freq' => $validatedData['frequency'],
+                    'model' => 'timegpt-1',
+                    'level' => request()->input('includeConfidenceIntervals', false) ? [80, 95] : null,
+                ];
+
+                // Ambil series dari cache/database sesuai implementasi kamu
+                $series = [];
+                foreach ($productIds as $productId) {
+                    $getCacheSeries = cache()->get("series_{$forecast->id}_{$productId}");
+
+                    if ($getCacheSeries['data_quality']['valid']) {
+                        $series[$productId] = $getCacheSeries ?? [];
+                    } else {
+                        // batalkan ke proses selanjutnya jika enforceDataQuality = true
+                        if ($validatedData['enforceDataQuality']) {
+                            $forecast->update([
+                                'status' => 'failed',
+                                'note' => $getCacheSeries['product_name'] . ' (' . ($getCacheSeries['product_sku'] ?? '-') . ') tidak valid untuk forecast karena ' . implode(', ', $getCacheSeries['data_quality']['issues'])
+                            ]);
+                            foreach ($productIds as $pid) {
+                                Cache::forget("series_{$forecast->id}_{$pid}");
+                            }
+                            return;
+                        }
+                        continue;
+                    }
+                }
+
+                // Log::info($series);
+
+                // Chunk untuk ForecastProductJob 3 produk per job
+                $forecastChunks = array_chunk($series, 3, true);
+                $forecastJobs = [];
+                foreach ($forecastChunks as $chunk) {
+                    $forecastJobs[] = new ForecastProductJob($forecast->id, $chunk, $options);
+                }
+
+                Bus::batch($forecastJobs)
+                    ->then(function () use ($forecast, $validatedData, $productIds) {
+                        // Setelah semua ForecastProductJob selesai, lakukan analisis
+
+                        $analyzeJobs = [];
+
+                        // Chunk untuk AnalyzeForecastJob 2 produk per job
+                        $analyzeChunks = array_chunk($productIds, 2);
+
+                        foreach ($analyzeChunks as $chunk) {
+                            $analyzeStructure = [];
+                            foreach ($chunk as $productId) {
+                                $getCacheSeries = cache()->get("series_{$forecast->id}_{$productId}");
+
+                                if (!$getCacheSeries) continue;
+
+                                $analyzeStructure[$productId] = $getCacheSeries ?? [];
+                            }
+
+                            $analyzeJobs[] = new AnalyzeForecastJob(
+                                (int) $forecast->id,
+                                $analyzeStructure,
+                                $validatedData['frequency'],
+                                (int) auth()->id()
+                            );
+                        }
+
+                        Log::info("Total AnalyzeForecastJob: " . count($analyzeJobs));
+
+                        Bus::batch($analyzeJobs)
+                            ->then(function (Batch $batch) use ($forecast) {
+                                // Log::info("Batch AnalyzeForecastJob sukses untuk forecast ID {$forecast->id}");
+                                $forecast->update(['status' => 'done']);
+                            })
+                            ->catch(function (Batch $batch, Throwable $e) use ($forecast) {
+                                Log::error("Batch AnalyzeForecastJob gagal untuk forecast ID {$forecast->id}: " . $e->getMessage());
+                            })
+                            ->dispatch();
+                    })
+                    ->dispatch();
             })
             ->dispatch();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Forecast sedang diproses di latar belakang.',
-            'batch_id' => $batch->id,
-            'forecast_id' => $forecast->id,
-            'invalid_products' => $invalidProducts,
-            'valid_products' => array_keys($validProducts),
-        ]);
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Proses generate time series dan forecast berjalan di latar belakang.',
+                'forecast_id' => $forecast->id,
+            ]);
+        } else {
+            return redirect()->route('forecasting.show', ['forecasting' => $forecast->id]);
+        }
     }
-
-
-    // public function requestForecast(NixtlaService $nixtla, OpenAIService $openaiService, Request $request)
-    // {
-    //     $validatedData = $request->validate([
-    //         'products' => 'required|array',
-    //         'products.*.id' => 'required|exists:products,id',
-    //         'frequency' => 'required|in:D,W,M',
-    //         'horizon' => 'required|integer|min:1',
-    //         'startDate' => 'required|date',
-    //         'endDate' => 'required|date|after_or_equal:startDate',
-    //         'enforceDataQuality' => 'boolean',
-    //         'includeConfidenceIntervals' => 'boolean',
-    //     ]);
-
-    //     // Generate time series data dari request
-    //     $result = $this->generateTimeSeriesFromRequest($request);
-
-    //     // Pisahkan produk valid dan tidak valid
-    //     $validProducts = [];
-    //     $invalidProducts = [];
-
-    //     foreach ($result['validation_results'] as $productId => $validation) {
-    //         if ($validation['valid']) {
-    //             $validProducts[$productId] = $result['series'][$productId];
-    //         } else {
-    //             $invalidProducts[$productId] = [
-    //                 'product_id' => $productId,
-    //                 'name' => $result['openai_ready'][$productId]['name'],
-    //                 'issues' => $validation['issues'],
-    //                 'metrics' => [
-    //                     'total_points' => $validation['total_points'],
-    //                     'non_zero_points' => $validation['non_zero_points'],
-    //                     'non_zero_ratio' => $validation['non_zero_ratio'],
-    //                 ]
-    //             ];
-
-    //             // Tandai produk yang tidak valid untuk OpenAI
-    //             $result['openai_ready'][$productId]['is_valid'] = false;
-    //             $result['openai_ready'][$productId]['issues'] = $validation['issues'];
-    //         }
-    //     }
-
-    //     // SKENARIO 1: Jika enforceDataQuality = true dan ada produk tidak valid
-    //     if ($validatedData['enforceDataQuality'] && count($invalidProducts) > 0) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Beberapa produk memiliki data yang tidak layak untuk forecast',
-    //             'invalid_products' => $invalidProducts,
-    //             'validation_results' => $result['validation_results']
-    //         ], 422);
-    //     }
-
-    //     // dd($result);
-
-    //     // SKENARIO 2: Lanjutkan proses dengan produk valid saja
-    //     $forecast = [];
-
-    //     // Siapkan opsi untuk Nixtla
-    //     $options = [
-    //         'h' => (int)$validatedData['horizon'],
-    //         'freq' => $validatedData['frequency'],
-    //         'model' => 'timegpt-1',
-    //         'level' => $request->input('includeConfidenceIntervals', false) ? [80, 95] : null,
-    //     ];
-
-    //     dd($validProducts, $options);
-
-    //     // Kirim ke Nixtla hanya untuk produk valid
-    //     if (count($validProducts) > 0) {
-    //         $forecast = $nixtla->forecast($validProducts, $options);
-
-    //         // Update struktur data dengan hasil forecast
-    //         foreach ($forecast as $productId => $forecastData) {
-    //             $result['openai_ready'][$productId]['forecast'] = $forecastData;
-    //             $result['openai_ready'][$productId]['is_valid'] = true;
-    //         }
-    //     }
-
-    //     // Siapkan data untuk analisis oleh OpenAI
-    //     $validProductIds = array_keys($validProducts);
-
-    //     // Kirim data ke OpenAI Service
-    //     $openaiResults = $openaiService->analyzeTimeSeriesAndForecast(
-    //         $result,
-    //         $validProductIds,
-    //         $invalidProducts,
-    //         $validatedData['frequency']
-    //     );
-
-    //     // TAMBAHAN BARU: Simpan hasil forecast ke database
-    //     $forecastId = $this->storeForecastResults(
-    //         $request,
-    //         $result,
-    //         $forecast,
-    //         $openaiResults['analysis']
-    //     );
-
-    //     // Return response dengan hasil lengkap
-    //     // return response()->json([
-    //     //     'success' => true,
-    //     //     'data' => [
-    //     //         'time_series_info' => [
-    //     //             'start_date' => $result['start_date'],
-    //     //             'end_date' => $result['end_date'],
-    //     //             'frequency' => $result['frequency'],
-    //     //             'horizon' => $result['horizon'],
-    //     //         ],
-    //     //         'valid_products' => array_keys($validProducts),
-    //     //         'invalid_products' => $invalidProducts,
-    //     //         'forecast' => $forecast,
-    //     //         'analysis' => $openaiResults['analysis'],
-    //     //     ]
-    //     // ]);
-
-    //     return redirect()->route('forecasting.show', ['forecasting' => $forecastId]);
-    // }
 
     /**
      * Store forecast results in database
@@ -527,7 +491,7 @@ class ForecastController extends Controller
         return $smoothedSeries;
     }
 
-    private function validateTimeSeriesQuality(array $timeSeries, string $frequency)
+    public function validateTimeSeriesQuality(array $timeSeries, string $frequency)
     {
         // Menyaring nilai-nilai pada array $timeSeries dan hanya mengambil yang lebih besar dari 0
         $nonZeroValues = array_filter($timeSeries, function ($value) {
@@ -621,7 +585,7 @@ class ForecastController extends Controller
      * @param array $dates Array tanggal yang sudah digenerate
      * @return array Time series data dengan format [date => value]
      */
-    private function getTimeSeriesData($productId, $frequency, $startDate, $endDate, $dates = null)
+    public function getTimeSeriesData($productId, $frequency, $startDate, $endDate, $dates = null)
     {
         // Generate dates jika tidak disediakan
         if ($dates === null) {
@@ -678,7 +642,7 @@ class ForecastController extends Controller
      * @param string $frequency Frekuensi (D,W,M)
      * @return array Array tanggal dalam format Y-m-d
      */
-    private function generateDatesFromRange($startDate, $endDate, $frequency)
+    public function generateDatesFromRange($startDate, $endDate, $frequency)
     {
         $dates = [];
 

@@ -26,6 +26,17 @@ class ForecastProductJob implements ShouldQueue
     public function handle()
     {
         $nixtla = app(NixtlaService::class);
+
+        // Memperbarui struktur data seriesChunk
+        // Pastikan setiap entry memiliki 'series' sebagai key
+        foreach ($this->seriesChunk as $productId => $data) {
+            if (isset($data['series']) && is_array($data['series'])) {
+                $this->seriesChunk[$productId] = $data['series'];
+            }
+        }
+
+        // Log::info("ForecastProductJob  " . json_encode($this->seriesChunk));
+
         try {
             $forecast = $nixtla->forecast($this->seriesChunk, $this->options);
 
@@ -40,6 +51,14 @@ class ForecastProductJob implements ShouldQueue
             Log::info("ForecastProductJob sukses untuk produk: " . implode(',', array_keys($this->seriesChunk)));
         } catch (Exception $e) {
             Log::error("ForecastProductJob gagal untuk produk: " . implode(',', array_keys($this->seriesChunk)) . ': ' . $e->getMessage());
+            // Update status forecast ke failed dan simpan pesan error
+            \App\Models\Forecast::where('id', $this->forecastId)
+                ->update([
+                    'status' => 'failed',
+                    'note' => $e->getMessage()
+                ]);
+
+            throw $e;
         }
     }
 }

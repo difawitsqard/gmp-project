@@ -21,10 +21,7 @@ class AnalyzeForecastJob implements ShouldQueue
 
     public function __construct(
         public int $forecastId,
-        public array $result,
-        public array $validProductIds,
-        public array $invalidProducts,
-        public array $requestData,
+        public array $products,
         public string $frequency,
         public int $createdBy
     ) {}
@@ -34,7 +31,7 @@ class AnalyzeForecastJob implements ShouldQueue
         $openai = app(OpenAIService::class);
 
         // Ambil data dari hasil forecast result database
-        foreach ($this->validProductIds as $id) {
+        foreach ($this->products as $id => $product) {
             $forecastResult = Forecast::where('id', $this->forecastId)
                 ->first()?->results()
                 ->where('product_id', $id)
@@ -42,16 +39,15 @@ class AnalyzeForecastJob implements ShouldQueue
 
             if ($forecastResult) {
                 // Update struktur data dengan hasil forecast
-                $this->result['openai_ready'][$id]['forecast'] = $forecastResult->predictions ? json_decode($forecastResult->predictions, true) : [];
+                $this->products[$id]['predictions'] = json_decode($forecastResult->predictions, true);
             }
         }
 
+        // Log::info("AnalyzeForecastJob " . json_encode($this->products));
 
         try {
             $openaiResult = $openai->analyzeTimeSeriesAndForecast(
-                $this->result,
-                $this->validProductIds,
-                $this->invalidProducts,
+                $this->products,
                 $this->frequency,
             );
 
@@ -64,11 +60,24 @@ class AnalyzeForecastJob implements ShouldQueue
                         'product_id' => $productId,
                         'analysis' => json_encode($productAnalysis),
                     ]);
+
+                    // hapus cache untuk produk ini "series_{$this->forecastId}_{$productId}"
+                    Cache::forget("series_{$this->forecastId}_{$productId}");
                 }
             }
             Log::info("AnalyzeForecastJob sukses untuk forecast {$this->forecastId}");
         } catch (\Exception $e) {
-            Log::error("AnalyzeForecastJob gagal untuk forecast {$this->forecastId}: " . $e->getMessage());
+            //  Log::error("AnalyzeForecastJob gagal untuk forecast {$this->forecastId}: " . $e->getMessage());
+
+            // Update status forecast ke failed dan simpan pesan error
+            \App\Models\Forecast::where('id', $this->forecastId)
+                ->update([
+                    'status' => 'failed',
+                    'note' => $e->getMessage()
+                ]);
+
+            // Hentikan batch dengan melempar exception
+            throw $e;
         }
     }
 }

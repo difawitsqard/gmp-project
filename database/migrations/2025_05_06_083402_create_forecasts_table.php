@@ -21,6 +21,7 @@ return new class extends Migration
             $table->date('input_start_date');
             $table->date('input_end_date');
             $table->enum('status', ['pending', 'processing', 'done', 'failed'])->default('pending'); // Status prediksi
+            $table->text('note')->nullable(); // Catatan atau pesan terkait prediksi
             $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->timestamps();
         });
