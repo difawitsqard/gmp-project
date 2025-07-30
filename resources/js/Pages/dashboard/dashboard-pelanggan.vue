@@ -1,5 +1,5 @@
 <template>
-    <Head title="Dasbor Pelanggan" />
+    <Head title="Dasbor" />
 
     <div>
         <layout-header></layout-header>

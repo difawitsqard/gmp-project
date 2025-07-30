@@ -29,7 +29,7 @@ import VueEasyLightbox from "vue-easy-lightbox";
 // import ThemifyIcon from "vue-themify-icons";
 // import SimpleLineIcons from "vue-simple-line";
 
-import LoadingOverlay from "@/components/LoadingOverlay.vue";
+import LoadingOverlay from "@/Components/LoadingOverlay.vue";
 
 /********* Layout component**********/
 import Header from "@/Layouts/pos-header.vue";
@@ -40,7 +40,7 @@ import Horizontal_Sidebar from "@/Layouts/horizontal-sidebar.vue";
 import SideSettings from "@/Layouts/side-settings.vue";
 
 /********* Breadcrumb component**********/
-import Breadcrumb from "@/components/breadcrumb/layout-breadcrumb.vue";
+import Breadcrumb from "@/Components/breadcrumb/layout-breadcrumb.vue";
 
 import "@fontsource/montserrat";
 import "bootstrap/dist/css/bootstrap.min.css";
