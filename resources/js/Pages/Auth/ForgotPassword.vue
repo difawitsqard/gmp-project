@@ -2,7 +2,7 @@
 import * as Yup from "yup";
 import { Head, Link, useForm } from "@inertiajs/vue3";
 import { ref } from "vue";
-import TextInput from "@/Components/TextInput.vue";
+import TextInput from "@/components/TextInput.vue";
 
 defineProps({
     status: String,
