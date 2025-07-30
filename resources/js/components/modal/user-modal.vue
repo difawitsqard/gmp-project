@@ -200,8 +200,6 @@
 
 <script>
 import { Link, router } from "@inertiajs/vue3";
-import { error } from "jquery";
-import { set } from "lodash";
 
 export default {
     components: {

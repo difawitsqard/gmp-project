@@ -146,15 +146,13 @@
 
                 <template v-else-if="column.key === 'created_by'">
                     <div class="userimgname">
-                        <a href="javascript:void(0);" class="product-img me-3">
+                        <div class="product-img me-3">
                             <img
                                 v-lazy="record.created_by?.profile_photo_url"
                                 :alt="record.created_by?.id"
                             />
-                        </a>
-                        <a href="javascript:void(0);">{{
-                            record.created_by?.name
-                        }}</a>
+                        </div>
+                        <div>{{ record.created_by?.name }}</div>
                     </div>
                 </template>
             </template>

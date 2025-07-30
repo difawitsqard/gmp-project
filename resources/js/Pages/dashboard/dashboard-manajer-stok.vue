@@ -215,8 +215,8 @@
                                     <thead>
                                         <tr>
                                             <th>#</th>
-                                            <th>Nama Prediksi</th>
-                                            <th>Produk</th>
+                                            <th>Nama</th>
+                                            <th>Prediksi</th>
                                             <th>Tanggal</th>
                                         </tr>
                                     </thead>
@@ -228,9 +228,18 @@
                                         >
                                             <td>{{ index + 1 }}</td>
                                             <td>
-                                                <span class="fw-bold">{{
-                                                    item.name ?? "-"
-                                                }}</span>
+                                                <Link
+                                                    :href="
+                                                        route(
+                                                            'forecasting.show',
+                                                            item.id
+                                                        )
+                                                    "
+                                                    class="fw-bold"
+                                                    >{{
+                                                        item.name ?? "-"
+                                                    }}</Link
+                                                >
                                                 <div
                                                     class="text-muted"
                                                     style="font-size: 0.9em"
@@ -245,10 +254,18 @@
                                             <td>
                                                 {{
                                                     item.analysed_products_count
+                                                        ? item.analysed_products_count +
+                                                          " Produk"
+                                                        : "-"
                                                 }}
                                             </td>
                                             <td>
-                                                {{ item.created_at }}
+                                                {{
+                                                    this.$helpers.formatDate(
+                                                        item.created_at,
+                                                        "DD MMMM YYYY HH:mm"
+                                                    )
+                                                }}
                                             </td>
                                         </tr>
                                         <tr
