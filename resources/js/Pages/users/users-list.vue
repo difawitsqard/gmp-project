@@ -14,6 +14,7 @@
                 <ul class="table-top-head">
                     <li>
                         <a
+                            @click="this.fetch()"
                             data-bs-toggle="tooltip"
                             data-bs-placement="top"
                             title="Refresh"
@@ -108,33 +109,21 @@
                     >
                         <div class="card-body pb-0">
                             <div class="row">
-                                <div class="col-lg-3 col-sm-6 col-12">
-                                    <div class="input-blocks">
-                                        <vue-feather
-                                            type="stop-circle"
-                                            class="info-img"
-                                        ></vue-feather>
-                                        <vue-select
-                                            :options="UserStatus"
-                                            v-model="filters.status"
-                                            id="userstatus"
-                                            placeholder="Pilih Status"
-                                        />
-                                    </div>
+                                <div class="col-lg-3 col-sm-6 col-12 mb-3">
+                                    <vue-select
+                                        :options="UserStatus"
+                                        v-model="filters.status"
+                                        id="userstatus"
+                                        placeholder="Filter Status"
+                                    />
                                 </div>
-                                <div class="col-lg-3 col-sm-6 col-12">
-                                    <div class="input-blocks">
-                                        <vue-feather
-                                            type="user"
-                                            class="info-img"
-                                        ></vue-feather>
-                                        <vue-select
-                                            :options="UserRole"
-                                            id="userrole"
-                                            placeholder="Pilih Role"
-                                            v-model="filters.role"
-                                        />
-                                    </div>
+                                <div class="col-lg-3 col-sm-6 col-12 mb-3">
+                                    <vue-select
+                                        :options="UserRole"
+                                        id="userrole"
+                                        placeholder="Filter Role"
+                                        v-model="filters.role"
+                                    />
                                 </div>
                                 <div class="col-lg-3 col-sm-6 col-12 ms-auto">
                                     <div
@@ -171,6 +160,8 @@
                                                 v-lazy="
                                                     record.profile_photo_url
                                                 "
+                                                style="width: 55px"
+                                                class="rounded"
                                                 :alt="record.name"
                                             />
                                         </a>
@@ -343,11 +334,15 @@ export default {
                 },
             ],
             UserStatus: [
-                { id: null, text: "Pilih Status" },
-                { id: 1, text: "Aktif" },
-                { id: 0, text: "Tidak Aktif" },
+                { value: 1, label: "Aktif" },
+                { value: 0, label: "Tidak Aktif" },
             ],
-            UserRole: ["Pelanggan", "Admin", "Staff Gudang", "Manajer Stok"],
+            UserRole: [
+                { value: "Pelanggan", label: "Pelanggan" },
+                { value: "Admin", label: "Admin" },
+                { value: "Staff Gudang", label: "Staff Gudang" },
+                { value: "Manajer Stok", label: "Manajer Stok" },
+            ],
         };
     },
     methods: {

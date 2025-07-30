@@ -14,6 +14,18 @@
                 <ul class="table-top-head">
                     <li>
                         <a
+                            @click="this.fetch()"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                            title="Refresh"
+                            ><vue-feather
+                                type="rotate-ccw"
+                                class="rotate-ccw"
+                            ></vue-feather
+                        ></a>
+                    </li>
+                    <li>
+                        <a
                             ref="collapseHeader"
                             data-bs-toggle="tooltip"
                             data-bs-placement="top"

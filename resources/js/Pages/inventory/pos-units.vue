@@ -12,38 +12,12 @@
                     </div>
                 </div>
                 <ul class="table-top-head">
-                    <!-- <li>
-                        <a
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="top"
-                            title="Pdf"
-                            ><img src="@/assets/img/icons/pdf.svg" alt="img"
-                        /></a>
-                    </li>
-                    <li>
-                        <a
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="top"
-                            title="Excel"
-                            ><img src="@/assets/img/icons/excel.svg" alt="img"
-                        /></a>
-                    </li>
-                    <li>
-                        <a
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="top"
-                            title="Print"
-                            ><i
-                                data-feather="printer"
-                                class="feather-printer"
-                            ></i
-                        ></a>
-                    </li> -->
                     <li>
                         <a
                             data-bs-toggle="tooltip"
                             data-bs-placement="top"
                             title="Refresh"
+                            @click="this.fetch()"
                             ><i
                                 data-feather="rotate-ccw"
                                 class="feather-rotate-ccw"
@@ -86,17 +60,16 @@
                             <div class="search-input">
                                 <input
                                     type="text"
-                                    placeholder="Search"
+                                    placeholder="Cari.."
                                     class="dark-input"
                                     v-model="filters.search"
                                 />
                                 <a
                                     href="javascript:void(0);"
+                                    v-show="filters.search"
                                     class="btn btn-searchset"
-                                    ><i
-                                        data-feather="search"
-                                        class="feather-search"
-                                    ></i
+                                    @click="resetExcept"
+                                    ><i data-feather="x" class="feather-x"></i
                                 ></a>
                             </div>
                         </div>
@@ -104,7 +77,10 @@
                             <a
                                 class="btn btn-filter"
                                 id="filter_search"
-                                v-on:click="filter = !filter"
+                                v-on:click="
+                                    filter = !filter;
+                                    if (!filter) resetExcept();
+                                "
                                 :class="{ setclose: filter }"
                             >
                                 <vue-feather
@@ -133,19 +109,6 @@
                                 <div class="col-lg-3 col-sm-6 col-12">
                                     <div class="input-blocks">
                                         <vue-feather
-                                            type="zap"
-                                            class="info-img"
-                                        ></vue-feather>
-                                        <vue-select
-                                            :options="ChooseUnit"
-                                            id="chooseunit"
-                                            placeholder="Choose Unit"
-                                        />
-                                    </div>
-                                </div>
-                                <div class="col-lg-3 col-sm-6 col-12">
-                                    <div class="input-blocks">
-                                        <vue-feather
                                             type="calendar"
                                             class="info-img"
                                         ></vue-feather>
@@ -161,30 +124,13 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-lg-3 col-sm-6 col-12">
-                                    <div class="input-blocks">
-                                        <vue-feather
-                                            type="stop-circle"
-                                            class="info-img"
-                                        ></vue-feather>
-                                        <vue-select
-                                            :options="UnitStatus"
-                                            v-model="filters.status"
-                                            id="unitstatus"
-                                            placeholder="Choose Status"
-                                        />
-                                    </div>
-                                </div>
-                                <div class="col-lg-3 col-sm-6 col-12 ms-auto">
-                                    <div class="input-blocks">
-                                        <a class="btn btn-filters ms-auto">
-                                            <i
-                                                data-feather="search"
-                                                class="feather-search"
-                                            ></i>
-                                            Search
-                                        </a>
-                                    </div>
+                                <div class="col-lg-3 col-sm-6 col-12 mb-3">
+                                    <vue-select
+                                        :options="UnitStatus"
+                                        v-model="filters.status"
+                                        id="unitstatus"
+                                        placeholder="Filter Status"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -210,8 +156,8 @@
                                         >
                                             {{
                                                 record.status
-                                                    ? "Active"
-                                                    : "Inactive"
+                                                    ? "Aktif"
+                                                    : "Tidak Aktif"
                                             }}</span
                                         >
                                     </div>
@@ -278,7 +224,11 @@ export default {
             { only: ["units"] }
         );
 
-        return { filters, fetch, reset };
+        const resetExcept = () => {
+            reset(["sort_order", "sort_field"]);
+        };
+
+        return { filters, fetch, reset, resetExcept };
     },
     components: {
         Head,
@@ -298,11 +248,9 @@ export default {
             dateFormat: "dd-MM-yyyy",
             search: this.filters?.search || "",
             UnitsSort: ["Sort by Date", "Newest", "Oldest"],
-            ChooseUnit: ["Choose Unit", "Piece", "Kilogram", "Gram"],
             UnitStatus: [
-                { id: null, text: "Choose Status" },
-                { id: 1, text: "Active" },
-                { id: 0, text: "Inactive" },
+                { value: 1, label: "Aktif" },
+                { value: 0, label: "Tidak Aktif" },
             ],
             modalUnit: {
                 isEdit: false,
@@ -316,60 +264,30 @@ export default {
                     title: "Satuan",
                     dataIndex: "name",
                     key: "name",
-                    sorter: {
-                        compare: (a, b) => {
-                            a = a.name.toLowerCase();
-                            b = b.name.toLowerCase();
-                            return a > b ? -1 : b > a ? 1 : 0;
-                        },
-                    },
+                    sorter: true,
                 },
                 {
                     title: "Nama Pendek",
                     dataIndex: "short_name",
-                    sorter: {
-                        compare: (a, b) => {
-                            a = a.short_name ? a.short_name.toLowerCase() : "";
-                            b = b.short_name ? b.short_name.toLowerCase() : "";
-                            return a > b ? -1 : b > a ? 1 : 0;
-                        },
-                    },
+                    sorter: true,
                 },
                 {
                     title: "Jumlah Produk",
                     dataIndex: "items",
-                    sorter: {
-                        compare: (a, b) => {
-                            a = a.NoofProducts.toLowerCase();
-                            b = b.NoofProducts.toLowerCase();
-                            return a > b ? -1 : b > a ? 1 : 0;
-                        },
-                    },
+                    sorter: true,
                 },
                 {
                     title: "Dibuat Pada",
                     dataIndex: "created_at",
-                    sorter: {
-                        compare: (a, b) => {
-                            a = a.created_at.toLowerCase();
-                            b = b.created_at.toLowerCase();
-                            return a > b ? -1 : b > a ? 1 : 0;
-                        },
-                    },
+                    sorter: true,
                     customRender: ({ text }) =>
-                        dayjs(text).format("D MMMM YYYY"),
+                        this.$helpers.formatDate(text, "DD MMMM YYYY HH:mm"),
                 },
                 {
                     title: "Status",
                     dataIndex: "status",
                     key: "status",
-                    sorter: {
-                        compare: (a, b) =>
-                            String(a.status).toLowerCase() >
-                            String(b.status).toLowerCase()
-                                ? -1
-                                : 1,
-                    },
+                    sorter: false,
                 },
                 {
                     title: "Aksi",
@@ -395,9 +313,18 @@ export default {
         this.data = this.units;
     },
     methods: {
-        handleTableChange(pagination) {
+        handleTableChange(pagination, filters, sorter) {
             this.filters.page = pagination.current;
             this.filters.per_page = pagination.pageSize;
+
+            if (sorter.order) {
+                this.filters.sort_field = sorter.field;
+                this.filters.sort_order = sorter.order;
+            } else {
+                this.filters.sort_field = null;
+                this.filters.sort_order = null;
+            }
+
             this.fetch();
         },
 

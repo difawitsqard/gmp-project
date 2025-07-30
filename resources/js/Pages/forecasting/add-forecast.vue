@@ -437,6 +437,7 @@
 <script>
 import AsyncProductForecastSelect from "@/components/AsyncProductForecastSelect.vue";
 import { Head, Link, useForm } from "@inertiajs/vue3";
+import { getAllForecastFrequencies } from "@/constants/forecastFrequency";
 
 export default {
     components: {
@@ -468,11 +469,7 @@ export default {
                 endDate: new Date(),
                 enforceDataQuality: true,
             },
-            ChooseFrequency: [
-                { id: "D", text: "Harian" },
-                { id: "W", text: "Mingguan" },
-                { id: "M", text: "Bulanan" },
-            ],
+            ChooseFrequency: getAllForecastFrequencies(),
             minDate: minDate,
         };
     },
@@ -540,29 +537,6 @@ export default {
         },
     },
     methods: {
-        showConfirmation() {
-            Swal.fire({
-                title: "Are you sure?",
-                text: "You won't be able to revert this!",
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonColor: "#3085d6",
-                cancelButtonColor: "#d33",
-                confirmButtonText: "Yes, delete it!",
-                confirmButtonClass: "btn btn-primary",
-                cancelButtonClass: "btn btn-danger ml-1",
-                buttonsStyling: false,
-            }).then((result) => {
-                if (result.value) {
-                    Swal.fire({
-                        icon: "success",
-                        title: "Deleted!",
-                        text: "Your file has been deleted.",
-                        confirmButtonClass: "btn btn-success",
-                    });
-                }
-            });
-        },
         submitForm() {
             this.$inertia.post(this.route("forecasting.request"), this.form, {
                 onSuccess: () => {

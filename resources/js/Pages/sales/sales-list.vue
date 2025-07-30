@@ -29,7 +29,7 @@
                 <ul class="table-top-head">
                     <li>
                         <a
-                            @click="fetch()"
+                            @click="this.fetch()"
                             data-bs-toggle="tooltip"
                             data-bs-placement="top"
                             title="Refresh"
@@ -120,31 +120,19 @@
                     >
                         <div class="card-body pb-0">
                             <div class="row">
-                                <div class="col-lg-2 col-sm-6 col-12">
-                                    <div class="input-blocks">
-                                        <vue-feather
-                                            type="stop-circle"
-                                            class="info-img"
-                                        />
-                                        <vue-select
-                                            :options="OrderStatus"
-                                            v-model="filters.status"
-                                            placeholder="Pilih Status Pesanan"
-                                        />
-                                    </div>
+                                <div class="col-lg-2 col-sm-6 col-12 mb-3">
+                                    <vue-select
+                                        :options="OrderStatus"
+                                        v-model="filters.status"
+                                        placeholder="Filter Status"
+                                    />
                                 </div>
-                                <div class="col-lg-3 col-sm-6 col-12">
-                                    <div class="input-blocks">
-                                        <vue-feather
-                                            type="stop-circle"
-                                            class="info-img"
-                                        />
-                                        <vue-select
-                                            :options="OrderPaymentStatus"
-                                            v-model="filters.payment_status"
-                                            placeholder="Pilih Status Pembayaran"
-                                        />
-                                    </div>
+                                <div class="col-lg-3 col-sm-6 col-12 mb-3">
+                                    <vue-select
+                                        :options="OrderPaymentStatus"
+                                        v-model="filters.payment_status"
+                                        placeholder="Pilih Status Pembayaran"
+                                    />
                                 </div>
                                 <div class="col-lg-3 col-sm-6 col-12 ms-auto">
                                     <div

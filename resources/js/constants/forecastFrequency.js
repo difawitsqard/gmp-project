@@ -17,7 +17,7 @@ export function getAllForecastFrequencies() {
     return Object.entries(forecastFrequencyMap)
         .filter(([key]) => key !== "default")
         .map(([key, value]) => ({
-            id: key,
-            text: value.label,
+            value: key,
+            label: value.label,
         }));
 }

@@ -24331,7 +24331,7 @@ table tbody td.action-table-data a.cancel-circle:hover svg {
     top: 3px;
 }
 
-.input-blocks.add-product input[type="text"] {
+.input-blocks.add-product input[type="text"]:not(.vs__search):not(.vue-select input) {
     padding: 6px 15px;
     width: 100%;
     height: 40px;
@@ -24340,7 +24340,8 @@ table tbody td.action-table-data a.cancel-circle:hover svg {
     border-radius: 5px;
 }
 
-.add-product input {
+/* Tambahan pengecualian untuk .add-product secara umum */
+.add-product input:not(.vs__search):not(.vue-select input) {
     height: 40px;
 }
 

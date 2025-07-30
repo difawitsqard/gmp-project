@@ -12,38 +12,12 @@
                     </div>
                 </div>
                 <ul class="table-top-head">
-                    <!-- <li>
-                        <a
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="top"
-                            title="Pdf"
-                            ><img src="@/assets/img/icons/pdf.svg" alt="img"
-                        /></a>
-                    </li>
-                    <li>
-                        <a
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="top"
-                            title="Excel"
-                            ><img src="@/assets/img/icons/excel.svg" alt="img"
-                        /></a>
-                    </li>
-                    <li>
-                        <a
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="top"
-                            title="Print"
-                            ><i
-                                data-feather="printer"
-                                class="feather-printer"
-                            ></i
-                        ></a>
-                    </li> -->
                     <li>
                         <a
                             data-bs-toggle="tooltip"
                             data-bs-placement="top"
                             title="Refresh"
+                            @click="this.fetch()"
                             ><i
                                 data-feather="rotate-ccw"
                                 class="feather-rotate-ccw"
@@ -94,7 +68,7 @@
                                     href="javascript:void(0);"
                                     v-show="filters.search"
                                     class="btn btn-searchset"
-                                    @click="reset"
+                                    @click="resetExcept"
                                     ><i data-feather="x" class="feather-x"></i
                                 ></a>
                             </div>
@@ -144,19 +118,13 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-lg-3 col-sm-6 col-12">
-                                    <div class="input-blocks">
-                                        <vue-feather
-                                            type="stop-circle"
-                                            class="info-img"
-                                        ></vue-feather>
-                                        <vue-select
-                                            :options="CategoryStatus"
-                                            v-model="filters.status"
-                                            id="categorystatus"
-                                            placeholder="Pilih Status"
-                                        />
-                                    </div>
+                                <div class="col-lg-3 col-sm-6 col-12 mb-3">
+                                    <vue-select
+                                        :options="CategoryStatus"
+                                        v-model="filters.status"
+                                        id="categorystatus"
+                                        placeholder="Pilih Status"
+                                    />
                                 </div>
                                 <div class="col-lg-3 col-sm-6 col-12 ms-auto">
                                     <div
@@ -164,7 +132,7 @@
                                     >
                                         <a
                                             class="btn btn-filters btn-reset"
-                                            @click="reset"
+                                            @click="resetExcept"
                                         >
                                             Reset
                                         </a>
@@ -287,7 +255,11 @@ export default {
             { only: ["productCategories"] }
         );
 
-        return { filters, fetch, reset };
+        const resetExcept = () => {
+            reset(["sort_order", "sort_field"]);
+        };
+
+        return { filters, fetch, reset, resetExcept };
     },
     components: {
         Head,
@@ -308,9 +280,8 @@ export default {
             search: this.filters?.search || "",
             CategoryStatusSelect: null,
             CategoryStatus: [
-                { id: null, text: "Pilih Status" },
-                { id: 1, text: "Aktif" },
-                { id: 0, text: "Tidak Aktif" },
+                { value: 1, label: "Aktif" },
+                { value: 0, label: "Tidak Aktif" },
             ],
             filterByDate: [],
             modalCategory: {
@@ -325,48 +296,26 @@ export default {
                     title: "Nama",
                     dataIndex: "name",
                     key: "name",
-                    sorter: {
-                        compare: (a, b) =>
-                            a.name.toLowerCase() > b.name.toLowerCase()
-                                ? -1
-                                : 1,
-                    },
+                    sorter: true,
                 },
                 {
                     title: "Total Produk",
                     dataIndex: "items",
                     key: "items",
-                    sorter: {
-                        compare: (a, b) =>
-                            String(a.items).toLowerCase() >
-                            String(b.items).toLowerCase()
-                                ? -1
-                                : 1,
-                    },
+                    sorter: true,
                 },
                 {
                     title: "Dibuat Pada",
                     dataIndex: "created_at",
-                    sorter: {
-                        compare: (a, b) =>
-                            a.created_at.toLowerCase() >
-                            b.created_at.toLowerCase()
-                                ? -1
-                                : 1,
-                    },
+                    sorter: true,
                     customRender: ({ text }) =>
-                        dayjs(text).format("D MMMM YYYY"),
+                        this.$helpers.formatDate(text, "DD MMMM YYYY HH:mm"),
                 },
                 {
                     title: "Status",
                     dataIndex: "status",
                     key: "status",
-                    sorter: {
-                        compare: (a, b) =>
-                            a.status.toLowerCase() > b.status.toLowerCase()
-                                ? -1
-                                : 1,
-                    },
+                    sorter: false,
                 },
                 {
                     title: "Aksi",
@@ -392,14 +341,19 @@ export default {
         this.data = this.productCategories;
     },
     methods: {
-        handleTableChange(pagination) {
+        handleTableChange(pagination, filters, sorter) {
             this.filters.page = pagination.current;
             this.filters.per_page = pagination.pageSize;
-            this.fetch();
-        },
 
-        reset() {
-            this.reset();
+            if (sorter.order) {
+                this.filters.sort_field = sorter.field;
+                this.filters.sort_order = sorter.order;
+            } else {
+                this.filters.sort_field = null;
+                this.filters.sort_order = null;
+            }
+
+            this.fetch();
         },
 
         addCategory() {

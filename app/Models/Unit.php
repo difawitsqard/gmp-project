@@ -40,4 +40,30 @@ class Unit extends Model
             $query->where('status', $s);
         });
     }
+
+    public function scopeSorting($query)
+    {
+        $query->when(
+            request()->filled('sort_field') && request()->filled('sort_order'),
+            function ($query) {
+                $field = request()->get('sort_field', 'name');
+                $order = request()->get('sort_order', 'ascend') === 'ascend' ? 'asc' : 'desc';
+
+                // Total Products
+                if ($field === 'items') {
+                    $query->withCount('products')->orderBy('products_count', $order);
+                    return;
+                }
+
+                // Abaikan jika kolom takde
+                if (in_array($field, array_merge($this->getFillable(), ['created_at', 'updated_at']))) {
+                    $query->orderBy($field, $order);
+                }
+            }
+        );
+
+        $query->when(!request()->filled('sort_field'), function ($query) {
+            $query->orderBy('created_at', 'desc');
+        });
+    }
 }

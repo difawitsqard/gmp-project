@@ -14,7 +14,7 @@
                 <ul class="table-top-head">
                     <li>
                         <a
-                            @click="fetch()"
+                            @click="this.fetch()"
                             data-bs-toggle="tooltip"
                             data-bs-placement="top"
                             title="Refresh"
@@ -100,19 +100,13 @@
                     >
                         <div class="card-body pb-0">
                             <div class="row">
-                                <div class="col-lg-3 col-sm-6 col-12">
-                                    <div class="input-blocks">
-                                        <vue-feather
-                                            type="stop-circle"
-                                            class="info-img"
-                                        ></vue-feather>
-                                        <vue-select
-                                            :options="CategoryStatus"
-                                            v-model="filters.status"
-                                            id="categorystatus"
-                                            placeholder="Pilih Status"
-                                        />
-                                    </div>
+                                <div class="col-lg-3 col-sm-6 col-12 mb-3">
+                                    <vue-select
+                                        :options="CategoryStatus"
+                                        v-model="filters.status"
+                                        id="categorystatus"
+                                        placeholder="Pilih Status"
+                                    />
                                 </div>
                                 <div class="col-lg-3 col-sm-6 col-12 ms-auto">
                                     <div
@@ -254,9 +248,9 @@ export default {
         return {
             filter: false,
             CategoryStatus: [
-                { id: null, text: "Pilih Status" },
-                { id: 1, text: "Aktif" },
-                { id: 0, text: "Tidak Aktif" },
+                { value: null, label: "Pilih Status" },
+                { value: 1, label: "Aktif" },
+                { value: 0, label: "Tidak Aktif" },
             ],
             modalTax: {
                 isEdit: false,
@@ -301,7 +295,7 @@ export default {
                     key: "created_at",
                     sorter: true,
                     customRender: ({ text }) =>
-                        dayjs(text).format("D MMMM YYYY HH:mm"),
+                        this.$helpers.formatDate(text, "D MMMM YYYY HH:mm"),
                 },
                 {
                     title: "Aksi",

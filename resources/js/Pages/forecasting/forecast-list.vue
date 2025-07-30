@@ -17,7 +17,7 @@
                 <ul class="table-top-head">
                     <li>
                         <a
-                            @click="fetch()"
+                            @click="this.fetch()"
                             data-bs-toggle="tooltip"
                             data-bs-placement="top"
                             title="Refresh"
@@ -110,31 +110,19 @@
                     >
                         <div class="card-body pb-0">
                             <div class="row">
-                                <div class="col-lg-2 col-sm-6 col-12">
-                                    <div class="input-blocks">
-                                        <vue-feather
-                                            type="stop-circle"
-                                            class="info-img"
-                                        />
-                                        <vue-select
-                                            :options="ForecastStatus"
-                                            v-model="filters.status"
-                                            placeholder="Pilih Status"
-                                        />
-                                    </div>
+                                <div class="col-lg-2 col-sm-6 col-12 mb-3">
+                                    <vue-select
+                                        :options="ForecastStatus"
+                                        v-model="filters.status"
+                                        placeholder="Filter Status"
+                                    />
                                 </div>
-                                <div class="col-lg-3 col-sm-6 col-12">
-                                    <div class="input-blocks">
-                                        <vue-feather
-                                            type="stop-circle"
-                                            class="info-img"
-                                        />
-                                        <vue-select
-                                            :options="ForecastFrequencies"
-                                            v-model="filters.frequency"
-                                            placeholder="Pilih Frekuensi"
-                                        />
-                                    </div>
+                                <div class="col-lg-3 col-sm-6 col-12 mb-3">
+                                    <vue-select
+                                        :options="ForecastFrequencies"
+                                        v-model="filters.frequency"
+                                        placeholder="Filter Frekuensi"
+                                    />
                                 </div>
                             </div>
                         </div>

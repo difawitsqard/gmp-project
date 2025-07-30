@@ -175,83 +175,48 @@
                                                         >
                                                             <div class="row">
                                                                 <div
-                                                                    class="col-lg-2 col-sm-6 col-12"
+                                                                    class="col-lg-2 col-sm-6 col-12 mb-3"
                                                                 >
-                                                                    <div
-                                                                        class="input-blocks"
-                                                                    >
-                                                                        <vue-feather
-                                                                            type="stop-circle"
-                                                                            class="info-img"
-                                                                        ></vue-feather>
-                                                                        <vue-select
-                                                                            :options="
-                                                                                categoryOptions
-                                                                            "
-                                                                            v-model="
-                                                                                filterProducts.category
-                                                                            "
-                                                                            id="categroyfilter"
-                                                                            :settings="{
-                                                                                allowClear: true,
-                                                                                placeholder:
-                                                                                    'Pilih Kategori',
-                                                                            }"
-                                                                        />
-                                                                    </div>
+                                                                    <vue-select
+                                                                        :options="
+                                                                            categoryOptions
+                                                                        "
+                                                                        v-model="
+                                                                            filterProducts.category
+                                                                        "
+                                                                        id="categroyfilter"
+                                                                        placeholder="Filter Kategori"
+                                                                    />
                                                                 </div>
                                                                 <div
-                                                                    class="col-lg-2 col-sm-6 col-12"
+                                                                    class="col-lg-2 col-sm-6 col-12 mb-3"
                                                                 >
-                                                                    <div
-                                                                        class="input-blocks"
-                                                                    >
-                                                                        <vue-feather
-                                                                            type="speaker"
-                                                                            class="info-img"
-                                                                        ></vue-feather>
-                                                                        <vue-select
-                                                                            :options="
-                                                                                unitOptions
-                                                                            "
-                                                                            v-model="
-                                                                                filterProducts.unit
-                                                                            "
-                                                                            :settings="{
-                                                                                allowClear: true,
-                                                                                placeholder:
-                                                                                    'Pilih Satuan',
-                                                                            }"
-                                                                            id="unitfilter"
-                                                                        />
-                                                                    </div>
+                                                                    <vue-select
+                                                                        :options="
+                                                                            unitOptions
+                                                                        "
+                                                                        v-model="
+                                                                            filterProducts.unit
+                                                                        "
+                                                                        placeholder="Filter Unit"
+                                                                        id="unitfilter"
+                                                                    />
                                                                 </div>
                                                                 <div
-                                                                    class="col-lg-2 col-sm-6 col-12"
+                                                                    class="col-lg-2 col-sm-6 col-12 mb-3"
                                                                 >
-                                                                    <div
-                                                                        class="input-blocks"
-                                                                    >
-                                                                        <vue-feather
-                                                                            type="package"
-                                                                            class="info-img"
-                                                                        ></vue-feather>
-                                                                        <vue-select
-                                                                            :options="
-                                                                                stockStatusOptions
-                                                                            "
-                                                                            v-model="
-                                                                                filterProducts.stockStatus
-                                                                            "
-                                                                            :settings="{
-                                                                                allowClear: true,
-                                                                                placeholder:
-                                                                                    'Pilih Status',
-                                                                            }"
-                                                                            id="stockfilter"
-                                                                        />
-                                                                    </div>
+                                                                    <vue-select
+                                                                        :options="
+                                                                            stockStatusOptions
+                                                                        "
+                                                                        v-model="
+                                                                            filterProducts.stock_status
+                                                                        "
+                                                                        placeholder="Filter Status Stok"
+                                                                        id="stockfilter"
+                                                                    />
                                                                 </div>
+
                                                                 <div
                                                                     class="col-lg-3 col-sm-6 col-12 ms-auto"
                                                                 >
@@ -261,7 +226,7 @@
                                                                         <a
                                                                             class="btn btn-filters btn-reset"
                                                                             @click="
-                                                                                reset
+                                                                                resetExcept
                                                                             "
                                                                         >
                                                                             Reset
@@ -452,7 +417,7 @@
                                                                                     </div>
                                                                                 </td>
                                                                                 <td>
-                                                                                    <vue-select
+                                                                                    <b-form-select
                                                                                         v-model="
                                                                                             product.adjustmentType
                                                                                         "
@@ -697,8 +662,8 @@ export default {
                 stockStatus: null,
             },
             typeOptions: [
-                { id: "in", text: "Penambahan" },
-                { id: "out", text: "Pengurangan" },
+                { value: "in", text: "Penambahan" },
+                { value: "out", text: "Pengurangan" },
             ],
             form: {
                 products: [],
@@ -712,34 +677,33 @@ export default {
     computed: {
         categoryOptions() {
             const defaultOption = {
-                id: null,
-                text: "Pilih Kategori",
+                value: null,
+                label: "Pilih Kategori",
             };
             const category = this.productsCategories.map((category) => ({
-                id: category.id,
-                text: category.name,
+                value: category.id,
+                label: category.name,
             }));
 
-            return [defaultOption, ...category];
+            return [...category];
         },
         unitOptions() {
             const defaultOption = {
-                id: null,
-                text: "Pilih Satuan",
+                value: null,
+                label: "Pilih Satuan",
             };
             const unit = this.units.map((unit) => ({
-                id: unit.id,
-                text: `${unit.name} (${unit.short_name})`,
+                value: unit.id,
+                label: `${unit.name} (${unit.short_name})`,
             }));
 
-            return [defaultOption, ...unit];
+            return [...unit];
         },
         stockStatusOptions() {
             return [
-                { id: null, text: "Pilih Status" },
-                { id: "available", text: "Tersedia" },
-                { id: "low", text: "Stok Rendah" },
-                { id: "out", text: "Habis" },
+                { value: "available", label: "Tersedia" },
+                { value: "low", label: "Stok Rendah" },
+                { value: "out", label: "Habis" },
             ];
         },
     },

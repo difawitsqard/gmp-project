@@ -830,16 +830,12 @@ export default {
 
             shipping_method: [
                 {
-                    id: null,
-                    text: "Pilih Pengiriman",
+                    value: "pickup",
+                    label: "Ambil Sendiri",
                 },
                 {
-                    id: "pickup",
-                    text: "Ambil Sendiri",
-                },
-                {
-                    id: "delivery",
-                    text: "Pengiriman",
+                    value: "delivery",
+                    label: "Pengiriman",
                 },
             ],
 

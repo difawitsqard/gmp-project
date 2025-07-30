@@ -1,0 +1,6 @@
+html:root {
+    --vs-font-size: 14px;
+    --vs-font-weight: 500;
+    --vs-text-color: #333;
+    --vs-placeholder-color: #999;
+}

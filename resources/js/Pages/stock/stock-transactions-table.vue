@@ -22,10 +22,7 @@
             <vue-select
                 :options="sortByNewOld"
                 v-model="filters.stock_sort"
-                :settings="{
-                    allowClear: true,
-                    placeholder: 'Sortir Berdasarkan',
-                }"
+                placeholder="Sortir"
             />
         </div>
     </div>
@@ -304,8 +301,8 @@ export default {
         },
         sortByNewOld() {
             return [
-                { id: "newest", text: "Terbaru" },
-                { id: "latest", text: "Terlama" },
+                { value: "newest", label: "Terbaru" },
+                { value: "latest", label: "Terlama" },
             ];
         },
     },

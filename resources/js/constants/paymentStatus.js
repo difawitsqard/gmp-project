@@ -16,8 +16,8 @@ export function getAllPaymentStatus() {
     return Object.entries(paymentStatusMap)
         .filter(([key]) => key !== "default")
         .map(([key, value]) => ({
-            id: key,
-            text: value.label,
+            value: key,
+            label: value.label,
             color: value.color,
         }));
 }

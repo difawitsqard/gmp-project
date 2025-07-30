@@ -16,6 +16,7 @@ class UnitController extends Controller
         $perPage = is_numeric($request->perPage) ? $request->perPage :  10;
 
         $units = Unit::filter()
+            ->sorting()
             ->with(['products'])
             ->orderBy('name', 'asc')
             ->paginate($perPage);

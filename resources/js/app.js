@@ -25,7 +25,6 @@ import VueFeather from "vue-feather";
 import "ant-design-vue/dist/reset.css";
 import FlagIcon from "vue-flag-icon";
 import VueSweetalert2 from "vue-sweetalert2";
-import VueFormWizard from "vue3-form-wizard";
 import VueEasyLightbox from "vue-easy-lightbox";
 // import ThemifyIcon from "vue-themify-icons";
 // import SimpleLineIcons from "vue-simple-line";
@@ -106,7 +105,7 @@ createInertiaApp({
         app.component("vue-multiselect", VueMultiSelect);
         app.component("date-picker", DatePicker);
         app.component("star-rating", StarRating);
-        app.use(FlagIcon).use(VueFormWizard);
+        app.use(FlagIcon);
         app.use(VueSweetalert2);
         app.use(VueApexCharts);
         app.use(VueLazyload, {

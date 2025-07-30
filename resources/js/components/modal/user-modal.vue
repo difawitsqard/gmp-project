@@ -251,11 +251,14 @@ export default {
 
             switch (currentUserRole) {
                 case "Manajer Stok":
-                    return ["Staff Gudang", "Manajer Stok"];
+                    return [
+                        { value: "Staff Gudang", label: "Staff Gudang" },
+                        { value: "Manajer Stok", label: "Manajer Stok" },
+                    ];
                 case "Admin":
-                    return ["Pelanggan"];
+                    return [{ value: "Pelanggan", label: "Pelanggan" }];
                 default:
-                    return ["Pelanggan"]; // Minimal kembalikan Pelanggan
+                    return [{ value: "Pelanggan", label: "Pelanggan" }];
             }
         },
     },

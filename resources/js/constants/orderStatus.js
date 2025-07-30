@@ -17,8 +17,8 @@ export function getAllOrderStatus() {
     return Object.entries(orderStatusMap)
         .filter(([key]) => key !== "default")
         .map(([key, value]) => ({
-            id: key,
-            text: value.label,
+            value: key,
+            label: value.label,
             color: value.color,
         }));
 }
