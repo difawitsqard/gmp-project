@@ -232,10 +232,6 @@
                                                         }"
                                                         placeholder="Deskripsi produk"
                                                     />
-
-                                                    <p class="mt-1">
-                                                        Maksimum 60 Karakter
-                                                    </p>
                                                     <div
                                                         v-if="
                                                             errors.description

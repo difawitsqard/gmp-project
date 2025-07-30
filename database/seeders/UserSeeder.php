@@ -20,7 +20,7 @@ class UserSeeder extends Seeder
             // Buat user baru
             $user = User::factory()->create([
                 'name' => $roleName . ' User',
-                'email' => strtolower($roleName) . '@example.com',
+                'email' => strtolower(str_replace(' ', '', $roleName)) . '@example.com',
             ]);
 
             // Assign role ke user

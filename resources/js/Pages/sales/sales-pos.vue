@@ -58,7 +58,7 @@
                                             <img
                                                 v-lazy="
                                                     item.image ||
-                                                    '/uploads/images/category_default.svg'
+                                                    '/assets/images/category_default.svg'
                                                 "
                                                 :alt="item.name"
                                                 style="max-width: 40px"

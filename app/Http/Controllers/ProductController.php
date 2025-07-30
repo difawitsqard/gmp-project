@@ -76,7 +76,6 @@ class ProductController extends Controller
      */
     public function store(ProductRequest $request)
     {
-
         $validatedData = $request->validated();
         $product = Product::create($validatedData);
 
@@ -87,7 +86,7 @@ class ProductController extends Controller
             ]);
         }
 
-        return redirect()->route('products.index')->with('success', 'Product created successfully');
+        return redirect()->route('products.index')->with('success', "Produk {$product->name} ({$product->sku}) berhasil ditambahkan.");
     }
 
     /**
@@ -182,7 +181,7 @@ class ProductController extends Controller
             }
         }
 
-        return redirect()->route('products.index')->with('success', 'Product updated successfully');
+        return redirect()->route('products.index')->with('success', "Produk {$product->name} ({$product->sku}) berhasil diperbarui.");
     }
 
     /**

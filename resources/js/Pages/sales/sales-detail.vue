@@ -58,7 +58,11 @@
                             type="arrow-left"
                             class="me-2"
                         ></vue-feather
-                        >Riwayat Pesanan</Link
+                        >{{
+                            hasRole("Staff Gudang")
+                                ? "Pesanan Masuk"
+                                : "Riwayat Pesanan"
+                        }}</Link
                     >
                 </div>
             </div>

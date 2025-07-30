@@ -209,18 +209,16 @@
                                                     class="input-blocks summer-description-box transfer"
                                                 >
                                                     <label>Deskripsi</label>
-                                                    <textarea
-                                                        class="form-control h-100"
-                                                        rows="5"
+                                                    <QuillEditor
+                                                        v-model="
+                                                            form.description
+                                                        "
                                                         :class="{
                                                             'is-invalid':
                                                                 errors.description,
                                                         }"
                                                         placeholder="Deskripsi produk"
-                                                    ></textarea>
-                                                    <p class="mt-1">
-                                                        Maksimum 60 Karakter
-                                                    </p>
+                                                    />
                                                     <div
                                                         v-if="
                                                             errors.description
@@ -565,6 +563,7 @@ import Vue3TagsInput from "vue3-tags-input";
 import { Head, Link, useForm } from "@inertiajs/vue3";
 import UnitsModal from "@/components/modal/units-modal.vue";
 import ProductCategoryModal from "@/components/modal/product-category-modal.vue";
+import QuillEditor from "@/components/QuillEditor.vue";
 // import CropperjsModal from "@/components/modal/cropperjs-modal.vue";
 
 export default {
@@ -574,6 +573,7 @@ export default {
         Head,
         UnitsModal,
         ProductCategoryModal,
+        QuillEditor,
         // CropperjsModal,
     },
     props: {

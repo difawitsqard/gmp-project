@@ -209,8 +209,23 @@
                                 </div>
                             </div>
                             <div class="card-body">
+                                <div
+                                    v-if="
+                                        !$page.props.dashboardData
+                                            .recentForecasts.length
+                                    "
+                                    class="d-flex justify-content-center align-items-center h-100"
+                                >
+                                    <div class="text-center text-muted">
+                                        Belum ada prediksi yang dibuat.
+                                    </div>
+                                </div>
                                 <table
                                     class="table table-borderless recent-transactions"
+                                    v-if="
+                                        $page.props.dashboardData
+                                            .recentForecasts.length > 0
+                                    "
                                 >
                                     <thead>
                                         <tr>
@@ -266,19 +281,6 @@
                                                         "DD MMMM YYYY HH:mm"
                                                     )
                                                 }}
-                                            </td>
-                                        </tr>
-                                        <tr
-                                            v-if="
-                                                !$page.props.dashboardData
-                                                    .recentForecasts.length
-                                            "
-                                        >
-                                            <td
-                                                colspan="6"
-                                                class="text-center text-muted"
-                                            >
-                                                Belum ada riwayat prediksi
                                             </td>
                                         </tr>
                                     </tbody>

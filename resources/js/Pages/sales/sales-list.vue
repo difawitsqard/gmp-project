@@ -352,10 +352,10 @@ export default {
             ],
         };
     },
-    created() {
-        console.log(this.orders);
-        console.log(getAllOrderStatus());
-    },
+    // created() {
+    //     console.log(this.orders);
+    //     console.log(getAllOrderStatus());
+    // },
     computed: {
         pagination() {
             return {

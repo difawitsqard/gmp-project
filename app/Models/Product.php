@@ -207,7 +207,7 @@ class Product extends Model
         });
 
         $query->when(!request()->filled('sort') && !request()->filled('sort_field'), function ($query) {
-            $query->orderBy('created_at', 'desc');
+            $query->orderBy('updated_at', 'desc');
         });
     }
 }

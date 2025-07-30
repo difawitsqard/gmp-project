@@ -507,5 +507,15 @@ export default {
             }
         },
     },
+    mounted() {
+        const flash = usePage().props.flash;
+        if (flash && flash.success) {
+            Swal.fire({
+                icon: "success",
+                title: "Sukses!",
+                text: flash.success,
+            });
+        }
+    },
 };
 </script>

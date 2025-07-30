@@ -110,8 +110,8 @@ createInertiaApp({
         app.use(VueApexCharts);
         app.use(VueLazyload, {
             preLoad: 1.3,
-            error: "/uploads/images/gmp-placeholder-image.svg",
-            loading: "/uploads/images/loading-image.gif",
+            error: "/assets/images/gmp-placeholder-image.svg",
+            loading: "/assets/images/loading-image.gif",
             attempt: 1,
         });
         app.use(VueEasyLightbox).use(Antd).use(BootstrapVue3).use(BToastPlugin);

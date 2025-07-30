@@ -119,9 +119,14 @@ export default {
     @apply border-indigo-500 ring-1 ring-indigo-500;
 }
 
+.ql-editor.ql-blank::before {
+    font-style: normal !important;
+}
+
 /* Tambahkan styling lain yang diperlukan */
 .ql-container {
     @apply font-sans text-base text-gray-700;
+    font-family: "Montserrat", sans-serif;
 }
 
 .ql-editor {
@@ -149,6 +154,6 @@ export default {
 }
 
 .ql-toolbar {
-    z-index: 999 !important; /* Pastikan toolbar tetap di atas */
+    z-index: 9999 !important; /* Pastikan toolbar tetap di atas */
 }
 </style>
