@@ -111,9 +111,16 @@ class NixtlaService
       'accept' => 'application/json',
       'content-type' => 'application/json',
       'authorization' => "Bearer {$this->apiKey}"
-    ])->post($this->endpoint, $payload);
+    ])
+      ->timeout(60)       // tunggu maksimal 60 detik
+      ->retry(3, 5000)     // coba ulang 3x, dengan jeda 5 detik antar percobaan
+      ->post($this->endpoint, $payload);
 
     if (!$response->successful()) {
+      Log::error('Nixtla API failed after retries', [
+        'status' => $response->status(),
+        'body' => $response->body(),
+      ]);
       throw new \Exception("Nixtla API error: " . $response->body());
     }
 
