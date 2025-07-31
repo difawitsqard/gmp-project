@@ -23,8 +23,8 @@ const toggleShow = () => {
 
 // Inertia form
 const form = useForm({
-    email: "test@example.com",
-    password: "password",
+    email: "",
+    password: "",
     remember: false,
 });
 
@@ -134,8 +134,11 @@ const onSubmit = async () => {
                                         >
                                             <i
                                                 :class="{
-                                                    'fas fa-eye': showPassword,
+                                                    'fas fa-eye':
+                                                        !errors.password &&
+                                                        showPassword,
                                                     'fas fa-eye-slash':
+                                                        !errors.password &&
                                                         !showPassword,
                                                 }"
                                             ></i>
@@ -158,11 +161,14 @@ const onSubmit = async () => {
                                                 <label
                                                     class="checkboxs ps-4 mb-0 pb-0 line-height-1"
                                                 >
-                                                    <input type="checkbox" />
+                                                    <input
+                                                        type="checkbox"
+                                                        v-model="form.remember"
+                                                    />
                                                     <span
                                                         class="checkmarks"
-                                                    ></span
-                                                    >ingat saya
+                                                    ></span>
+                                                    ingat saya
                                                 </label>
                                             </div>
                                         </div>

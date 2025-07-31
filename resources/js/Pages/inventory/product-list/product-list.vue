@@ -182,43 +182,41 @@
                                             <img
                                                 v-lazy="record.image_url"
                                                 :src="record.image_url"
-                                                class="rounded"
+                                                class="rounded object-fit-cover"
                                                 alt="product"
+                                                style="object-fit: cover"
                                             />
                                         </a>
                                         <a
                                             :href="'#' + record.id"
-                                            class="product-img stock-img"
                                             @click="openProductModal(record.id)"
                                         >
-                                            {{ record.name }}
-                                        </a>
-                                    </div>
-                                </template>
-
-                                <template
-                                    v-else-if="column.key === 'description'"
-                                >
-                                    <span>
-                                        {{
-                                            record.description
-                                                ? record.description.replace(
-                                                      /<[^>]+>/g,
-                                                      ""
-                                                  ).length > 30
-                                                    ? record.description
-                                                          .replace(
+                                            <h6>{{ record.name }}</h6>
+                                            <div class="text-muted fst-italic">
+                                                {{
+                                                    record.description
+                                                        ? record.description.replace(
                                                               /<[^>]+>/g,
                                                               ""
-                                                          )
-                                                          .slice(0, 30) + "..."
-                                                    : record.description.replace(
-                                                          /<[^>]+>/g,
-                                                          ""
-                                                      )
-                                                : "Tidak ada deskripsi"
-                                        }}
-                                    </span>
+                                                          ).length > 30
+                                                            ? record.description
+                                                                  .replace(
+                                                                      /<[^>]+>/g,
+                                                                      ""
+                                                                  )
+                                                                  .slice(
+                                                                      0,
+                                                                      30
+                                                                  ) + "..."
+                                                            : record.description.replace(
+                                                                  /<[^>]+>/g,
+                                                                  ""
+                                                              )
+                                                        : "Tidak ada deskripsi"
+                                                }}
+                                            </div>
+                                        </a>
+                                    </div>
                                 </template>
 
                                 <template v-else-if="column.key === 'qty'">
@@ -395,12 +393,6 @@ export default {
                     dataIndex: "name",
                     key: "name",
                     sorter: true,
-                },
-                {
-                    title: "Deskripsi",
-                    dataIndex: "description",
-                    key: "description",
-                    sorter: false,
                 },
                 {
                     title: "SKU",

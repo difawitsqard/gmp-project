@@ -734,5 +734,12 @@ export default {
             });
         },
     },
+    watch: {
+        "form.sku"(val) {
+            if (val && !val.startsWith("SKU")) {
+                this.form.sku = "SKU" + val.replace(/^SKU/, "");
+            }
+        },
+    },
 };
 </script>

@@ -40,13 +40,10 @@
                                     </li>
                                     <li>
                                         <h4>Deskripsi</h4>
-                                        <h6>
-                                            Lorem Ipsum is simply dummy text of
-                                            the printing and typesetting
-                                            industry. Lorem Ipsum has been the
-                                            industry's standard dummy text ever
-                                            since the 1500s,
-                                        </h6>
+                                        <div
+                                            class="p-2"
+                                            v-html="product.description"
+                                        ></div>
                                     </li>
                                     <li>
                                         <h4>SKU</h4>
@@ -83,16 +80,6 @@
                                             }}
                                         </h6>
                                     </li>
-
-                                    <li>
-                                        <h4>Dibuat Oleh</h4>
-                                        <h6>
-                                            {{
-                                                product.created_by?.name ??
-                                                "Tidak diketahui"
-                                            }}
-                                        </h6>
-                                    </li>
                                     <li>
                                         <h4>Dibuat Pada</h4>
                                         <h6>
@@ -111,7 +98,10 @@
                 </div>
                 <div class="col-lg-4 col-sm-12 mb-4">
                     <div class="card h-100">
-                        <div class="card-body carousel-card">
+                        <!-- agar ditengah gimana -->
+                        <div
+                            class="card-body carousel-card d-flex justify-content-center align-items-center"
+                        >
                             <div class="slider-product-details">
                                 <Carousel
                                     ref="carouselProduct"

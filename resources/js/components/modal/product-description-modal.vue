@@ -1,17 +1,21 @@
 <template>
     <div class="modal fade" :id="modalId">
-        <div class="modal-dialog modal-dialog-centered modal-md">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        {{ product.name || "Deskripsi Produk" }}
-                    </h5>
+                <div class="modal-header border-0 custom-modal-header">
+                    <div class="page-title">
+                        <h4>
+                            {{ product.name || "Deskripsi Produk" }}
+                        </h4>
+                    </div>
                     <button
                         type="button"
-                        class="btn-close"
+                        class="close d-flex ms-auto"
                         data-bs-dismiss="modal"
                         aria-label="Close"
-                    ></button>
+                    >
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <div class="modal-body p-0">
                     <!-- Loading state -->
@@ -34,7 +38,8 @@
                     <div v-else>
                         <!-- Product status badge -->
                         <div
-                            class="text-end px-3 pt-2"
+                            class="position-absolute top-0 end-0 text-end px-3 pt-2"
+                            style="z-index: 10"
                             v-if="product.qty <= product.min_stock"
                         >
                             <span
@@ -47,83 +52,76 @@
                                 Stok Terbatas
                             </span>
                         </div>
-
-                        <div class="p-3">
-                            <!-- Product Images Carousel -->
-                            <div class="py-3">
-                                <Carousel
-                                    ref="carouselProduct"
-                                    :wrap-around="productImages.length > 1"
-                                    :breakpoints="breakpoints"
+                        <!-- Product Images Carousel -->
+                        <div class="p-3 bg-light">
+                            <Carousel
+                                ref="carouselProduct"
+                                :wrap-around="productImages.length > 1"
+                                :breakpoints="breakpoints"
+                            >
+                                <Slide
+                                    v-for="(image, index) in productImages"
+                                    :key="index"
                                 >
-                                    <Slide
-                                        v-for="(image, index) in productImages"
-                                        :key="index"
+                                    <div
+                                        class="d-flex justify-content-center align-items-center"
+                                        style="height: 160px"
                                     >
-                                        <div
-                                            class="d-flex justify-content-center align-items-center"
-                                            style="height: 160px"
-                                        >
-                                            <img
-                                                v-lazy="image.image_url"
-                                                :src="image.image_url"
-                                                :alt="
-                                                    'product_image_' +
-                                                    (index + 1)
-                                                "
-                                                class="img-fluid"
-                                                style="
-                                                    max-height: 150px;
-                                                    object-fit: contain;
-                                                "
-                                            />
-                                        </div>
-                                    </Slide>
-                                    <template
-                                        #addons
-                                        v-if="productImages.length > 1"
-                                    >
-                                        <div
-                                            class="position-absolute top-50 start-0 end-0 d-flex justify-content-between px-2"
+                                        <img
+                                            v-lazy="image.image_url"
+                                            :src="image.image_url"
+                                            :alt="
+                                                'product_image_' + (index + 1)
+                                            "
+                                            class="img-fluid rounded"
                                             style="
-                                                transform: translateY(-50%);
-                                                pointer-events: none;
+                                                max-height: 150px;
+                                                object-fit: contain;
+                                            "
+                                        />
+                                    </div>
+                                </Slide>
+                                <template
+                                    #addons
+                                    v-if="productImages.length > 1"
+                                >
+                                    <div
+                                        class="position-absolute top-50 start-0 end-0 d-flex justify-content-between px-2"
+                                        style="
+                                            transform: translateY(-50%);
+                                            pointer-events: none;
+                                        "
+                                    >
+                                        <button
+                                            @click="prevImage"
+                                            class="btn btn-sm btn-dark rounded-circle opacity-50"
+                                            style="
+                                                width: 30px;
+                                                height: 30px;
+                                                pointer-events: all;
                                             "
                                         >
-                                            <button
-                                                @click="prevImage"
-                                                class="btn btn-sm btn-dark rounded-circle opacity-50"
-                                                style="
-                                                    width: 30px;
-                                                    height: 30px;
-                                                    pointer-events: all;
-                                                "
-                                            >
-                                                <i
-                                                    class="fa fa-chevron-left"
-                                                ></i>
-                                            </button>
-                                            <button
-                                                @click="nextImage"
-                                                class="btn btn-sm btn-dark rounded-circle opacity-50"
-                                                style="
-                                                    width: 30px;
-                                                    height: 30px;
-                                                    pointer-events: all;
-                                                "
-                                            >
-                                                <i
-                                                    class="fa fa-chevron-right"
-                                                ></i>
-                                            </button>
-                                        </div>
-                                    </template>
-                                </Carousel>
-                            </div>
-
+                                            <i class="fa fa-chevron-left"></i>
+                                        </button>
+                                        <button
+                                            @click="nextImage"
+                                            class="btn btn-sm btn-dark rounded-circle opacity-50"
+                                            style="
+                                                width: 30px;
+                                                height: 30px;
+                                                pointer-events: all;
+                                            "
+                                        >
+                                            <i class="fa fa-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                </template>
+                            </Carousel>
+                        </div>
+                        <div class="px-3 pb-3">
                             <!-- Product title and price -->
                             <div class="py-3 border-bottom">
-                                <h3 class="fw-bold">
+                                <h3 class="fw-bold mb-1">
                                     {{ product.name }}
                                 </h3>
                                 <h4 class="fw-bold text-primary">
