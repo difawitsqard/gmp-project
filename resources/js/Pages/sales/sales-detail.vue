@@ -475,7 +475,7 @@ export default {
     },
     mounted() {
         // Initialize Snap.js if needed
-        console.log(this.order);
+        // console.log(this.order);
         if (
             this.midtrans_snap_token &&
             this.midtrans_client_key &&

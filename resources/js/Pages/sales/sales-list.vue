@@ -242,6 +242,22 @@
                                                     class="info-img"
                                                 ></vue-feather>
                                             </Link>
+
+                                            <button
+                                                v-if="
+                                                    record.canbe_cancelled &&
+                                                    !hasRole('Staff Gudang')
+                                                "
+                                                class="btn btn-sm btn-outline-danger rounded"
+                                                @click="
+                                                    cancelOrder(
+                                                        record.id,
+                                                        record.uuid
+                                                    )
+                                                "
+                                            >
+                                                Batalkan
+                                            </button>
                                         </div>
                                     </td>
                                 </template>
@@ -391,6 +407,35 @@ export default {
             if (collapseHeader) {
                 collapseHeader.classList.toggle("active");
                 document.body.classList.toggle("header-collapse");
+            }
+        },
+        async cancelOrder(orderId, uuid) {
+            const confirmed = await this.$swal.fire({
+                title: "Batalkan Pesanan",
+                text: `Apakah Anda yakin ingin membatalkan pesanan #${uuid} ini ?`,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "Ya, batalkan!",
+                cancelButtonText: "Batal",
+            });
+            if (confirmed.isConfirmed) {
+                this.$inertia.post(
+                    route("orders.cancel", orderId),
+                    {},
+                    {
+                        only: ["orders"],
+                        onSuccess: () => {
+                            this.$swal.fire({
+                                title: "Berhasil",
+                                text: `Pesanan #${uuid} berhasil dibatalkan.`,
+                                icon: "success",
+                            });
+                        },
+                        onError: (result) => {
+                            console.log("Error:", result);
+                        },
+                    }
+                );
             }
         },
     },

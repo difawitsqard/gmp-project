@@ -275,7 +275,7 @@ export default {
         setErrors: {
             immediate: true,
             handler(newErrors) {
-                console.log("Received errors:", newErrors);
+                //console.log("Received errors:", newErrors);
                 this.errors = newErrors;
             },
         },
@@ -315,7 +315,7 @@ export default {
                     };
                 })
                 .catch((error) => {
-                    console.error("Error fetching user data:", error);
+                    //console.error("Error fetching user data:", error);
                     this.$swal({
                         title: "Error!",
                         text: "Gagal memuat data pengguna",
@@ -395,14 +395,14 @@ export default {
                     this.closeModal();
                 })
                 .catch((error) => {
-                    console.error(
-                        "Error submitting form:",
-                        error.response.data.errors
-                    );
+                    // console.error(
+                    //     "Error submitting form:",
+                    //     error.response.data.errors
+                    // );
                     if (error.response && error.response.status === 422) {
                         this.errors = error.response.data.errors;
                     } else {
-                        console.error("Unexpected Error:", error);
+                        // console.error("Unexpected Error:", error);
                         this.$swal({
                             title: "Error!",
                             text: "Terjadi kesalahan saat menyimpan data",

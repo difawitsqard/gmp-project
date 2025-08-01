@@ -46,6 +46,7 @@ class OrderController extends Controller
                 'id' => $order->id,
                 'uuid' => $order->uuid,
                 'name' => $order->name,
+                'canbe_cancelled' => $this->user->hasRole('Staff Gudang') ? false : $order->canbe_cancelled,
                 'customer' => $order->customer ? [
                     'name' => $order->customer->name,
                     'email' => $order->customer->email,
@@ -289,7 +290,7 @@ class OrderController extends Controller
                     return response()->json([
                         'status' => true,
                         'code' => 200,
-                        'message' => 'Order created successfully',
+                        'message' => 'Pesanan berhasil dibuat',
                         'data' => [
                             'id' => $order->id,
                             'uuid' => $order->uuid,
@@ -304,7 +305,7 @@ class OrderController extends Controller
                 }
 
                 return redirect()->route('orders.show', ['uuid' => $order->uuid])->with([
-                    'success' => 'Order created successfully',
+                    'success' => 'Pesanan berhasil dibuat',
                     'midtrans_show_snap' => true,
                 ]);
             }
@@ -423,12 +424,12 @@ class OrderController extends Controller
                 return back()->withErrors(['error' => 'Order tidak dapat dibatalkan.']);
             }
 
-            if ($order->latestPayment) {
-                $midtransService->cancelTransaction($order->latestPayment->midtrans_uuid);
-                $order->latestPayment->update(['status' => 'cancelled']);
-            }
+            // if ($order->latestPayment) {
+            //     $midtransService->cancelTransaction($order->latestPayment->midtrans_uuid);
+            //     $order->latestPayment->update(['status' => 'cancelled']);
+            // }
 
-            $order->update(['status' => 'cancelled']);
+            // $order->update(['status' => 'cancelled']);
 
             return back()->with([
                 'order' =>  $order,

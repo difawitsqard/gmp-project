@@ -959,6 +959,7 @@ export default {
 
             this.form.post(this.route("orders.store"), {
                 onError: (errors) => {
+                    console.log(errors);
                     const fieldErrors = [
                         "customer_id",
                         "name",
@@ -980,14 +981,12 @@ export default {
                             }
                         });
 
-                        if (this.form.customer_id && !this.hasRole("Admin")) {
-                            this.customerSelectedOpenModal = this.hasRole(
-                                "Pelanggan"
-                            )
-                                ? this.$page.props.auth.user.id
-                                : this.form.customer_id;
-                            this.$refs.userModal.showModal();
-                        }
+                        this.customerSelectedOpenModal = this.hasRole(
+                            "Pelanggan"
+                        )
+                            ? this.$page.props.auth.user.id
+                            : this.form.customer_id;
+                        this.$refs.userModal.showModal();
                     } else {
                         Object.keys(errors).forEach((key) => {
                             const match = key.match(
