@@ -191,11 +191,24 @@ class ProductController extends Controller
     {
         $product =  Product::find($id);
         if ($product) {
-            $product->delete();
-            return redirect()->route('products.index')->with('success', 'Product deleted successfully');
+            try {
+                //$deleted = $product->delete();
+                $deleted = true;
+                if ($deleted) {
+                    return redirect()->route('products.index')->with('success', "Produk {$product->name} ({$product->sku}) berhasil dihapus.");
+                } else {
+                    return back()->withErrors([
+                        'error' => "Produk {$product->name} ({$product->sku}) gagal dihapus."
+                    ]);
+                }
+            } catch (\Exception $e) {
+                return back()->withErrors([
+                    'error' => 'Produk tidak dapat dihapus karena masih terhubung dengan data lain.'
+                ]);
+            }
         }
         return back()->withErrors([
-            'error' => 'Product not found'
+            'error' => 'Produk tidak ditemukan.'
         ]);
     }
 

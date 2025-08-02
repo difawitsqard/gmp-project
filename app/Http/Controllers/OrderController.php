@@ -424,12 +424,12 @@ class OrderController extends Controller
                 return back()->withErrors(['error' => 'Order tidak dapat dibatalkan.']);
             }
 
-            // if ($order->latestPayment) {
-            //     $midtransService->cancelTransaction($order->latestPayment->midtrans_uuid);
-            //     $order->latestPayment->update(['status' => 'cancelled']);
-            // }
+            if ($order->latestPayment) {
+                $midtransService->cancelTransaction($order->latestPayment->midtrans_uuid);
+                $order->latestPayment->update(['status' => 'cancelled']);
+            }
 
-            // $order->update(['status' => 'cancelled']);
+            $order->update(['status' => 'cancelled']);
 
             return back()->with([
                 'order' =>  $order,

@@ -295,6 +295,42 @@ class ForecastController extends Controller
 
                 // Log::info($series);
 
+                // Jika enforceDataQuality == false, SKIP forecast, langsung ke analisis
+                if (isset($validatedData['enforceDataQuality']) && !$validatedData['enforceDataQuality']) {
+                    // Langsung ke AnalyzeForecastJob
+                    $analyzeJobs = [];
+                    $analyzeChunks = array_chunk($productIds, 2);
+
+                    foreach ($analyzeChunks as $chunk) {
+                        $analyzeStructure = [];
+                        foreach ($chunk as $productId) {
+                            $getCacheSeries = cache()->get("series_{$forecast->id}_{$productId}");
+                            if (!$getCacheSeries) continue;
+                            $analyzeStructure[$productId] = $getCacheSeries ?? [];
+                        }
+
+                        $analyzeJobs[] = new AnalyzeForecastJob(
+                            (int) $forecast->id,
+                            $analyzeStructure,
+                            $validatedData['frequency'],
+                            (int) auth()->id()
+                        );
+                    }
+
+                    Log::info("Total AnalyzeForecastJob (tanpa forecast): " . count($analyzeJobs));
+
+                    Bus::batch($analyzeJobs)
+                        ->then(function (Batch $batch) use ($forecast) {
+                            $forecast->update(['status' => 'done']);
+                        })
+                        ->catch(function (Batch $batch, Throwable $e) use ($forecast) {
+                            Log::error("Batch AnalyzeForecastJob gagal untuk forecast ID {$forecast->id}: " . $e->getMessage());
+                        })
+                        ->dispatch();
+
+                    return;
+                }
+
                 // Chunk untuk ForecastProductJob 3 produk per job
                 $forecastChunks = array_chunk($series, 3, true);
                 $forecastJobs = [];

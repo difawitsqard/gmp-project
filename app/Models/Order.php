@@ -75,7 +75,7 @@ class Order extends Model
 
     public function scopeFilter($query)
     {
-        $columns = ['name', 'id'];
+        $columns = ['name', 'uuid'];
         $query->when(request()->filled('search') ?? false, function ($query) use ($columns) {
             $s = request()->search;
             $query->where(function ($query) use ($columns, $s) {

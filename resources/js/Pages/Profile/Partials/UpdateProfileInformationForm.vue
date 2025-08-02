@@ -169,6 +169,7 @@ const clearPhotoFileInput = () => {
                         <i class="fas fa-xmark"></i>
                     </button>
                 </div>
+
                 <div class="row">
                     <div class="col-lg-6 col-sm-12">
                         <div class="input-blocks">
@@ -177,9 +178,22 @@ const clearPhotoFileInput = () => {
                                 id="name"
                                 type="text"
                                 class="form-control"
+                                :class="{
+                                    'is-invalid': form.errors.name,
+                                }"
                                 v-model="form.name"
                                 required
                             />
+                            <div
+                                v-if="form.errors.name"
+                                class="invalid-feedback"
+                            >
+                                {{
+                                    Array.isArray(form.errors.name)
+                                        ? form.errors.name[0]
+                                        : form.errors.name
+                                }}
+                            </div>
                         </div>
                     </div>
                     <div class="col-lg-6 col-sm-12">
@@ -190,9 +204,22 @@ const clearPhotoFileInput = () => {
                                 v-model="form.email"
                                 type="email"
                                 class="form-control"
+                                :class="{
+                                    'is-invalid': form.errors.email,
+                                }"
                                 required
                                 autocomplete="username"
                             />
+                            <div
+                                v-if="form.errors.email"
+                                class="invalid-feedback"
+                            >
+                                {{
+                                    Array.isArray(form.errors.email)
+                                        ? form.errors.email[0]
+                                        : form.errors.email
+                                }}
+                            </div>
                         </div>
 
                         <div
@@ -233,7 +260,20 @@ const clearPhotoFileInput = () => {
                                 v-model="form.phone"
                                 placeholder="Nomor telepon"
                                 class="form-control"
+                                :class="{
+                                    'is-invalid': form.errors.phone,
+                                }"
                             />
+                            <div
+                                v-if="form.errors.phone"
+                                class="invalid-feedback"
+                            >
+                                {{
+                                    Array.isArray(form.errors.phone)
+                                        ? form.errors.phone[0]
+                                        : form.errors.phone
+                                }}
+                            </div>
                         </div>
                     </div>
 
@@ -245,7 +285,20 @@ const clearPhotoFileInput = () => {
                                 rows="3"
                                 placeholder="Alamat lengkap"
                                 v-model="form.address"
+                                :class="{
+                                    'is-invalid': form.errors.address,
+                                }"
                             ></textarea>
+                            <div
+                                v-if="form.errors.address"
+                                class="invalid-feedback"
+                            >
+                                {{
+                                    Array.isArray(form.errors.address)
+                                        ? form.errors.address[0]
+                                        : form.errors.address
+                                }}
+                            </div>
                         </div>
                     </div>
 

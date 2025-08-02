@@ -418,7 +418,7 @@ export default {
                     if (flash.success) {
                         Swal.fire({
                             icon: "success",
-                            title: "Deleted!",
+                            title: "Sukses!",
                             text: flash.success,
                         });
                     }
@@ -429,7 +429,7 @@ export default {
                         const firstError = Object.values(errors)[0];
                         Swal.fire({
                             icon: "error",
-                            title: "Error!",
+                            title: "Uups!",
                             text: firstError,
                         });
                     }

@@ -59,6 +59,7 @@ class MidtransService
             ],
             'item_details' => $this->mapItemsToDetails($order),
             'customer_details' => $this->getCustomerDetails($order),
+            "custom_field1" => 'This is for demo purposes only',
         ];
 
         $params['customer_details']['shipping_address'] = $this->getCustomerDetails($order);

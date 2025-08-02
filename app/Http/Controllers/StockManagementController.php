@@ -125,7 +125,7 @@ class StockManagementController extends Controller
             // 6. Commit transaksi jika berhasil
             DB::commit();
 
-            return redirect()->route('products.index')->with('success', 'Penyesuaian stok berhasil disimpan.');
+            return redirect()->back()->with('success', 'Penyesuaian stok berhasil disimpan.');
         } catch (\Exception $e) {
             // 7. Rollback transaksi jika terjadi kesalahan
             DB::rollback();

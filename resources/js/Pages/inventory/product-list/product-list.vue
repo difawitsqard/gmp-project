@@ -442,8 +442,8 @@ export default {
 
         showConfirmation(id) {
             Swal.fire({
-                title: "Are you sure?",
-                text: "You won't be able to revert this!",
+                title: "Apakah Anda yakin?",
+                text: "Data yang dihapus tidak dapat dikembalikan!",
                 icon: "warning",
                 showCancelButton: true,
                 confirmButtonColor: "#3085d6",
@@ -462,14 +462,10 @@ export default {
             router.delete(`products/${id}`, {
                 onSuccess: () => {
                     const flash = usePage().props.flash;
-                    if (flash.success) {
-                        this.data = this.data.filter(
-                            (product) => product.id !== id
-                        );
-
+                    if (flash && flash.success) {
                         Swal.fire({
                             icon: "success",
-                            title: "Deleted!",
+                            title: "Sukses!",
                             text: flash.success,
                         });
                     }
@@ -480,7 +476,7 @@ export default {
                         const firstError = Object.values(errors)[0];
                         Swal.fire({
                             icon: "error",
-                            title: "Error!",
+                            title: "Uups!",
                             text: firstError,
                         });
                     }

@@ -558,7 +558,9 @@
                                         aria-labelledby="headingHistory"
                                     >
                                         <div class="accordion-body">
-                                            <StockTransactionsTable />
+                                            <StockTransactionsTable
+                                                ref="stockTransactionsTable"
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -967,6 +969,7 @@ export default {
                     this.form.notes = "";
                     // Clear localStorage
                     localStorage.removeItem("stockManagementProducts");
+                    this.$refs.stockTransactionsTable?.fetch();
                 },
                 onError: (errors) => {
                     this.errors = errors;
