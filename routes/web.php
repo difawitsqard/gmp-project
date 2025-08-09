@@ -69,7 +69,7 @@ Route::middleware([
 
     Route::post('forecasting/request', [ForecastController::class, 'requestForecast'])->name('forecasting.request');
     Route::resource('forecasting', ForecastController::class)
-        ->only(['index', 'create', 'store', 'show', 'update', 'destroy']);
+        ->only(['index', 'create', 'show']);
 
     Route::post('/payments/{order}/retry', [PaymentController::class, 'retryPayment'])->name('payments.retry');
 });

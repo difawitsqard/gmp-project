@@ -448,7 +448,7 @@ export default {
                 showCancelButton: true,
                 confirmButtonColor: "#3085d6",
                 cancelButtonColor: "#d33",
-                confirmButtonText: "Yes, delete it!",
+                confirmButtonText: "Ya, hapus!",
                 confirmButtonClass: "btn btn-primary",
                 cancelButtonClass: "btn btn-danger ml-1",
                 buttonsStyling: false,

@@ -162,6 +162,18 @@
                                         >
                                     </div>
                                 </template>
+                                <template v-else-if="column.key === 'items'">
+                                    <Link
+                                        :href="
+                                            route('products.index', {
+                                                unit: record.id,
+                                            })
+                                        "
+                                        class="fw-bold"
+                                    >
+                                        {{ record.items || 0 }} Produk
+                                    </Link>
+                                </template>
                                 <template v-else-if="column.key === 'action'">
                                     <td class="action-table-data">
                                         <div class="edit-delete-action">
@@ -274,6 +286,7 @@ export default {
                 {
                     title: "Jumlah Produk",
                     dataIndex: "items",
+                    key: "items",
                     sorter: true,
                 },
                 {

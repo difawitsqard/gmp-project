@@ -19,8 +19,20 @@ class PaymentController extends Controller
                 $getPaymentType = $midtransService->getPaymentType();
                 $getExpiryTime = $midtransService->getExpiryTime();
 
+                $notification = $midtransService->notification();
+                $callbackMidtransUuid = $notification->order_id ?? null;
+
                 // Log informasi status pembayaran
-                Log::info('Midtrans Callback Expire: ' . $getExpiryTime);
+                // Log::info('Midtrans Callback Expire: ' . $getExpiryTime);
+
+                // Abaikan callback jika order_id tidak sesuai dengan yang terakhir
+                if ($lastPayment->midtrans_uuid !== $callbackMidtransUuid) {
+                    // Log::info('Midtrans Callback ignored: payment is not the latest for this order.');
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Callback ignored: payment is not the latest for this order.',
+                    ]);
+                }
 
                 if ($getStatus == 'success' && $order->status == 'pending') {
                     $order->update([

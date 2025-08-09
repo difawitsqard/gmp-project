@@ -89,6 +89,8 @@ class MidtransService
                 $notification->gross_amount . $this->serverKey
         );
 
+        // dd($notification);
+
         // Memeriksa apakah signature key valid
         return $localSignatureKey === $notification->signature_key;
     }
@@ -101,8 +103,8 @@ class MidtransService
     public function getOrder(): Order
     {
         // get request payload
-        $payload = file_get_contents('php://input');
-        Log::info('Midtrans Payload', [$payload]);
+        //$payload = file_get_contents('php://input');
+        //Log::info('Midtrans Payload', [$payload]);
 
         $notification = $this->notification(); // Ambil data dari Midtrans payload
 

@@ -60,7 +60,7 @@
                             <img
                                 v-lazy="record.product.image_url"
                                 alt="product"
-                                class="stock-history-img"
+                                class="stock-history-img rounded"
                             />
                         </div>
                         <div>

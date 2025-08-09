@@ -189,7 +189,7 @@
                                         "
                                         class="fw-bold"
                                     >
-                                        {{ record.items }}
+                                        {{ record.items }} Produk
                                     </Link>
                                 </template>
                                 <template v-else-if="column.key === 'action'">
