@@ -9,147 +9,15 @@ use App\Models\OrderItem;
 use Illuminate\Bus\Batch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use App\Services\NixtlaService;
-use App\Services\OpenAIService;
 use App\Jobs\AnalyzeForecastJob;
 use App\Jobs\ForecastProductJob;
 use Illuminate\Support\Facades\DB;
-use OpenAI\Laravel\Facades\OpenAI;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 
 class ForecastController extends Controller
 {
-
-    /**
-     * Generate time series data dari request parameters
-     */
-    public function generateTimeSeriesFromRequest2(Request $request)
-    {
-        $validatedData = $request->validate([
-            'products' => 'required|array',
-            'products.*.id' => 'required|exists:products,id',
-            'frequency' => 'required|in:D,W,M',
-            'horizon' => 'required|integer|min:1',
-            'startDate' => 'required|date',
-            'endDate' => 'required|date|after_or_equal:startDate',
-        ]);
-
-        $productIds = collect($validatedData['products'])->pluck('id')->toArray();
-        $frequency = $validatedData['frequency'];
-        $horizon = $validatedData['horizon'];
-        $startDate = Carbon::parse($validatedData['startDate']);
-        $endDate = Carbon::parse($validatedData['endDate']);
-
-        // Generate semua titik waktu berdasarkan frekuensi
-        $dates = $this->generateDatesFromRange($startDate, $endDate, $frequency);
-
-        // Inisialisasi series
-        $series = [];
-        foreach ($productIds as $productId) {
-            // Panggil method terpisah untuk mendapatkan time series data
-            $series[$productId] = $this->getTimeSeriesData(
-                $productId,
-                $frequency,
-                $startDate,
-                $endDate,
-                $dates
-            );
-        }
-
-        $productNames = Product::whereIn('id', $productIds)->pluck('name', 'id')->toArray();
-
-        // Struktur data untuk OpenAI dan validasi
-        $openaiStructured = [];
-        $validationResults = [];
-
-        foreach ($series as $productId => $dateSeries) {
-            $openaiStructured[$productId] = [
-                'name' => $productNames[$productId] ?? "Produk ID {$productId}",
-                'data' => $dateSeries
-            ];
-
-            $validationResult = $this->validateTimeSeriesQuality($dateSeries, $frequency);
-            $validationResults[$productId] = $validationResult;
-            $openaiStructured[$productId]['data_quality'] = $validationResult;
-        }
-
-        return [
-            'start_date' => $startDate->toDateString(),
-            'end_date' => $endDate->toDateString(),
-            'frequency' => $frequency,
-            'horizon' => $horizon,
-            'series' => $series,
-            'openai_ready' => $openaiStructured,
-            'validation_results' => $validationResults,
-        ];
-    }
-
-    /**
-     * Generate time series data dari request parameters
-     */
-    public function generateTimeSeriesFromRequest(Request $request)
-    {
-        $validatedData = $request->validate([
-            'products' => 'required|array',
-            'products.*.id' => 'required|exists:products,id',
-            'frequency' => 'required|in:D,W,M',
-            'horizon' => 'required|integer|min:1',
-            'startDate' => 'required|date',
-            'endDate' => 'required|date|after_or_equal:startDate',
-        ]);
-
-        $productIds = collect($validatedData['products'])->pluck('id')->toArray();
-        $frequency = $validatedData['frequency'];
-        $horizon = $validatedData['horizon'];
-        $startDate = Carbon::parse($validatedData['startDate']);
-        $endDate = Carbon::parse($validatedData['endDate']);
-
-        // Generate semua titik waktu berdasarkan frekuensi
-        $dates = $this->generateDatesFromRange($startDate, $endDate, $frequency);
-
-        // Inisialisasi series
-        $series = [];
-        foreach ($productIds as $productId) {
-            // Panggil method terpisah untuk mendapatkan time series data
-            $series[$productId] = $this->getTimeSeriesData(
-                $productId,
-                $frequency,
-                $startDate,
-                $endDate,
-                $dates
-            );
-        }
-
-        $productNames = Product::whereIn('id', $productIds)->pluck('name', 'id')->toArray();
-
-        // Struktur data untuk OpenAI dan validasi
-        $openaiStructured = [];
-        $validationResults = [];
-
-        foreach ($series as $productId => $dateSeries) {
-            $openaiStructured[$productId] = [
-                'name' => $productNames[$productId] ?? "Produk ID {$productId}",
-                'data' => $dateSeries
-            ];
-
-            $validationResult = $this->validateTimeSeriesQuality($dateSeries, $frequency);
-            $validationResults[$productId] = $validationResult;
-            $openaiStructured[$productId]['data_quality'] = $validationResult;
-        }
-
-        return [
-            'start_date' => $startDate->toDateString(),
-            'end_date' => $endDate->toDateString(),
-            'frequency' => $frequency,
-            'horizon' => $horizon,
-            'series' => $series,
-            'openai_ready' => $openaiStructured,
-            'validation_results' => $validationResults,
-        ];
-    }
-
     /**
      * Display a listing of the resource.
      */
@@ -230,7 +98,11 @@ class ForecastController extends Controller
             'includeConfidenceIntervals' => 'boolean',
         ]);
 
-        // dd($validatedData);
+        //dd($validatedData);
+
+        $result = $this->generateTimeSeriesFromRequest($request);
+
+        dd($result);
 
         $forecast  = Forecast::create([
             'name' =>  $validatedData['name'],
@@ -242,10 +114,6 @@ class ForecastController extends Controller
             'input_end_date' => Carbon::parse($validatedData['endDate'])->format('Y-m-d'),
             'created_by' => auth()->user() ? auth()->user()->id : null,
         ]);
-
-        // $result = $this->generateTimeSeriesFromRequest($request);
-
-        // dd($result);
 
         $productIds = collect($validatedData['products'])->pluck('id')->toArray();
         $chunks = array_chunk($productIds, 5);
@@ -445,14 +313,6 @@ class ForecastController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
      * Display the specified resource.
      */
     public function show(Request $request, string $id)
@@ -490,125 +350,70 @@ class ForecastController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Generate time series data dari request parameters
      */
-    public function update(Request $request, string $id)
+    public function generateTimeSeriesFromRequest(Request $request)
     {
-        //
-    }
+        $validatedData = $request->validate([
+            'products' => 'required|array',
+            'products.*.id' => 'required|exists:products,id',
+            'frequency' => 'required|in:D,W,M',
+            'horizon' => 'required|integer|min:1',
+            'startDate' => 'required|date',
+            'endDate' => 'required|date|after_or_equal:startDate',
+        ]);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
+        // validation service
+        $validationService = app(\App\Services\TimeSeriesValidationService::class);
 
-    public function smoothSeries(array $series, int $window = 3): array
-    {
-        $smoothedSeries = [];
+        $productIds = collect($validatedData['products'])->pluck('id')->toArray();
+        $frequency = $validatedData['frequency'];
+        $horizon = $validatedData['horizon'];
+        $startDate = Carbon::parse($validatedData['startDate']);
+        $endDate = Carbon::parse($validatedData['endDate']);
 
-        foreach ($series as $productId => $data) {
-            $keys = array_keys($data);
-            $values = array_values($data);
-            $smoothed = [];
+        // Generate semua titik waktu berdasarkan frekuensi
+        $dates = $this->generateDatesFromRange($startDate, $endDate, $frequency);
 
-            for ($i = 0; $i < count($values); $i++) {
-                $start = max(0, $i - ($window - 1));
-                $windowSlice = array_slice($values, $start, $window);
-                $average = array_sum($windowSlice) / count($windowSlice);
-                $smoothed[$keys[$i]] = round($average, 2); // bisa pakai floor/ceil jika integer
-            }
-
-            $smoothedSeries[$productId] = $smoothed;
+        // Inisialisasi series
+        $series = [];
+        foreach ($productIds as $productId) {
+            // Panggil method terpisah untuk mendapatkan time series data
+            $series[$productId] = $this->getTimeSeriesData(
+                $productId,
+                $frequency,
+                $startDate,
+                $endDate,
+                $dates
+            );
         }
 
-        return $smoothedSeries;
-    }
+        $productNames = Product::whereIn('id', $productIds)->pluck('name', 'id')->toArray();
 
-    public function validateTimeSeriesQuality(array $timeSeries, string $frequency)
-    {
-        // Menyaring nilai-nilai pada array $timeSeries dan hanya mengambil yang lebih besar dari 0
-        $nonZeroValues = array_filter($timeSeries, function ($value) {
-            return $value > 0;
-        });
+        // Struktur data untuk OpenAI dan validasi
+        $openaiStructured = [];
+        $validationResults = [];
 
-        // Menghitung total jumlah elemen dalam array $timeSeries (termasuk nol)
-        $totalPoints = count($timeSeries);
+        foreach ($series as $productId => $dateSeries) {
+            $openaiStructured[$productId] = [
+                'name' => $productNames[$productId] ?? "Produk ID {$productId}",
+                'data' => $dateSeries
+            ];
 
-        // Menghitung jumlah elemen yang bernilai lebih dari 0 (non-zero values)
-        $nonZeroPoints = count($nonZeroValues);
+            $validationResult = $validationService->validateTimeSeriesQuality($dateSeries, $frequency);
+            $validationResults[$productId] = $validationResult;
+            $openaiStructured[$productId]['data_quality'] = $validationResult;
+        }
 
-
-        // Initialize result array first
-        $result = [
-            'valid' => true,
-            'issues' => [],
-            'total_points' => $totalPoints,
-            'non_zero_points' => $nonZeroPoints,
-            'non_zero_ratio' => $totalPoints > 0 ? $nonZeroPoints / $totalPoints : 0,
+        return [
+            'start_date' => $startDate->toDateString(),
+            'end_date' => $endDate->toDateString(),
+            'frequency' => $frequency,
+            'horizon' => $horizon,
+            'series' => $series,
+            'openai_ready' => $openaiStructured,
+            'validation_results' => $validationResults,
         ];
-
-        // Kriteria validasi
-        $minDataPoints = match ($frequency) {
-            'D' => 30,    // Minimum 30 hari data
-            'W' => 13,    // Minimum 13 minggu data (3 bulan)
-            'M' => 6,     // Minimum 6 bulan data
-        };
-
-        // Kriteria validasi berdasarkan frekuensi
-        $minNonZeroRatio = match ($frequency) {
-            'D' => 0.3,    // 30% untuk data harian
-            'W' => 0.5,    // 50% untuk data mingguan
-            'M' => 0.7,    // 70% untuk data bulanan
-        };
-
-        // Cek jumlah data points
-        if ($totalPoints < $minDataPoints) {
-            $result['valid'] = false;
-            $result['issues'][] = "Jumlah titik data tidak mencukupi (minimum: {$minDataPoints})";
-        }
-
-        // Cek rasio data non-zero
-        if ($result['non_zero_ratio'] < $minNonZeroRatio) {
-            $result['valid'] = false;
-            $result['issues'][] = "Terlalu banyak nilai kosong (0)";
-        }
-
-        // // Memeriksa periode kosong berurutan
-        // $consecutiveZeros = $this->findLongestConsecutiveZeros($timeSeries);
-        // $maxConsecutiveZerosAllowed = match ($frequency) {
-        //     'D' => 14,   // 2 minggu kosong berturut-turut
-        //     'W' => 4,    // 1 bulan kosong berturut-turut
-        //     'M' => 2,    // 2 bulan kosong berturut-turut
-        // };
-
-        // if ($consecutiveZeros > $maxConsecutiveZerosAllowed) {
-        //     $result['valid'] = false;
-        //     $result['issues'][] = "Terdapat {$consecutiveZeros} periode berturut-turut tanpa data";
-        // }
-
-        return $result;
-    }
-
-
-    // Fungsi helper untuk periode kosong berurutan
-    private function findLongestConsecutiveZeros(array $series): int
-    {
-        $longest = 0;
-        $current = 0;
-
-        foreach ($series as $value) {
-            if ($value == 0) {
-                $current++;
-                $longest = max($longest, $current);
-            } else {
-                $current = 0;
-            }
-        }
-
-        return $longest;
     }
 
     /**
@@ -631,39 +436,45 @@ class ForecastController extends Controller
         // Inisialisasi series kosong
         $series = array_fill_keys($dates, 0);
 
-        // Ambil data dari database berdasarkan frekuensi
+        // Tentukan format grouping dan select berdasarkan frequency
+        switch ($frequency) {
+            case 'W':
+                $dateFormat = "DATE(DATE_SUB(orders.created_at, INTERVAL WEEKDAY(orders.created_at) DAY))";
+                $groupBy = DB::raw($dateFormat);
+                break;
+            case 'M':
+                $dateFormat = "DATE_FORMAT(orders.created_at, '%Y-%m-01')";
+                $groupBy = DB::raw($dateFormat);
+                break;
+            default: // 'D'
+                $dateFormat = "DATE(orders.created_at)";
+                $groupBy = DB::raw($dateFormat);
+                break;
+        }
+
+        // Query yang diperbaiki
         $orderItems = OrderItem::select(
             'product_id',
-            DB::raw(match ($frequency) {
-                'W' => "YEAR(orders.created_at) as year, WEEK(orders.created_at, 1) as week",
-                'M' => "DATE_FORMAT(orders.created_at, '%Y-%m-01') as period",
-                default => "DATE(orders.created_at) as period",
-            }),
+            DB::raw("({$dateFormat}) as period"),
             DB::raw('SUM(order_items.quantity) as total_qty')
         )
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->where('order_items.product_id', $productId)
-            ->whereBetween('orders.created_at', [$startDate, $endDate]) // Filter by date range
-            ->groupBy('product_id', match ($frequency) {
-                'W' => DB::raw('YEAR(orders.created_at), WEEK(orders.created_at, 1)'),
-                'M' => DB::raw("DATE_FORMAT(orders.created_at, '%Y-%m-01')"),
-                default => DB::raw("DATE(orders.created_at)"),
-            })
+            ->whereBetween('orders.created_at', [
+                $startDate->startOfDay(),
+                $endDate->endOfDay()
+            ])
+            ->groupBy('product_id', $groupBy)
+            ->orderBy('period')
             ->get();
 
         // Masukkan nilai ke series
         foreach ($orderItems as $item) {
-            if ($frequency === 'W') {
-                $date = Carbon::now()
-                    ->setISODate((int)$item->year, (int)$item->week)
-                    ->startOfWeek()
-                    ->format('Y-m-d');
-            } else {
-                $date = $item->period;
-            }
+            $date = $item->period;
 
+            // Validasi bahwa tanggal ada dalam range yang diharapkan
             if (isset($series[$date])) {
-                $series[$date] = $item->total_qty;
+                $series[$date] = (int) $item->total_qty;
             }
         }
 
@@ -682,18 +493,32 @@ class ForecastController extends Controller
     {
         $dates = [];
 
-        if ($frequency === 'W') {
-            for ($date = $startDate->copy()->startOfWeek(); $date->lte($endDate); $date->addWeek()) {
-                $dates[] = $date->format('Y-m-d');
-            }
-        } elseif ($frequency === 'M') {
-            for ($date = $startDate->copy()->startOfMonth(); $date->lte($endDate); $date->addMonth()) {
-                $dates[] = $date->format('Y-m-d');
-            }
-        } else { // Daily default
-            for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
-                $dates[] = $date->format('Y-m-d');
-            }
+        switch ($frequency) {
+            case 'W':
+                // Mulai dari awal minggu (Senin)
+                $current = $startDate->copy()->startOfWeek(Carbon::MONDAY);
+                while ($current->lte($endDate)) {
+                    $dates[] = $current->format('Y-m-d');
+                    $current->addWeek();
+                }
+                break;
+
+            case 'M':
+                // Mulai dari awal bulan
+                $current = $startDate->copy()->startOfMonth();
+                while ($current->lte($endDate)) {
+                    $dates[] = $current->format('Y-m-d');
+                    $current->addMonth();
+                }
+                break;
+
+            default: // 'D'
+                $current = $startDate->copy();
+                while ($current->lte($endDate)) {
+                    $dates[] = $current->format('Y-m-d');
+                    $current->addDay();
+                }
+                break;
         }
 
         return $dates;

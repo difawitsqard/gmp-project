@@ -14,7 +14,7 @@ class NixtlaService
   // Default values for the forecast
   protected const DEFAULT_MODEL = 'timegpt-1';
   protected const DEFAULT_FREQ = 'D';
-  protected const DEFAULT_H = 7;
+  protected const DEFAULT_H = 3;
 
   public function __construct()
   {

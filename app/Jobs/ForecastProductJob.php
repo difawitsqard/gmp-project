@@ -5,7 +5,6 @@ namespace App\Jobs;
 use Exception;
 use Illuminate\Bus\Batchable;
 use App\Services\NixtlaService;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Foundation\Queue\Queueable;

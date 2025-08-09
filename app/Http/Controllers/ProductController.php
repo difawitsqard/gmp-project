@@ -8,16 +8,20 @@ use Illuminate\Http\Request;
 use App\Models\ProductCategory;
 use App\Services\ImageUploadService;
 use App\Http\Requests\ProductRequest;
+use App\Services\TimeSeriesValidationService;
+
+use Illuminate\Support\Carbon;
 
 class ProductController extends Controller
 {
 
     protected $imageUploadService;
+    protected TimeSeriesValidationService $validationService;
 
-
-    public function __construct()
+    public function __construct(TimeSeriesValidationService $validationService)
     {
         $this->imageUploadService = new ImageUploadService();
+        $this->validationService = $validationService;
     }
 
     /**
@@ -192,8 +196,8 @@ class ProductController extends Controller
         $product =  Product::find($id);
         if ($product) {
             try {
-                //$deleted = $product->delete();
-                $deleted = true;
+                $deleted = $product->delete();
+
                 if ($deleted) {
                     return redirect()->route('products.index')->with('success', "Produk {$product->name} ({$product->sku}) berhasil dihapus.");
                 } else {
@@ -212,12 +216,12 @@ class ProductController extends Controller
         ]);
     }
 
-
     public function search(Request $request)
     {
         $perPage = $request->input('per_page', 10);
         $startDate = $request->input('order_date_start');
         $endDate = $request->input('order_date_end');
+        $frequency = $request->input('frequency', 'D'); // Tambah parameter frequency
 
         // Inisialisasi query dasar
         $query = Product::filter()
@@ -234,7 +238,6 @@ class ProductController extends Controller
                 }
             }]);
 
-            // Tambahkan withCount untuk filtered orderItems
             $query->withCount(['orderItems as filtered_order_items_count' => function ($query) use ($startDate, $endDate) {
                 if ($startDate) {
                     $query->whereDate('created_at', '>=', $startDate);
@@ -244,22 +247,19 @@ class ProductController extends Controller
                 }
             }]);
 
-            // Urut berdasarkan jumlah order items dalam rentang tanggal
             $query->orderByDesc('filtered_order_items_count');
         } else {
-            // Load orderItems tanpa filter jika tidak ada parameter tanggal
             $query->with('orderItems');
             $query->withCount('orderItems');
             $query->orderByDesc('order_items_count');
         }
 
-        // Hitung total dan paginasi (kode yang sudah ada)
         $totalCount = $query->count();
         $currentPage = $request->input('page', 1);
         $offset = ($currentPage - 1) * $perPage;
         $products = $query->paginate($perPage);
 
-        // Tambahkan parameter ke link paginasi (kode yang sudah ada, dengan penambahan)
+        // Append parameters
         if ($request->filled('search')) {
             $products->appends(['search' => $request->search]);
         }
@@ -269,19 +269,23 @@ class ProductController extends Controller
         if ($endDate) {
             $products->appends(['order_date_end' => $endDate]);
         }
+        if ($frequency) {
+            $products->appends(['frequency' => $frequency]);
+        }
         $products->appends(['per_page' => $perPage]);
 
-        // Transform koleksi paginasi
-        $products->getCollection()->transform(function ($product) use ($offset, $startDate, $endDate) {
+        // Transform koleksi dengan forecast eligibility
+        $products->getCollection()->transform(function ($product) use ($offset, $startDate, $endDate, $frequency, $request) {
             static $rankCounter = 0;
             $rankCounter++;
             $rank = $offset + $rankCounter;
-            $image = $product->images->first();
 
-            // Gunakan jumlah order yang sudah difilter jika ada parameter tanggal
             $orderCount = ($startDate || $endDate)
                 ? $product->filtered_order_items_count
                 : $product->order_items_count;
+
+            // Tambahkan forecast eligibility check
+            $forecastEligibility = $this->checkForecastEligibility($product, $request);
 
             return [
                 'id' => $product->id,
@@ -306,9 +310,38 @@ class ProductController extends Controller
                         return $orderItem->created_at->copy()->startOfMonth()->format('Y-m-d');
                     })->count(),
                 ],
+                'forecast_eligibility' => $forecastEligibility, // Tambah ini
             ];
         });
 
         return response()->json($products);
+    }
+
+    /**
+     * Check if product is eligible for forecasting
+     */
+    private function checkForecastEligibility($product, $request): array
+    {
+        $startDate = $request->input('order_date_start')
+            ? Carbon::parse($request->input('order_date_start'))
+            : Carbon::now()->subYear();
+
+        $endDate = $request->input('order_date_end')
+            ? Carbon::parse($request->input('order_date_end'))
+            : Carbon::now();
+
+        $frequency = $request->input('frequency', 'D');
+
+        // Generate time series untuk validasi
+        $controller = app(\App\Http\Controllers\ForecastController::class);
+        $timeSeries = $controller->getTimeSeriesData(
+            $product->id,
+            $frequency,
+            $startDate,
+            $endDate
+        );
+
+        // Gunakan validation service
+        return $this->validationService->checkForecastEligibility($timeSeries, $frequency, $endDate);
     }
 }

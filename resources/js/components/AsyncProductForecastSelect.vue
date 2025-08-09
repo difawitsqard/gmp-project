@@ -18,7 +18,7 @@
         :option-disabled="isOptionDisabled"
     >
         <template #option="{ option }">
-            <div class="option-container">
+            <div class="option-container" :title="getTooltipText(option)">
                 <img
                     v-lazy="option.image_url"
                     alt="Product Image"
@@ -26,30 +26,76 @@
                 />
 
                 <div class="option-text">
-                    <span
-                        v-if="option.popularityRank"
-                        class="popularity-badge badge-silver"
-                    >
-                        <template v-if="lastQuery">
-                            Terlaris ke {{ option.popularityRank }} untuk "{{
-                                lastQuery
-                            }}"
-                        </template>
-                        <template v-else>
-                            Terlaris ke {{ option.popularityRank }}
-                        </template>
-                    </span>
+                    <!-- Badges Container -->
+                    <div class="badges-container">
+                        <span
+                            v-if="option.popularityRank"
+                            class="popularity-badge badge-silver"
+                        >
+                            <template v-if="lastQuery">
+                                Terlaris ke {{ option.popularityRank }} untuk
+                                "{{ lastQuery }}"
+                            </template>
+                            <template v-else>
+                                Terlaris ke {{ option.popularityRank }}
+                            </template>
+                        </span>
+
+                        <!-- Forecast Eligibility Badge -->
+                        <span
+                            v-if="option.forecast_eligibility"
+                            :class="
+                                getForecastEligibilityBadgeClass(
+                                    option.forecast_eligibility
+                                )
+                            "
+                        >
+                            Data Tidak Nol
+                            {{ option.forecast_eligibility.non_zero_ratio }}%
+                        </span>
+                    </div>
+
                     <div class="option-name">
                         {{ option.name }}
                     </div>
+
                     <div class="option-description">
                         {{ option.sku }} - {{ option.category }}
-                        <span
-                            v-if="option.timeSeriesOrderItems"
-                            class="data-points-badge"
-                        >
-                            {{ getDataPointsLabel(option) }}
-                        </span>
+                    </div>
+
+                    <!-- Warning untuk produk yang tidak layak -->
+                    <div
+                        v-if="
+                            option.forecast_eligibility &&
+                            !option.forecast_eligibility.is_eligible
+                        "
+                        class="forecast-warning"
+                    >
+                        <small>{{ option.forecast_eligibility.reason }}</small>
+                    </div>
+                </div>
+
+                <!-- Quality Score Indicator -->
+                <div
+                    v-if="option.forecast_eligibility"
+                    class="quality-indicator"
+                >
+                    <div class="quality-score">
+                        {{ option.forecast_eligibility.data_quality_score }}%
+                    </div>
+                    <div class="quality-bar">
+                        <div
+                            class="quality-fill"
+                            :style="{
+                                width:
+                                    option.forecast_eligibility
+                                        .data_quality_score + '%',
+                                backgroundColor: getQualityColor(
+                                    option.forecast_eligibility
+                                        .data_quality_score
+                                ),
+                            }"
+                        ></div>
                     </div>
                 </div>
             </div>
@@ -59,6 +105,7 @@
 
 <script>
 import { debounce } from "lodash";
+
 export default {
     name: "AsyncProductSelect",
     props: {
@@ -91,7 +138,7 @@ export default {
             currentPage: 1,
             lastQuery: "",
             hasMorePages: true,
-            placeholderImage: "/uploads/images/placeholder-image.webp", // URL gambar placeholder
+            placeholderImage: "/uploads/images/placeholder-image.webp",
         };
     },
     watch: {
@@ -102,24 +149,56 @@ export default {
             this.$emit("update:modelValue", val);
         },
         startDate() {
-            // Reload products when date changes
             this.resetAndSearch();
         },
         endDate() {
-            // Reload products when date changes
             this.resetAndSearch();
+        },
+        frequency(newFrequency, oldFrequency) {
+            // Jika ada produk yang sudah dipilih dan frequency berubah
+            if (
+                this.selected &&
+                this.selected.length > 0 &&
+                newFrequency !== oldFrequency
+            ) {
+                this.confirmFrequencyChange(newFrequency, oldFrequency);
+            } else {
+                // Jika tidak ada produk yang dipilih, langsung apply
+                this.applyFrequencyChange(newFrequency);
+            }
         },
     },
     created() {
-        // Gunakan initial options jika ada
         if (this.initialOptions && this.initialOptions.length > 0) {
             this.options = this.initialOptions;
         } else {
-            // Load produk default dengan filter tanggal
             this.loadDefaultProducts();
         }
     },
     methods: {
+        async confirmFrequencyChange(newFrequency, oldFrequency) {
+            const result = await Swal.fire({
+                title: "Konfirmasi Perubahan Frekuensi",
+                text: `${this.selected.length} produk yang sudah dipilih akan dihapus. Apakah Anda yakin ingin melanjutkan?`,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#dc3545",
+                cancelButtonColor: "#6c757d",
+                confirmButtonText: "Ya, Lanjutkan",
+                cancelButtonText: "Batal",
+            });
+
+            if (result.isConfirmed) {
+                // User confirmed - clear selections and apply new frequency
+                this.selected = [];
+                this.$emit("update:modelValue", []);
+                this.applyFrequencyChange(newFrequency);
+            } else {
+                // User cancelled - revert frequency
+                this.$emit("update:frequency", oldFrequency);
+            }
+        },
+
         resetAndSearch() {
             this.currentPage = 1;
             this.options = [];
@@ -128,6 +207,11 @@ export default {
             } else {
                 this.loadDefaultProducts();
             }
+        },
+
+        applyFrequencyChange(newFrequency) {
+            this.currentFrequency = newFrequency;
+            this.resetAndSearch();
         },
 
         loadDefaultProducts() {
@@ -152,15 +236,13 @@ export default {
                 per_page: 10,
             };
 
-            // Tambahkan parameter search jika ada
             if (query && query.length >= 2) {
                 params.search = query;
             } else {
-                // Jika tidak ada search, kita bisa request produk popular
                 params.popular = true;
             }
 
-            // Tambahkan filter tanggal jika tersedia
+            // Tambahkan filter tanggal dan frequency
             if (this.startDate) {
                 params.order_date_start = this.formatDate(this.startDate);
             }
@@ -168,6 +250,9 @@ export default {
             if (this.endDate) {
                 params.order_date_end = this.formatDate(this.endDate);
             }
+
+            // Tambahkan frequency parameter untuk eligibility check
+            params.frequency = this.frequency;
 
             return params;
         },
@@ -268,11 +353,18 @@ export default {
         },
 
         isOptionDisabled(option) {
+            // Disable jika tidak eligible untuk forecast
+            if (
+                option.forecast_eligibility &&
+                !option.forecast_eligibility.is_eligible
+            ) {
+                return true;
+            }
+
+            // Existing logic
             if (!option.timeSeriesOrderItems) return true;
 
             let dataPoints = 0;
-
-            // Periksa jumlah data points berdasarkan frekuensi yang dipilih
             switch (this.frequency) {
                 case "D":
                     dataPoints = option.timeSeriesOrderItems.day;
@@ -287,49 +379,49 @@ export default {
                     dataPoints = option.timeSeriesOrderItems.day;
             }
 
-            // Disable jika data point kurang dari 13
             return dataPoints < 13;
         },
 
-        getDataPointsLabel(option) {
-            if (!option.timeSeriesOrderItems) return "";
+        getForecastEligibilityBadgeClass(eligibility) {
+            const baseClass = "forecast-eligibility-badge";
 
-            let count = 0;
-            let periodName = "";
+            if (eligibility.is_eligible) {
+                if (eligibility.data_quality_score >= 80) {
+                    return `${baseClass} badge-good`;
+                } else {
+                    return `${baseClass} badge-fair`;
+                }
+            } else {
+                return `${baseClass} badge-poor`;
+            }
+        },
 
-            switch (this.frequency) {
-                case "D":
-                    count = option.timeSeriesOrderItems.day;
-                    periodName = "harian";
-                    break;
-                case "W":
-                    count = option.timeSeriesOrderItems.week;
-                    periodName = "mingguan";
-                    break;
-                case "M":
-                    count = option.timeSeriesOrderItems.month;
-                    periodName = "bulanan";
-                    break;
-                default:
-                    count = option.timeSeriesOrderItems.day;
-                    periodName = "harian";
+        getQualityColor(score) {
+            if (score >= 80) return "#4CAF50"; // Green
+            if (score >= 60) return "#FF9800"; // Orange
+            if (score >= 40) return "#FFC107"; // Yellow
+            return "#F44336"; // Red
+        },
+
+        getTooltipText(option) {
+            if (!option.forecast_eligibility) return "";
+
+            const eligibility = option.forecast_eligibility;
+            let tooltip = "";
+            tooltip += `Score Kualitas: ${eligibility.data_quality_score}%\n`;
+            tooltip += `Data Points: ${eligibility.data_points}\n`;
+            tooltip += `Rasio Data Valid: ${eligibility.non_zero_ratio}%\n`;
+
+            if (eligibility.days_since_last_data < 9999) {
+                tooltip += `Hari Sejak Data Terakhir: ${eligibility.days_since_last_data}`;
             }
 
-            return `${count} titik data ${periodName}`;
-        },
+            if (!eligibility.is_eligible) {
+                tooltip += `Alasan: ${eligibility.reason}`;
+            }
 
-        customLabel(option) {
-            return `${option.name} (${option.sku})`;
+            return tooltip;
         },
-    },
-    beforeUnmount() {
-        // Bersihkan event listener saat komponen dihapus
-        const dropdownList = document.querySelector(
-            ".multiselect__content-wrapper"
-        );
-        if (dropdownList) {
-            dropdownList.removeEventListener("scroll", this.handleScroll);
-        }
     },
 };
 </script>
@@ -338,16 +430,17 @@ export default {
 .option-container {
     display: flex;
     align-items: center;
-    padding: 6px 12px;
+    padding: 8px 12px;
     border-radius: 6px;
     transition: background-color 0.2s ease;
 }
 
 .option-image {
-    width: 52px;
-    height: 52px;
+    width: 62px;
+    height: 62px;
     object-fit: cover;
-    border-radius: 4px;
+    border-radius: 5px;
+    background-color: #f0f0f0;
     margin-right: 10px;
     padding: 2px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -357,6 +450,7 @@ export default {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    flex: 1;
 }
 
 .option-name {
@@ -369,25 +463,23 @@ export default {
     text-overflow: ellipsis;
 }
 
+.option-name:hover,
 .multiselect__option:hover .option-name {
-    color: #ffffff;
-}
-
-.option-name:hover {
     color: #ffffff;
 }
 
 .option-description {
     font-size: 12px;
-    color: #ebebeb;
+    color: #adadad;
     line-height: 1.1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.select2-container {
-    z-index: 1 !important;
+.option-description :hover,
+.multiselect__option:hover .option-description {
+    color: #ffffff;
 }
 
 .popularity-badge {
@@ -425,5 +517,85 @@ export default {
     margin-left: 6px;
     font-size: 9px;
     font-weight: normal;
+}
+
+.badges-container {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 3px;
+    flex-wrap: wrap;
+}
+
+.forecast-eligibility-badge {
+    display: inline-block;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.badge-good {
+    background-color: #4caf50;
+    color: white;
+}
+
+.badge-fair {
+    background-color: #ff9800;
+    color: white;
+}
+
+.badge-poor {
+    background-color: #f44336;
+    color: white;
+}
+
+.forecast-warning {
+    margin-top: 2px;
+    color: #f44336;
+    font-size: 10px;
+    line-height: 1.2;
+}
+
+.quality-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-left: 8px;
+    min-width: 40px;
+}
+
+.quality-score {
+    font-size: 10px;
+    font-weight: bold;
+    color: #666;
+    margin-bottom: 2px;
+}
+
+.quality-bar {
+    width: 30px;
+    height: 4px;
+    background-color: #e0e0e0;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.quality-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+/* Disabled option styling */
+.multiselect__option--disabled {
+    opacity: 0.6;
+    background-color: #f5f5f5 !important;
+}
+
+.multiselect__option--disabled .option-name {
+    color: #999 !important;
+}
+
+.multiselect__option--disabled .forecast-eligibility-badge {
+    opacity: 0.8;
 }
 </style>

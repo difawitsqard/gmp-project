@@ -44,6 +44,8 @@
                 </div>
             </div>
 
+            <ValidationExplanationCard />
+
             <div class="row">
                 <div class="col-12">
                     <form @submit.prevent="submitForm">
@@ -107,6 +109,7 @@
                                         </div>
                                     </div>
                                 </div>
+
                                 <div class="mb-4">
                                     <label class="form-label">Nama</label
                                     ><input
@@ -115,7 +118,14 @@
                                         placeholder="e.g Prediksi Stok Bulan Ini"
                                         v-model="form.name"
                                     />
+                                    <div
+                                        v-if="errors.name"
+                                        class="invalid-feedback"
+                                    >
+                                        {{ errors.name }}
+                                    </div>
                                 </div>
+
                                 <div
                                     class="accordion-card-one accordion"
                                     id="accordionForecasting"
@@ -438,11 +448,13 @@
 import AsyncProductForecastSelect from "@/components/AsyncProductForecastSelect.vue";
 import { Head, Link, useForm } from "@inertiajs/vue3";
 import { getAllForecastFrequencies } from "@/constants/forecastFrequency";
+import ValidationExplanationCard from "./ValidationExplanationCard.vue";
 
 export default {
     components: {
         AsyncProductForecastSelect,
         Head,
+        ValidationExplanationCard,
     },
     props: {
         initialData: {
@@ -455,6 +467,11 @@ export default {
             ? new Date(this.initialData.start_date)
             : new Date(new Date().setFullYear(new Date().getFullYear() - 1));
 
+        // set end date
+        const endDate = this.initialData?.end_date
+            ? new Date(this.initialData.end_date)
+            : new Date();
+
         const now = new Date();
         const defaultName = `Prediksi ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
 
@@ -466,7 +483,7 @@ export default {
                 frequency: "D",
                 horizon: 1,
                 startDate: minDate,
-                endDate: new Date(),
+                endDate: endDate,
                 enforceDataQuality: true,
             },
             ChooseFrequency: getAllForecastFrequencies(),
@@ -474,67 +491,60 @@ export default {
         };
     },
     watch: {
-        "form.products": {
-            handler(newVal) {
-                const lastAdded = newVal.at(-1);
-                if (!lastAdded) return;
-
-                const found = this.form.products.find(
-                    (p) => p.id === lastAdded.id
-                );
-                const frequencyKey =
-                    this.form.frequency === "M"
-                        ? "month"
-                        : this.form.frequency === "W"
-                        ? "week"
-                        : "day";
-
-                const totalPoints =
-                    found?.timeSeriesOrderItems?.[frequencyKey] ?? 0;
-
-                if (totalPoints < 13) {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Gagal",
-                        text: `Produk "${found?.name}" hanya memiliki ${totalPoints} titik data ${frequencyKey}, minimal 13 diperlukan.`,
-                        confirmButtonClass: "btn btn-danger",
-                    });
-
-                    // Hapus item yang baru ditambahkan
-                    this.form.products = newVal.slice(0, -1);
-                }
-            },
-            deep: true,
-        },
-        "form.frequency": {
-            handler(newFrequency) {
-                // Validasi ulang semua produk berdasarkan frekuensi baru
-                this.form.products = this.form.products.filter((product) => {
-                    const frequencyKey =
-                        newFrequency === "M"
-                            ? "month"
-                            : newFrequency === "W"
-                            ? "week"
-                            : "day";
-
-                    const totalPoints =
-                        product?.timeSeriesOrderItems?.[frequencyKey] ?? 0;
-
-                    if (totalPoints < 13) {
-                        Swal.fire({
-                            icon: "error",
-                            title: "Produk Tidak Valid",
-                            text: `Produk "${product.name}" hanya memiliki ${totalPoints} titik data ${frequencyKey}, minimal 13 diperlukan.`,
-                            confirmButtonClass: "btn btn-danger",
-                        });
-                        return false; // Hapus produk dari daftar
-                    }
-
-                    return true; // Pertahankan produk dalam daftar
-                });
-            },
-            immediate: true,
-        },
+        // "form.products": {
+        //     handler(newVal) {
+        //         const lastAdded = newVal.at(-1);
+        //         if (!lastAdded) return;
+        //         const found = this.form.products.find(
+        //             (p) => p.id === lastAdded.id
+        //         );
+        //         const frequencyKey =
+        //             this.form.frequency === "M"
+        //                 ? "month"
+        //                 : this.form.frequency === "W"
+        //                 ? "week"
+        //                 : "day";
+        //         const totalPoints =
+        //             found?.timeSeriesOrderItems?.[frequencyKey] ?? 0;
+        //         if (totalPoints < 13) {
+        //             Swal.fire({
+        //                 icon: "error",
+        //                 title: "Gagal",
+        //                 text: `Produk "${found?.name}" hanya memiliki ${totalPoints} titik data ${frequencyKey}, minimal 13 diperlukan.`,
+        //                 confirmButtonClass: "btn btn-danger",
+        //             });
+        //             // Hapus item yang baru ditambahkan
+        //             this.form.products = newVal.slice(0, -1);
+        //         }
+        //     },
+        //     deep: true,
+        // },
+        // "form.frequency": {
+        //     handler(newFrequency) {
+        //         // Validasi ulang semua produk berdasarkan frekuensi baru
+        //         this.form.products = this.form.products.filter((product) => {
+        //             const frequencyKey =
+        //                 newFrequency === "M"
+        //                     ? "month"
+        //                     : newFrequency === "W"
+        //                     ? "week"
+        //                     : "day";
+        //             const totalPoints =
+        //                 product?.timeSeriesOrderItems?.[frequencyKey] ?? 0;
+        //             if (totalPoints < 13) {
+        //                 Swal.fire({
+        //                     icon: "error",
+        //                     title: "Produk Tidak Valid",
+        //                     text: `Produk "${product.name}" hanya memiliki ${totalPoints} titik data ${frequencyKey}, minimal 13 diperlukan.`,
+        //                     confirmButtonClass: "btn btn-danger",
+        //                 });
+        //                 return false; // Hapus produk dari daftar
+        //             }
+        //             return true; // Pertahankan produk dalam daftar
+        //         });
+        //     },
+        //     immediate: true,
+        // },
     },
     methods: {
         submitForm() {

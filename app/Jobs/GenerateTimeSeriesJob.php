@@ -38,6 +38,9 @@ class GenerateTimeSeriesJob implements ShouldQueue
         try {
             $controller = app(ForecastController::class);
 
+            // validation service
+            $validationService = app(\App\Services\TimeSeriesValidationService::class);
+
             $frequency = $forecast->frequency;
             $startDate = Carbon::parse($forecast->input_start_date);
             $endDate = Carbon::parse($forecast->input_end_date);
@@ -57,7 +60,7 @@ class GenerateTimeSeriesJob implements ShouldQueue
                     $dates
                 );
 
-                $validatedSeries = $controller->validateTimeSeriesQuality($series, $frequency);
+                $validatedSeries = $validationService->validateTimeSeriesQuality($series, $frequency);
 
                 $data = [
                     'product_id' => $product->id,
