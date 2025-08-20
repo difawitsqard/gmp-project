@@ -60,7 +60,7 @@ class Product extends Model
 
     public function stockTransactions()
     {
-        return $this->hasMany(stockTransaction::class);
+        return $this->hasMany(StockTransaction::class);
     }
 
     // pengurangan stok

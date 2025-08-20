@@ -6,7 +6,7 @@ use App\Models\Unit;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use App\Models\ProductCategory;
-use App\Models\stockTransaction;
+use App\Models\StockTransaction;
 use Illuminate\Support\Facades\DB;
 
 class StockManagementController extends Controller
@@ -24,7 +24,7 @@ class StockManagementController extends Controller
             ->orderBy('name', 'asc')
             ->get();
 
-        $stockTransactions = stockTransaction::filter()
+        $stockTransactions = StockTransaction::filter()
             ->sorting()
             ->with(['product', 'product.unit', 'createdBy', 'source'])
             ->paginate(10);
@@ -145,7 +145,7 @@ class StockManagementController extends Controller
     {
         $productId = $request->input('product_id');
 
-        $query = stockTransaction::filter()
+        $query = StockTransaction::filter()
             ->sorting()
             ->with(['product', 'product.unit', 'createdBy', 'source']);
 
