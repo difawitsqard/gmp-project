@@ -98,11 +98,8 @@ class ForecastController extends Controller
             'includeConfidenceIntervals' => 'boolean',
         ]);
 
-        //dd($validatedData);
-
-        $result = $this->generateTimeSeriesFromRequest($request);
-
-        dd($result);
+        // $result = $this->generateTimeSeriesFromRequest($request);
+        // dd($result);
 
         $forecast  = Forecast::create([
             'name' =>  $validatedData['name'],
@@ -128,6 +125,7 @@ class ForecastController extends Controller
         Bus::batch($generateJobs)
             ->then(function () use ($forecast, $validatedData, $productIds) {
 
+                // Tandai mulai processing
                 $forecast->update(['status' => 'processing']);
 
                 // Setelah semua GenerateTimeSeriesJob selesai, jalankan ForecastProductJob
@@ -140,11 +138,13 @@ class ForecastController extends Controller
 
                 // Ambil series dari cache/database sesuai implementasi kamu
                 $series = [];
+                $productIdsValid = [];
                 foreach ($productIds as $productId) {
                     $getCacheSeries = cache()->get("series_{$forecast->id}_{$productId}");
 
                     if ($getCacheSeries['data_quality']['valid']) {
                         $series[$productId] = $getCacheSeries ?? [];
+                        $productIdsValid[] = $productId;
                     } else {
                         // batalkan ke proses selanjutnya jika enforceDataQuality = true
                         if ($validatedData['enforceDataQuality']) {
@@ -162,10 +162,7 @@ class ForecastController extends Controller
                 }
 
                 // Log::info($series);
-
-                // Jika enforceDataQuality == false, SKIP forecast, langsung ke analisis
-                if (isset($validatedData['enforceDataQuality']) && !$validatedData['enforceDataQuality']) {
-                    // Langsung ke AnalyzeForecastJob
+                if (empty($productIdsValid) && !$validatedData['enforceDataQuality']) {
                     $analyzeJobs = [];
                     $analyzeChunks = array_chunk($productIds, 2);
 
@@ -173,7 +170,9 @@ class ForecastController extends Controller
                         $analyzeStructure = [];
                         foreach ($chunk as $productId) {
                             $getCacheSeries = cache()->get("series_{$forecast->id}_{$productId}");
+
                             if (!$getCacheSeries) continue;
+
                             $analyzeStructure[$productId] = $getCacheSeries ?? [];
                         }
 
@@ -185,14 +184,25 @@ class ForecastController extends Controller
                         );
                     }
 
-                    Log::info("Total AnalyzeForecastJob (tanpa forecast): " . count($analyzeJobs));
+                    if (empty($analyzeJobs)) {
+                        // Jika tidak ada job analisis, batalkan proses
+                        $forecast->update([
+                            'status' => 'failed',
+                            'note' => 'Tidak ada produk yang valid untuk analisis.'
+                        ]);
+                        return;
+                    }
 
                     Bus::batch($analyzeJobs)
-                        ->then(function (Batch $batch) use ($forecast) {
-                            $forecast->update(['status' => 'done']);
-                        })
                         ->catch(function (Batch $batch, Throwable $e) use ($forecast) {
-                            Log::error("Batch AnalyzeForecastJob gagal untuk forecast ID {$forecast->id}: " . $e->getMessage());
+                            // Log::error("Batch AnalyzeForecastJob gagal untuk forecast ID {$forecast->id}: " . $e->getMessage());
+                            $forecast->update(['status' => 'failed', 'note' => 'Terjadi kesalahan saat menganalisis: ' . $e->getMessage()]);
+                        })
+                        ->finally(function (Batch $batch) use ($forecast) {
+                            // Update status menjadi done jika semua job sukses
+                            if ($batch->finished()) {
+                                $forecast->update(['status' => 'done']);
+                            }
                         })
                         ->dispatch();
 
@@ -207,13 +217,14 @@ class ForecastController extends Controller
                 }
 
                 Bus::batch($forecastJobs)
-                    ->then(function () use ($forecast, $validatedData, $productIds) {
+                    ->then(function () use ($forecast, $validatedData, $productIds, $productIdsValid) {
                         // Setelah semua ForecastProductJob selesai, lakukan analisis
 
                         $analyzeJobs = [];
+                        $analyzeSeries = $validatedData['enforceDataQuality'] ? $productIdsValid : $productIds;
 
                         // Chunk untuk AnalyzeForecastJob 2 produk per job
-                        $analyzeChunks = array_chunk($productIds, 2);
+                        $analyzeChunks = array_chunk($analyzeSeries, 2);
 
                         foreach ($analyzeChunks as $chunk) {
                             $analyzeStructure = [];
@@ -233,19 +244,32 @@ class ForecastController extends Controller
                             );
                         }
 
-                        Log::info("Total AnalyzeForecastJob: " . count($analyzeJobs));
+                        // Log::info("Total AnalyzeForecastJob: " . count($analyzeJobs));
 
                         Bus::batch($analyzeJobs)
-                            ->then(function (Batch $batch) use ($forecast) {
-                                // Log::info("Batch AnalyzeForecastJob sukses untuk forecast ID {$forecast->id}");
-                                $forecast->update(['status' => 'done']);
-                            })
                             ->catch(function (Batch $batch, Throwable $e) use ($forecast) {
-                                Log::error("Batch AnalyzeForecastJob gagal untuk forecast ID {$forecast->id}: " . $e->getMessage());
+                                //Log::error("Batch AnalyzeForecastJob gagal untuk forecast ID {$forecast->id}: " . $e->getMessage());
+                                $forecast->update(['status' => 'failed', 'note' => 'Terjadi kesalahan saat menganalisis: ' . $e->getMessage()]);
+                            })
+                            ->finally(function (Batch $batch) use ($forecast) {
+                                // Update status menjadi done jika semua job sukses
+                                if ($batch->finished()) {
+                                    $forecast->update(['status' => 'done']);
+                                }
                             })
                             ->dispatch();
                     })
+                    ->catch(function (Batch $batch, Throwable $e) use ($forecast) {
+                        // Log::error("Batch ForecastProductJob gagal untuk forecast ID {$forecast->id}: " . $e->getMessage());
+                        // Update status menjadi failed
+                        $forecast->update(['status' => 'failed', 'note' => 'Terjadi kesalahan saat memproses forecast: ' . $e->getMessage()]);
+                    })
                     ->dispatch();
+            })
+            ->catch(function (Batch $batch, Throwable $e) use ($forecast) {
+                // Log::error("Batch GenerateTimeSeriesJob gagal untuk forecast ID {$forecast->id}: " . $e->getMessage());
+                // Update status menjadi failed
+                $forecast->update(['status' => 'failed', 'note' => 'Terjadi kesalahan saat memproses time series: ' . $e->getMessage()]);
             })
             ->dispatch();
 
