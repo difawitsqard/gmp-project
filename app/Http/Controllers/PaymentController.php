@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\Log;
 use App\Models\Order;
+use App\Jobs\ProcessPaymentJob;
 use App\Services\MidtransService;
+use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
@@ -12,137 +13,16 @@ class PaymentController extends Controller
     {
         try {
             if ($midtransService->isSignatureKeyVerified()) {
-                $order = $midtransService->getOrder();
-                $lastPayment = $order->latestPayment;
-
-                $getStatus = $midtransService->getStatus();
-                $getPaymentType = $midtransService->getPaymentType();
-                $getExpiryTime = $midtransService->getExpiryTime();
-
                 $notification = $midtransService->notification();
                 $callbackMidtransUuid = $notification->order_id ?? null;
 
-                // Log informasi status pembayaran
-                // Log::info('Midtrans Callback Expire: ' . $getExpiryTime);
+                // Dispatch job untuk memproses payment secara asynchronous
+                ProcessPaymentJob::dispatch($callbackMidtransUuid, $notification);
 
-                // Abaikan callback jika order_id tidak sesuai dengan yang terakhir
-                if ($lastPayment->midtrans_uuid !== $callbackMidtransUuid) {
-                    // Log::info('Midtrans Callback ignored: payment is not the latest for this order.');
-                    return response()->json([
-                        'success' => true,
-                        'message' => 'Callback ignored: payment is not the latest for this order.',
-                    ]);
-                }
-
-                if ($getStatus == 'success' && $order->status == 'pending') {
-                    $order->update([
-                        'status' => 'waiting_processing',
-                    ]);
-                    $lastPayment->update([
-                        'payment_type' => $getPaymentType,
-                        'status' => 'paid',
-                        'paid_at' => now(),
-                    ]);
-
-
-                    // Buat batch reference unik untuk transaksi stok
-                    $batchReference = 'ORDER-' . $order->uuid;
-
-                    // Kurangi stok produk menggunakan decreaseStock seperti di StockManagementController
-                    foreach ($order->items as $item) {
-                        $product = $item->product;
-
-
-                        if ($product) {
-                            try {
-                                $product->decreaseStock(
-                                    $item->quantity,
-                                    $order, // source: order
-                                    "Pengurangan stok Order #{$order->uuid}",
-                                    $batchReference // batch_reference
-                                );
-                            } catch (\Exception $e) {
-                                // Jika stok tidak cukup, batalkan pesanan ini
-                                $order->update(['status' => 'cancelled']);
-                                $lastPayment->update(['status' => 'cancelled']);
-                                return response()->json([
-                                    'success' => false,
-                                    'message' => 'Stok produk tidak cukup, pesanan dibatalkan.',
-                                ]);
-                            }
-                        }
-                    }
-
-                    // Batalkan pesanan lain yang belum diproses jika stok produk sudah habis
-                    foreach ($order->items as $item) {
-                        $product = $item->product;
-                        if ($product && $product->quantity <= 0) {
-                            $otherOrders = Order::whereIn('status', ['pending', 'waiting_confirmation'])
-                                ->whereHas('items', function ($q) use ($product) {
-                                    $q->where('product_id', $product->id);
-                                })
-                                ->get();
-
-                            foreach ($otherOrders as $otherOrder) {
-                                $otherOrder->update([
-                                    'status' => 'cancelled',
-                                    'note'   => 'Stok produk habis, pesanan dibatalkan'
-                                ]);
-                                if ($otherOrder->latestPayment) {
-                                    $otherOrder->latestPayment->update(['status' => 'cancelled']);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if ($getStatus == 'pending') {
-                    // lakukan sesuatu jika pembayaran masih pending, seperti mengirim notifikasi ke customer
-                    // bahwa pembayaran masih pending dan harap selesai pembayarannya
-                    $lastPayment->update([
-                        'payment_type' => $getPaymentType,
-                        'status' => 'pending',
-                        'expired_at' => $getExpiryTime,
-                    ]);
-                }
-
-                if ($getStatus == 'expire') {
-                    $order->update([
-                        'status' => 'cancelled',
-                    ]);
-                    $lastPayment->update([
-                        'payment_type' => $getPaymentType,
-                        'status' => 'expired',
-                    ]);
-                }
-
-                if ($getStatus == 'cancel') {
-
-                    $order->update([
-                        'status' => 'cancelled',
-                    ]);
-                    $lastPayment->update([
-                        'payment_type' => $getPaymentType,
-                        'status' => 'cancelled',
-                    ]);
-                }
-
-                if ($getStatus == 'failed') {
-                    $order->update([
-                        'status' => 'cancelled',
-                        'note' => 'Pembayaran gagal',
-                    ]);
-                    $lastPayment->update([
-                        'payment_type' => $getPaymentType,
-                        'status' => 'failed',
-                    ]);
-                }
-
-                return response()
-                    ->json([
-                        'success' => true,
-                        'message' => 'Notifikasi berhasil diproses',
-                    ]);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Notifikasi diterima dan sedang diproses',
+                ]);
             } else {
                 return response()->json([
                     'message' => 'Unauthorized',

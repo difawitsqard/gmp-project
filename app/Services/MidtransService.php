@@ -62,7 +62,7 @@ class MidtransService
             "custom_field1" => 'This is for demo purposes only',
         ];
 
-        $params['customer_details']['shipping_address'] = $this->getCustomerDetails($order);
+        // $params['customer_details']['shipping_address'] = $this->getCustomerDetails($order);
 
         try {
             // Membuat snap token
