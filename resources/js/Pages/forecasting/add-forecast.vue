@@ -27,18 +27,7 @@
                             ></a>
                         </li>
                         <li>
-                            <a
-                                ref="collapseHeader"
-                                data-bs-toggle="tooltip"
-                                data-bs-placement="top"
-                                title="Collapse"
-                                @click="toggleCollapse"
-                            >
-                                <i
-                                    data-feather="chevron-up"
-                                    class="feather-chevron-up"
-                                ></i>
-                            </a>
+                            <collapse-header-toggle />
                         </li>
                     </ul>
                 </div>
@@ -216,7 +205,6 @@
                                                             >
                                                             <date-picker
                                                                 placeholder="Pilih Tanggal Mulai"
-                                                                class="form-control"
                                                                 v-model="
                                                                     form.startDate
                                                                 "
@@ -224,6 +212,9 @@
                                                                     'is-invalid':
                                                                         errors.startDate,
                                                                 }"
+                                                                :enable-time-picker="
+                                                                    false
+                                                                "
                                                                 :lower-limit="
                                                                     minDate
                                                                 "
@@ -253,7 +244,6 @@
                                                             >
                                                             <date-picker
                                                                 placeholder="Pilih Tanggal Selesai"
-                                                                class="form-control"
                                                                 v-model="
                                                                     form.endDate
                                                                 "
@@ -261,7 +251,10 @@
                                                                     'is-invalid':
                                                                         errors.endDate,
                                                                 }"
-                                                                :lower-limit="
+                                                                :enable-time-picker="
+                                                                    false
+                                                                "
+                                                                :min-date="
                                                                     form.startDate
                                                                 "
                                                             />
@@ -596,14 +589,6 @@ export default {
                     });
                 },
             });
-        },
-        toggleCollapse() {
-            const collapseHeader = this.$refs.collapseHeader;
-
-            if (collapseHeader) {
-                collapseHeader.classList.toggle("active");
-                document.body.classList.toggle("header-collapse");
-            }
         },
     },
 };

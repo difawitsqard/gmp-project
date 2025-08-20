@@ -25,18 +25,7 @@
                         ></a>
                     </li>
                     <li>
-                        <a
-                            ref="collapseHeader"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="top"
-                            title="Collapse"
-                            @click="toggleCollapse"
-                        >
-                            <i
-                                data-feather="chevron-up"
-                                class="feather-chevron-up"
-                            ></i>
-                        </a>
+                        <collapse-header-toggle />
                     </li>
                 </ul>
                 <div class="page-btn">
@@ -103,20 +92,13 @@
                     >
                         <div class="card-body pb-0">
                             <div class="row">
-                                <div class="col-lg-3 col-sm-6 col-12">
-                                    <div class="input-blocks">
-                                        <vue-feather
-                                            type="calendar"
-                                            class="info-img"
-                                        ></vue-feather>
-                                        <div class="input-groupicon">
-                                            <date-picker
-                                                v-model="filters.created"
-                                                placeholder="Pilih Tanggal Dibuat"
-                                                class="form-control"
-                                            />
-                                        </div>
-                                    </div>
+                                <div class="col-lg-3 col-sm-6 col-12 mb-3">
+                                    <date-picker
+                                        v-model="filters.created"
+                                        placeholder="Pilih Tanggal Dibuat"
+                                        :enable-time-picker="false"
+                                        format="dd MMM yyyy"
+                                    />
                                 </div>
                                 <div class="col-lg-3 col-sm-6 col-12 mb-3">
                                     <vue-select
@@ -435,14 +417,6 @@ export default {
                     }
                 },
             });
-        },
-
-        toggleCollapse() {
-            const collapseHeader = this.$refs.collapseHeader;
-            if (collapseHeader) {
-                collapseHeader.classList.toggle("active");
-                document.body.classList.toggle("header-collapse");
-            }
         },
     },
 };

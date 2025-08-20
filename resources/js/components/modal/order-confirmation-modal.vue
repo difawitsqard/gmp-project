@@ -21,7 +21,7 @@
                             <form @submit.prevent="submitForm">
                                 <div class="mb-3">
                                     <label class="form-label"
-                                        >Biaya Pengiriman (Ongkir)</label
+                                        >Biaya Pengiriman</label
                                     >
                                     <input
                                         type="number"
@@ -60,7 +60,7 @@
                                                 type="x"
                                                 class="me-2"
                                             />
-                                            Batalkan Pesanan
+                                            Batalkan
                                         </div>
                                     </button>
                                     <button
@@ -74,7 +74,7 @@
                                                 type="check"
                                                 class="me-2"
                                             />
-                                            Konfirmasi Pesanan
+                                            Konfirmasi
                                         </div>
                                     </button>
                                 </div>
@@ -142,6 +142,7 @@ export default {
         },
         async cancelOrder() {
             this.errors = {};
+            this.closeModal();
             const confirmed = await this.$swal.fire({
                 title: "Batalkan Pesanan",
                 text: "Apakah Anda yakin ingin membatalkan pesanan ini?",
@@ -169,6 +170,8 @@ export default {
                         },
                     }
                 );
+            } else {
+                this.showModal();
             }
         },
     },

@@ -1,7 +1,5 @@
 <template>
-    <Head
-        :title="hasRole('Staff Gudang') ? 'Pesanan Masuk' : 'Riwayat Pesanan'"
-    />
+    <Head :title="hasRole('Staff Gudang') ? 'Pesanan Masuk' : 'Pesanan'" />
     <layout-header></layout-header>
     <layout-sidebar></layout-sidebar>
 
@@ -14,7 +12,7 @@
                             {{
                                 hasRole("Staff Gudang")
                                     ? "Pesanan Masuk"
-                                    : "Riwayat Pesanan"
+                                    : "Pesanan"
                             }}
                         </h4>
                         <h6>
@@ -40,18 +38,7 @@
                         ></a>
                     </li>
                     <li>
-                        <a
-                            ref="collapseHeader"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="top"
-                            title="Collapse"
-                            @click="toggleCollapse"
-                        >
-                            <i
-                                data-feather="chevron-up"
-                                class="feather-chevron-up"
-                            ></i>
-                        </a>
+                        <collapse-header-toggle />
                     </li>
                 </ul>
                 <div class="page-btn" v-if="!hasRole('Staff Gudang')">
@@ -120,6 +107,17 @@
                     >
                         <div class="card-body pb-0">
                             <div class="row">
+                                <div class="col-lg-3 col-sm-6 col-12 mb-3">
+                                    <date-picker
+                                        v-model="filters.created"
+                                        :enable-time-picker="false"
+                                        format="yyyy-MM-dd"
+                                        placeholder="Pilih rentang tanggal"
+                                        :max-date="new Date()"
+                                        :disabled-date="disabledDate"
+                                        range
+                                    />
+                                </div>
                                 <div class="col-lg-2 col-sm-6 col-12 mb-3">
                                     <vue-select
                                         :options="OrderStatus"
@@ -127,7 +125,10 @@
                                         placeholder="Filter Status"
                                     />
                                 </div>
-                                <div class="col-lg-3 col-sm-6 col-12 mb-3">
+                                <div
+                                    v-if="!hasRole('Staff Gudang')"
+                                    class="col-lg-3 col-sm-6 col-12 mb-3"
+                                >
                                     <vue-select
                                         :options="OrderPaymentStatus"
                                         v-model="filters.payment_status"
@@ -152,7 +153,7 @@
                     <!-- /Filter -->
                     <div class="table-responsive">
                         <a-table
-                            :columns="columns"
+                            :columns="filteredColumns"
                             :data-source="orders.data"
                             :pagination="pagination"
                             @change="handleTableChange"
@@ -180,12 +181,22 @@
                                     <div>
                                         <span
                                             :class="`badge badge-${
-                                                getOrderStatus(record.status)
-                                                    .color
+                                                hasRole('Staff Gudang')
+                                                    ? getOrderStatusForWarehouse(
+                                                          record.status
+                                                      ).color
+                                                    : getOrderStatus(
+                                                          record.status
+                                                      ).color
                                             } rounded`"
                                             >{{
-                                                getOrderStatus(record.status)
-                                                    .label
+                                                hasRole("Staff Gudang")
+                                                    ? getOrderStatusForWarehouse(
+                                                          record.status
+                                                      ).label
+                                                    : getOrderStatus(
+                                                          record.status
+                                                      ).label
                                             }}</span
                                         >
                                     </div>
@@ -273,7 +284,12 @@
 <script>
 import { Head, Link } from "@inertiajs/vue3";
 import { useInertiaFiltersDynamic } from "@/composables/useInertiaFiltersDynamic";
-import { getOrderStatus, getAllOrderStatus } from "@/constants/orderStatus";
+import {
+    getOrderStatus,
+    getAllOrderStatus,
+    getOrderStatusForWarehouse,
+    getAllOrderStatusForWarehouse,
+} from "@/constants/orderStatus";
 import {
     getPaymentStatus,
     getAllPaymentStatus,
@@ -283,7 +299,7 @@ export default {
     setup() {
         const { filters, fetch, reset } = useInertiaFiltersDynamic(
             "orders.index",
-            ["search", "status", "payment_status"],
+            ["search", "status", "payment_status", "created"],
             { only: ["orders"] }
         );
 
@@ -306,7 +322,9 @@ export default {
     data() {
         return {
             filter: false,
-            OrderStatus: getAllOrderStatus(),
+            OrderStatus: this.hasRole("Staff Gudang")
+                ? getAllOrderStatusForWarehouse()
+                : getAllOrderStatus(),
             OrderPaymentStatus: getAllPaymentStatus(),
             columns: [
                 {
@@ -341,15 +359,17 @@ export default {
                     sorter: true,
                     customRender: ({ text }) =>
                         this.$helpers.formatRupiah(text),
+                    hideForWarehouse: true,
                 },
                 {
                     title: "Status Pembayaran",
                     dataIndex: "payment_status",
                     key: "payment_status",
                     sorter: false,
+                    hideForWarehouse: true,
                 },
                 {
-                    title: "Oleh",
+                    title: "Admin",
                     dataIndex: "uplink_id",
                     key: "uplink_id",
                     sorter: true,
@@ -373,6 +393,15 @@ export default {
     //     console.log(getAllOrderStatus());
     // },
     computed: {
+        filteredColumns() {
+            // Filter kolom berdasarkan role
+            if (this.hasRole("Staff Gudang")) {
+                return this.columns.filter(
+                    (column) => !column.hideForWarehouse
+                );
+            }
+            return this.columns;
+        },
         pagination() {
             return {
                 current: this.orders.current_page,
@@ -386,6 +415,7 @@ export default {
     },
     methods: {
         getOrderStatus,
+        getOrderStatusForWarehouse,
         getPaymentStatus,
         handleTableChange(pagination, filters, sorter) {
             this.filters.page = pagination.current;
@@ -400,14 +430,6 @@ export default {
             }
 
             this.fetch();
-        },
-        toggleCollapse() {
-            const collapseHeader = this.$refs.collapseHeader;
-
-            if (collapseHeader) {
-                collapseHeader.classList.toggle("active");
-                document.body.classList.toggle("header-collapse");
-            }
         },
         async cancelOrder(orderId, uuid) {
             const confirmed = await this.$swal.fire({
@@ -437,6 +459,10 @@ export default {
                     }
                 );
             }
+        },
+        disabledDate(date) {
+            // Disable semua tanggal setelah hari ini
+            return date > new Date();
         },
     },
 };

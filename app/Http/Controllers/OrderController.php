@@ -91,6 +91,7 @@ class OrderController extends Controller
         $perPage = is_numeric($request->per_page) ? $request->per_page :  12;
 
         $products = Product::filter()
+            ->Sorting()
             ->with(['category', 'unit'])
             ->orderBy('name', 'asc')
             ->paginate($perPage);
@@ -410,6 +411,9 @@ class OrderController extends Controller
             $order->note = $request->note;
         }
         $order->save();
+
+        // Send email notification that order has been processed
+        dispatch(new \App\Jobs\SendPaymentEmailJob($order, 'processed'));
 
         return back()->with('success', 'Status pesanan berhasil diperbarui.');
     }

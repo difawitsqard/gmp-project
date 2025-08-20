@@ -16,6 +16,42 @@
                         </h4>
                     </div>
                 </div>
+                <div class="row sales-cards">
+                    <div class="col-xl-7 col-sm-12 col-12">
+                        <div
+                            class="card d-flex align-items-center justify-content-between default-cover mb-4"
+                        >
+                            <div>
+                                <h6>Penghasilan Bulan Ini</h6>
+                                <h3>
+                                    <small>Rp.</small>
+                                    {{
+                                        $helpers.formatRupiah(
+                                            $page.props.dashboardData
+                                                .monthlyEarnings
+                                        )
+                                    }}
+                                </h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-5 col-sm-6 col-12 d-flex">
+                        <div class="dash-count bg-dark">
+                            <div class="dash-counts">
+                                <h4>
+                                    {{
+                                        $page.props.dashboardData
+                                            .monthlyCompletedOrders
+                                    }}
+                                </h4>
+                                <h5>Pesanan Selesai Bulan Ini</h5>
+                            </div>
+                            <div class="dash-imgs">
+                                <vue-feather type="shopping-cart"></vue-feather>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="row">
                     <div class="col-xl-3 col-sm-6 col-12 d-flex">
                         <div class="dash-count">
@@ -28,7 +64,7 @@
                                 <h5>Total Pelanggan</h5>
                             </div>
                             <div class="dash-imgs">
-                                <vue-feather type="shopping-cart"></vue-feather>
+                                <vue-feather type="users"></vue-feather>
                             </div>
                         </div>
                     </div>

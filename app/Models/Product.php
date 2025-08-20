@@ -87,7 +87,7 @@ class Product extends Model
             'stock_after' => $stockAfter,   // Tambahkan stok sesudah
             'note' => $note,
             'source_id' => $source?->id,
-            'source_type' => $source ? get_class($source) : 'manual_adjustment',
+            'source_type' => $source ? get_class($source) : null,
             'created_by' => auth()->id(),
             'batch_reference' => $batchReference,
         ]);
@@ -113,7 +113,7 @@ class Product extends Model
             'stock_after' => $stockAfter,   // Tambahkan stok sesudah
             'note' => $note,
             'source_id' => $source?->id,
-            'source_type' => $source ? get_class($source) : 'manual_adjustment',
+            'source_type' => $source ? get_class($source) : null,
             'created_by' => auth()->id(),
             'batch_reference' => $batchReference,
         ]);
@@ -203,6 +203,12 @@ class Product extends Model
                     ->select('products.*', DB::raw('COALESCE(SUM(order_items.quantity),0) as total_sold'))
                     ->groupBy('products.id')
                     ->orderByDesc('total_sold');
+            } elseif ($sort === 'highest_price') {
+                // harga tertinggi
+                $query->orderBy('price', 'desc');
+            } elseif ($sort === 'lowest_price') {
+                // harga terendah
+                $query->orderBy('price', 'asc');
             }
         });
 

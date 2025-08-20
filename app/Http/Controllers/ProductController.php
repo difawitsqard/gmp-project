@@ -5,12 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Unit;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use App\Models\ProductCategory;
+use Illuminate\Support\Facades\DB;
 use App\Services\ImageUploadService;
+
 use App\Http\Requests\ProductRequest;
 use App\Services\TimeSeriesValidationService;
-
-use Illuminate\Support\Carbon;
 
 class ProductController extends Controller
 {
@@ -81,16 +82,44 @@ class ProductController extends Controller
     public function store(ProductRequest $request)
     {
         $validatedData = $request->validated();
-        $product = Product::create($validatedData);
 
-        foreach ($request->images as $image) {
-            $imagePath = $this->imageUploadService->uploadImage($image, 'products');
-            $product->images()->create([
-                'image_path' => $imagePath,
-            ]);
+        DB::beginTransaction();
+        try {
+            // Simpan qty untuk stock transaction
+            $initialQty = $validatedData['qty'];
+
+            // Set qty awal menjadi 0, karena stok akan diatur melalui stock transaction
+            $validatedData['qty'] = 0;
+
+            $product = Product::create($validatedData);
+
+            // Handle image upload
+            foreach ($request->images as $image) {
+                $imagePath = $this->imageUploadService->uploadImage($image, 'products');
+                $product->images()->create([
+                    'image_path' => $imagePath,
+                ]);
+            }
+
+            // Tambahkan stock transaction untuk stok awal jika qty > 0
+            if ($initialQty > 0) {
+                $product->increaseStock(
+                    $initialQty,
+                    $product, // source adalah product itu sendiri
+                    "Stok awal produk {$product->name} ({$product->sku})",
+                    "INITIAL-STOCK-{$product->id}"
+                );
+            }
+
+            DB::commit();
+
+            return redirect()->route('products.index')->with('success', "Produk {$product->name} ({$product->sku}) berhasil ditambahkan.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors([
+                'error' => 'Gagal menambahkan produk: ' . $e->getMessage()
+            ])->withInput();
         }
-
-        return redirect()->route('products.index')->with('success', "Produk {$product->name} ({$product->sku}) berhasil ditambahkan.");
     }
 
     /**

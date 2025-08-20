@@ -28,18 +28,7 @@
                         ></a>
                     </li>
                     <li>
-                        <a
-                            ref="collapseHeader"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="top"
-                            title="Collapse"
-                            @click="toggleCollapse"
-                        >
-                            <i
-                                data-feather="chevron-up"
-                                class="feather-chevron-up"
-                            ></i>
-                        </a>
+                        <collapse-header-toggle />
                     </li>
                 </ul>
                 <div class="page-btn">
@@ -331,15 +320,6 @@ export default {
             }
 
             this.fetch();
-        },
-
-        toggleCollapse() {
-            const collapseHeader = this.$refs.collapseHeader;
-
-            if (collapseHeader) {
-                collapseHeader.classList.toggle("active");
-                document.body.classList.toggle("header-collapse");
-            }
         },
     },
 };

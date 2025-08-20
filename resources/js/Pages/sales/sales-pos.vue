@@ -21,7 +21,7 @@
                             type="shopping-cart"
                             class="feather-16"
                         ></vue-feather></span
-                    >Riwayat Pesanan</Link
+                    >Kelola Pesanan</Link
                 >
                 <a type="button" class="btn btn-info" @click="resetCart">
                     <span class="me-1 d-flex align-items-center"
@@ -97,10 +97,23 @@
                         </ul>
                         <div class="pos-products">
                             <div
-                                class="d-flex align-items-center justify-content-between mb-3"
+                                class="d-flex align-items-center justify-content-between mb-3 bg-white rounded-3 px-3 py-2"
                             >
                                 <h5 class="mb-0">Produk</h5>
+
                                 <div class="search-set">
+                                    <div class="form-sort me-3">
+                                        <vue-feather
+                                            type="sliders"
+                                            class="info-img me-3"
+                                        ></vue-feather>
+                                        <vue-select
+                                            :options="sortProduct"
+                                            v-model="filters.sort"
+                                            placeholder="Sortir"
+                                            id="sortfilter"
+                                        />
+                                    </div>
                                     <div
                                         class="search-input"
                                         style="margin-right: 0"
@@ -200,6 +213,10 @@
                                                     class="d-flex align-items-center justify-content-between price mb-2"
                                                 >
                                                     <span
+                                                        :class="{
+                                                            'text-danger':
+                                                                product.qty < 1,
+                                                        }"
                                                         >{{ product.qty }}
                                                         {{
                                                             product.unit.name
@@ -304,7 +321,7 @@
                                 {{ errors.customer_id[0] }}
                             </div>
                         </div>
-                        <div v-else>
+                        <div class="customer-info block-section" v-else>
                             <div
                                 class="d-flex align-items-center justify-content-between"
                             >
@@ -372,94 +389,107 @@
                                     >Hapus Semua</a
                                 >
                             </div>
+
                             <div class="product-wrap">
                                 <div
-                                    v-for="product in form.addedProducts"
-                                    :key="product.id"
-                                    class="product-list d-flex align-items-center justify-content-between"
+                                    v-if="!form.addedProducts.length"
+                                    class="d-flex justify-content-center align-items-center h-100"
                                 >
-                                    <div
-                                        class="d-flex align-items-center product-info"
-                                    >
-                                        <a
-                                            href="javascript:void(0);"
-                                            class="img-bg"
-                                        >
-                                            <img
-                                                v-lazy="product.image"
-                                                class="rounded me-2"
-                                                :alt="product.name"
-                                            />
-                                        </a>
-                                        <div class="info">
-                                            <span>{{ product.sku }}</span>
-                                            <h6>
-                                                <a href="javascript:void(0);">{{
-                                                    product.name
-                                                }}</a>
-                                            </h6>
-                                            <p>
-                                                Rp.
-                                                {{
-                                                    $helpers.formatRupiah(
-                                                        product.price
-                                                    )
-                                                }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div class="qty-item text-center">
-                                        <a
-                                            href="javascript:void(0);"
-                                            class="dec d-flex justify-content-center align-items-center"
-                                            @click="
-                                                product.qty > 1
-                                                    ? product.qty--
-                                                    : removeProduct(product)
-                                            "
-                                        >
-                                            <vue-feather
-                                                type="minus-circle"
-                                                class="feather-14"
-                                            ></vue-feather>
-                                        </a>
-                                        <input
-                                            type="text"
-                                            class="form-control text-center"
-                                            name="qty"
-                                            :value="product.qty"
-                                            readonly
-                                        />
-                                        <a
-                                            href="javascript:void(0);"
-                                            class="inc d-flex justify-content-center align-items-center"
-                                            @click="
-                                                product.qty < product.max_qty
-                                                    ? product.qty++
-                                                    : null
-                                            "
-                                        >
-                                            <vue-feather
-                                                type="plus-circle"
-                                                class="feather-14"
-                                            ></vue-feather>
-                                        </a>
-                                    </div>
-                                    <div
-                                        class="d-flex align-items-center action"
-                                    >
-                                        <a
-                                            class="btn-icon delete-icon confirm-text"
-                                            href="javascript:void(0);"
-                                            @click="removeProduct(product)"
-                                        >
-                                            <vue-feather
-                                                type="trash-2"
-                                                class="feather-14"
-                                            ></vue-feather>
-                                        </a>
+                                    <div class="text-center text-muted">
+                                        Belum ada produk yang ditambahkan.
                                     </div>
                                 </div>
+                                <template v-if="form.addedProducts.length">
+                                    <div
+                                        v-for="product in form.addedProducts"
+                                        :key="product.id"
+                                        class="product-list d-flex align-items-center justify-content-between"
+                                    >
+                                        <div
+                                            class="d-flex align-items-center product-info"
+                                        >
+                                            <a
+                                                href="javascript:void(0);"
+                                                class="img-bg"
+                                            >
+                                                <img
+                                                    v-lazy="product.image"
+                                                    class="rounded me-2"
+                                                    :alt="product.name"
+                                                />
+                                            </a>
+                                            <div class="info">
+                                                <span>{{ product.sku }}</span>
+                                                <h6>
+                                                    <a
+                                                        href="javascript:void(0);"
+                                                        >{{ product.name }}</a
+                                                    >
+                                                </h6>
+                                                <p>
+                                                    Rp.
+                                                    {{
+                                                        $helpers.formatRupiah(
+                                                            product.price
+                                                        )
+                                                    }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="qty-item text-center">
+                                            <a
+                                                href="javascript:void(0);"
+                                                class="dec d-flex justify-content-center align-items-center"
+                                                @click="
+                                                    product.qty > 1
+                                                        ? product.qty--
+                                                        : removeProduct(product)
+                                                "
+                                            >
+                                                <vue-feather
+                                                    type="minus-circle"
+                                                    class="feather-14"
+                                                ></vue-feather>
+                                            </a>
+                                            <input
+                                                type="text"
+                                                class="form-control text-center"
+                                                name="qty"
+                                                :value="product.qty"
+                                                readonly
+                                            />
+                                            <a
+                                                href="javascript:void(0);"
+                                                class="inc d-flex justify-content-center align-items-center"
+                                                @click="
+                                                    product.qty <
+                                                    product.max_qty
+                                                        ? product.qty++
+                                                        : null
+                                                "
+                                            >
+                                                <vue-feather
+                                                    type="plus-circle"
+                                                    class="feather-14"
+                                                ></vue-feather>
+                                            </a>
+                                        </div>
+                                        <div
+                                            class="d-flex align-items-center action"
+                                        >
+                                            <a
+                                                class="btn-icon delete-icon confirm-text"
+                                                href="javascript:void(0);"
+                                                @click="removeProduct(product)"
+                                            >
+                                                <vue-feather
+                                                    type="trash-2"
+                                                    class="feather-14"
+                                                ></vue-feather>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </template>
                             </div>
                         </div>
                         <transition name="fade">
@@ -726,7 +756,7 @@ export default {
     setup() {
         const { filters, fetch, reset } = useInertiaFiltersDynamic(
             "orders.create",
-            ["search", "category"],
+            ["search", "category", "sort"],
             { only: ["products"] }
         );
 
@@ -824,6 +854,14 @@ export default {
                 { value: 24, text: "24" },
             ],
 
+            sortProduct: [
+                { value: "bestseller", label: "Terlaris" },
+                { value: "newest", label: "Terbaru" },
+                { value: "latest", label: "Terlama" },
+                { value: "highest_price", label: "Harga Tertinggi" },
+                { value: "lowest_price", label: "Harga Terendah" },
+            ],
+
             hasPreviousPage: false,
             customerSelected: null,
             customerSelectedOpenModal: null,
@@ -870,30 +908,6 @@ export default {
     },
 
     methods: {
-        showConfirmation() {
-            Swal.fire({
-                title: "Are you sure?",
-                text: "You won't be able to revert this!",
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonColor: "#3085d6",
-                cancelButtonColor: "#d33",
-                confirmButtonText: "Yes, delete it!",
-                confirmButtonClass: "btn btn-primary",
-                cancelButtonClass: "btn btn-danger ml-1",
-                buttonsStyling: false,
-            }).then((result) => {
-                if (result.value) {
-                    Swal.fire({
-                        icon: "success",
-                        title: "Deleted!",
-                        text: "Your file has been deleted.",
-                        confirmButtonClass: "btn btn-success",
-                    });
-                }
-            });
-        },
-
         handlePageChange(newPage) {
             console.log("Page changed to:", newPage);
             this.filters.page = newPage;
@@ -907,7 +921,16 @@ export default {
         },
 
         addProduct(product) {
-            if (!product.qty || product.qty <= 0) return;
+            if (!product.qty || product.qty <= 0) {
+                this.$swal.fire({
+                    icon: "error",
+                    title: "Stok Habis",
+                    html: `Produk <strong>${product.name}(${product.sku})</strong> tidak tersedia`,
+                    timer: 2000,
+                    showConfirmButton: false,
+                });
+                return;
+            }
 
             const existingProductIndex = this.form.addedProducts.findIndex(
                 (p) => p.id === product.id
@@ -986,7 +1009,10 @@ export default {
                         )
                             ? this.$page.props.auth.user.id
                             : this.form.customer_id;
-                        this.$refs.userModal.showModal();
+
+                        if (!errors.customer_id) {
+                            this.$refs.userModal.showModal();
+                        }
                     } else {
                         Object.keys(errors).forEach((key) => {
                             const match = key.match(

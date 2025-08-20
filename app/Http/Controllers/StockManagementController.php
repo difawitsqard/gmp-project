@@ -26,7 +26,7 @@ class StockManagementController extends Controller
 
         $stockTransactions = stockTransaction::filter()
             ->sorting()
-            ->with(['product', 'product.unit', 'createdBy'])
+            ->with(['product', 'product.unit', 'createdBy', 'source'])
             ->paginate(10);
 
         return inertia(
@@ -147,7 +147,7 @@ class StockManagementController extends Controller
 
         $query = stockTransaction::filter()
             ->sorting()
-            ->with(['product', 'product.unit', 'createdBy']);
+            ->with(['product', 'product.unit', 'createdBy', 'source']);
 
         if ($productId) {
             $query->where('product_id', $productId);

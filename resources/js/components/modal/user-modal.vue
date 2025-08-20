@@ -199,7 +199,7 @@
 </template>
 
 <script>
-import { Link, router } from "@inertiajs/vue3";
+import { Link } from "@inertiajs/vue3";
 
 export default {
     components: {

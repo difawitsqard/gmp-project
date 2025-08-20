@@ -232,7 +232,7 @@
                                             <th>#</th>
                                             <th>Nama</th>
                                             <th>Prediksi</th>
-                                            <th>Tanggal</th>
+                                            <th>Periode</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -277,8 +277,15 @@
                                             <td>
                                                 {{
                                                     this.$helpers.formatDate(
-                                                        item.created_at,
-                                                        "DD MMMM YYYY HH:mm"
+                                                        item.input_start_date,
+                                                        "DD MMMM YYYY"
+                                                    )
+                                                }}
+                                                s/d
+                                                {{
+                                                    this.$helpers.formatDate(
+                                                        item.input_end_date,
+                                                        "DD MMMM YYYY"
                                                     )
                                                 }}
                                             </td>

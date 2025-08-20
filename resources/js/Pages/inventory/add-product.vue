@@ -8,11 +8,14 @@
             <div class="page-header">
                 <div class="add-item d-flex">
                     <div class="page-title">
-                        <h4>Produk Baru</h4>
+                        <h4>Tambah Produk</h4>
                         <h6>Buat produk baru</h6>
                     </div>
                 </div>
                 <ul class="table-top-head">
+                    <li>
+                        <collapse-header-toggle />
+                    </li>
                     <li>
                         <div class="page-btn">
                             <Link

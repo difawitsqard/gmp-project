@@ -22790,7 +22790,7 @@ span.badge.badges-warning {
 .profile-set .profile-head {
     height: 109px;
     background: linear-gradient(90deg, #0392de 0%, #da251e 100%);
-    border-radius: 0 10px 0 0;
+    border-radius: 10px 10px 0 0;
 }
 @media (max-width: 991.98px) {
     .profile-set .profile-head {
@@ -24726,10 +24726,6 @@ table tbody td.action-table-data a .add-checkbox {
     position: relative;
     z-index: 1;
     font-size: 20px;
-}
-
-.vue-feather__content {
-    width: 15px;
 }
 
 .ant-pagination-item.ant-pagination-item-active {

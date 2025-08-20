@@ -20,7 +20,8 @@
                         active:
                             route().current('products.index') ||
                             route().current('products.show') ||
-                            route().current('products.edit'),
+                            route().current('products.edit') ||
+                            route().current('products.create'),
                     }"
                 >
                     <Link :href="route('products.index')">
@@ -28,22 +29,7 @@
                         <span>Produk</span>
                     </Link>
                 </li>
-                <li :class="{ active: route().current('products.create') }">
-                    <Link :href="route('products.create')">
-                        <vue-feather type="plus-square" />
-                        <span>Buat Produk</span>
-                    </Link>
-                </li>
-                <li
-                    :class="{
-                        active: route().current('stock-management.index'),
-                    }"
-                >
-                    <Link :href="route('stock-management.index')">
-                        <vue-feather type="layers" />
-                        <span>Kelola Stok</span>
-                    </Link>
-                </li>
+
                 <li
                     :class="{
                         active: route().current('product-categories.index'),
@@ -62,6 +48,16 @@
                     <Link :href="route('units.index')">
                         <vue-feather type="speaker" />
                         <span>Satuan</span>
+                    </Link>
+                </li>
+                <li
+                    :class="{
+                        active: route().current('stock-management.index'),
+                    }"
+                >
+                    <Link :href="route('stock-management.index')">
+                        <vue-feather type="layers" />
+                        <span>Stok Produk</span>
                     </Link>
                 </li>
             </ul>
@@ -107,7 +103,7 @@
                 >
                     <Link :href="route('orders.index')">
                         <vue-feather type="file-text" />
-                        <span>Riwayat Pesanan</span>
+                        <span>Kelola Pesanan</span>
                     </Link>
                 </li>
             </ul>

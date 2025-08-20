@@ -15,17 +15,18 @@
                 <ul class="table-top-head">
                     <li>
                         <a
-                            ref="collapseHeader"
+                            @click="this.refreshData()"
                             data-bs-toggle="tooltip"
                             data-bs-placement="top"
-                            title="Collapse"
-                            @click="toggleCollapse"
-                        >
-                            <i
-                                data-feather="chevron-up"
-                                class="feather-chevron-up"
-                            ></i>
-                        </a>
+                            title="Refresh"
+                            ><vue-feather
+                                type="rotate-ccw"
+                                class="rotate-ccw"
+                            ></vue-feather
+                        ></a>
+                    </li>
+                    <li>
+                        <collapse-header-toggle />
                     </li>
                 </ul>
                 <div class="page-btn" v-show="order.canbe_cancelled">
@@ -61,7 +62,7 @@
                         >{{
                             hasRole("Staff Gudang")
                                 ? "Pesanan Masuk"
-                                : "Riwayat Pesanan"
+                                : "Kelola Pesanan"
                         }}</Link
                     >
                 </div>
@@ -84,78 +85,90 @@
             <div class="card">
                 <div class="card-body">
                     <form @submit.prevent="submitForm">
-                        <div class="row mb-3">
-                            <div
-                                class="col-12 col-sm-6 col-md-4 col-xl-4 pb-3 border-bottom mb-3"
-                            >
-                                <h4 class="mb-3">Detail Pesanan</h4>
+                        <div class="row mb-3 p-0">
+                            <div class="col-12 border-bottom mb-3">
                                 <div class="row">
-                                    <span class="col-6 mb-1">ID Pesanan</span>
-                                    <span class="col-6 fw-bold mb-1">
-                                        #{{ order.uuid }}
-                                    </span>
-                                    <span class="col-6 mb-1"
-                                        >Status Pesanan</span
+                                    <div
+                                        class="col-12 col-sm-6 col-md-4 col-xl-4 mb-3"
                                     >
-                                    <span class="col-6 mb-1">
-                                        <span
-                                            class="badge"
-                                            :class="
-                                                'bg-outline-' +
-                                                getOrderStatus(order.status)
-                                                    .color
-                                            "
-                                        >
-                                            {{
-                                                getOrderStatus(order.status)
-                                                    .label
-                                            }}
-                                        </span>
-                                    </span>
-                                    <span class="col-6 mb-1"
-                                        >Metode Pengiriman</span
-                                    >
-                                    <span class="col-6 mb-1">
-                                        {{
-                                            order.shipping_method
-                                                ? order.shipping_method
-                                                : "Belum dipilih"
-                                        }}
-                                    </span>
+                                        <h5 class="mb-3">Detail Pesanan</h5>
+                                        <div class="row">
+                                            <span class="col-6 mb-1"
+                                                >ID Pesanan</span
+                                            >
+                                            <span class="col-6 fw-bold mb-1">
+                                                {{ order.uuid }}
+                                            </span>
+                                            <span class="col-6 mb-1"
+                                                >Status Pesanan</span
+                                            >
+                                            <span class="col-6 mb-1">
+                                                <span
+                                                    class="badge"
+                                                    :class="
+                                                        'bg-outline-' +
+                                                        getOrderStatus(
+                                                            order.status
+                                                        ).color
+                                                    "
+                                                >
+                                                    {{
+                                                        getOrderStatus(
+                                                            order.status
+                                                        ).label
+                                                    }}
+                                                </span>
+                                            </span>
+                                            <span class="col-6 mb-1"
+                                                >Metode Pengiriman</span
+                                            >
+                                            <span class="col-6 mb-1">
+                                                {{
+                                                    order.shipping_method
+                                                        ? order.shipping_method
+                                                        : "Belum dipilih"
+                                                }}
+                                            </span>
 
-                                    <span class="col-6 mb-1"
-                                        >Tanggal Pesanan</span
+                                            <span class="col-6 mb-1"
+                                                >Tanggal Pesanan</span
+                                            >
+                                            <span class="col-6 mb-1">
+                                                {{
+                                                    dayjs(
+                                                        order.created_at
+                                                    ).format(
+                                                        "D MMMM YYYY HH:mm"
+                                                    )
+                                                }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="col-12 col-sm-6 col-md-4 col-xl-4 mb-3"
+                                        v-if="order.latest_payment"
                                     >
-                                    <span class="col-6 mb-1">
-                                        {{
-                                            dayjs(order.created_at).format(
-                                                "D MMMM YYYY HH:mm"
-                                            )
-                                        }}
-                                    </span>
-                                </div>
-                            </div>
-                            <div
-                                class="col-12 col-sm-6 col-md-4 col-xl-4 pb-3 border-bottom mb-3"
-                            >
-                                <h4 class="mb-3" v-if="order.latest_payment">
-                                    Detail Pembayaran
-                                </h4>
-                                <div class="row" v-if="order.latest_payment">
-                                    <span class="col-6 mb-1"
-                                        >Metode Pembayaran</span
-                                    >
-                                    <span class="col-6 mb-1">
-                                        {{
-                                            order.latest_payment?.payment_type
-                                                ? getPaymentInfo(
-                                                      order.latest_payment
-                                                          .payment_type
-                                                  ).label
-                                                : "Belum dipilih"
-                                        }}
-                                    </span>
-                                    <!-- <span class="col-6 mb-1"
+                                        <h5 class="mb-3">Detail Pembayaran</h5>
+                                        <div
+                                            class="row"
+                                            v-if="order.latest_payment"
+                                        >
+                                            <span class="col-6 mb-1"
+                                                >Metode Pembayaran</span
+                                            >
+                                            <span class="col-6 mb-1">
+                                                {{
+                                                    order.latest_payment
+                                                        ?.payment_type
+                                                        ? getPaymentInfo(
+                                                              order
+                                                                  .latest_payment
+                                                                  .payment_type
+                                                          ).label
+                                                        : "Belum dipilih"
+                                                }}
+                                            </span>
+                                            <!-- <span class="col-6 mb-1"
                                         >Status Pembayaran</span
                                     >
                                     <span class="col-6 mb-1">
@@ -175,68 +188,91 @@
                                             }}
                                         </span>
                                     </span> -->
-                                    <template
-                                        v-if="order.latest_payment?.paid_at"
+                                            <template
+                                                v-if="
+                                                    order.latest_payment
+                                                        ?.paid_at
+                                                "
+                                            >
+                                                <span class="col-6 mb-1"
+                                                    >Tanggal Pembayaran
+                                                </span>
+                                                <span class="col-6 mb-1">
+                                                    {{
+                                                        order.latest_payment
+                                                            .paid_at
+                                                            ? dayjs(
+                                                                  order
+                                                                      .latest_payment
+                                                                      .paid_at
+                                                              ).format(
+                                                                  "D MMMM YYYY HH:mm"
+                                                              )
+                                                            : "-"
+                                                    }}
+                                                </span>
+                                            </template>
+                                            <template
+                                                v-else-if="
+                                                    order.latest_payment
+                                                        ?.expired_at &&
+                                                    order.latest_payment
+                                                        ?.payment_type
+                                                "
+                                            >
+                                                <span class="col-6 mb-1"
+                                                    >Bayar Sebelum</span
+                                                >
+                                                <span class="col-6 mb-1">
+                                                    {{
+                                                        order.latest_payment
+                                                            ?.expired_at
+                                                            ? dayjs(
+                                                                  order
+                                                                      .latest_payment
+                                                                      .expired_at
+                                                              ).format(
+                                                                  "D MMMM YYYY HH:mm"
+                                                              )
+                                                            : "-"
+                                                    }}
+                                                </span>
+                                            </template>
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="col-12 col-sm-12 col-md-4 col-xl-4 mb-3"
                                     >
-                                        <span class="col-6 mb-1"
-                                            >Tanggal Pembayaran
-                                        </span>
-                                        <span class="col-6 mb-1">
-                                            {{
-                                                order.latest_payment.paid_at
-                                                    ? dayjs(
-                                                          order.latest_payment
-                                                              .paid_at
-                                                      ).format(
-                                                          "D MMMM YYYY HH:mm"
-                                                      )
-                                                    : "-"
-                                            }}
-                                        </span>
-                                    </template>
-                                    <template
-                                        v-else-if="
-                                            order.latest_payment?.expired_at &&
-                                            order.latest_payment?.payment_type
-                                        "
-                                    >
-                                        <span class="col-6 mb-1"
-                                            >Bayar Sebelum</span
-                                        >
-                                        <span class="col-6 mb-1">
-                                            {{
-                                                order.latest_payment?.expired_at
-                                                    ? dayjs(
-                                                          order.latest_payment
-                                                              .expired_at
-                                                      ).format(
-                                                          "D MMMM YYYY HH:mm"
-                                                      )
-                                                    : "-"
-                                            }}
-                                        </span>
-                                    </template>
+                                        <h5 class="mb-3">Detail Pelanggan</h5>
+                                        <address>
+                                            <strong>{{ order.name }}</strong
+                                            ><br />
+                                            {{ order.address }}<br />
+                                            Telepon: {{ order.phone }}<br />
+                                            Email: {{ order.email }}
+                                        </address>
+                                    </div>
                                 </div>
                             </div>
-                            <div
-                                class="col-12 col-sm-12 col-md-4 col-xl-4 pb-3 border-bottom mb-3"
-                            >
-                                <h4 class="mb-3">Detail Pelanggan</h4>
-                                <address>
-                                    <strong>{{ order.name }}</strong
-                                    ><br />
-                                    {{ order.address }}<br />
-                                    Telepon: {{ order.phone }}<br />
-                                    Email: {{ order.email }}
-                                </address>
+                            <div class="col-12 mb-2">
+                                <div class="mb-3" v-if="order.note">
+                                    <h5 class="mb-3">Catatan</h5>
+                                    <div
+                                        class="bg-light p-2 border text-muted font-monospace rounded"
+                                        style="white-space: pre-line"
+                                    >
+                                        {{ order.note }}
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-12">
-                                <h4 class="mb-3">Ringkasan Pesanan</h4>
+                                <h5 class="mb-3">Ringkasan Pesanan</h5>
                                 <div class="table-responsive no-pagination">
                                     <table class="table datanew">
                                         <thead class="thead-light">
                                             <tr>
                                                 <th>Produk</th>
+                                                <th>SKU</th>
                                                 <th>Qty</th>
                                                 <th>Harga</th>
                                                 <th>Total</th>
@@ -256,7 +292,11 @@
                                                             class="product-img stock-img"
                                                         >
                                                             <img
-                                                                v-lazy=""
+                                                                v-lazy="
+                                                                    item.product
+                                                                        .image_url
+                                                                "
+                                                                class="rounded"
                                                                 alt="product"
                                                             />
                                                         </a>
@@ -265,9 +305,21 @@
                                                             >{{
                                                                 item.product
                                                                     .name
-                                                            }}</a
-                                                        >
+                                                            }}
+                                                            <div
+                                                                class="text-muted mt-1"
+                                                            >
+                                                                {{
+                                                                    item.product
+                                                                        .category
+                                                                        .name
+                                                                }}
+                                                            </div>
+                                                        </a>
                                                     </div>
+                                                </td>
+                                                <td>
+                                                    {{ item.product.sku }}
                                                 </td>
                                                 <td>
                                                     {{ item.quantity }}
@@ -368,7 +420,7 @@
                             </div>
                         </div>
 
-                        <div class="border-top py-3 d-flex justify-content-end">
+                        <div class="py-3 d-flex justify-content-end">
                             <button
                                 v-if="
                                     order.latest_payment?.status === 'pending'

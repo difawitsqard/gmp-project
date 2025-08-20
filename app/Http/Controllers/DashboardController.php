@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Forecast;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -57,6 +58,17 @@ class DashboardController extends Controller
 
     private function dashboardAdmin()
     {
+        // Penghasilan bulan ini
+        $currentMonth = Carbon::now()->format('Y-m');
+        $monthlyEarnings = Order::whereRaw("DATE_FORMAT(created_at, '%Y-%m') = ?", [$currentMonth])
+            ->where('status', 'completed')
+            ->sum('total');
+
+        // pesanan selesai bulan ini
+        $completedOrders = Order::whereRaw("DATE_FORMAT(created_at, '%Y-%m') = ?", [$currentMonth])
+            ->where('status', 'completed')
+            ->count();
+
         $counts = [
             'totalCustomers' => User::whereHas('roles', function ($query) {
                 $query->where('name', 'Pelanggan');
@@ -67,6 +79,8 @@ class DashboardController extends Controller
             })->count(),
             'pendingConfirmation' => Order::where('status', 'waiting_confirmation')->count(),
             'completedOrders' => Order::where('status', 'completed')->count(),
+            'monthlyEarnings' => $monthlyEarnings,
+            'monthlyCompletedOrders' => $completedOrders
         ];
 
         return inertia(

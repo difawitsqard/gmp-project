@@ -14,18 +14,7 @@
                 </div>
                 <ul class="table-top-head">
                     <li>
-                        <a
-                            ref="collapseHeader"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="top"
-                            title="Collapse"
-                            @click="toggleCollapse"
-                        >
-                            <i
-                                data-feather="chevron-up"
-                                class="feather-chevron-up"
-                            ></i>
-                        </a>
+                        <collapse-header-toggle />
                     </li>
                 </ul>
                 <div class="page-btn"></div>

@@ -20,13 +20,11 @@
                         <div class="modal-body custom-modal-body">
                             <form @submit.prevent="submitProcess">
                                 <div class="mb-3">
-                                    <label class="form-label"
-                                        >Catatan (Opsional)</label
-                                    >
+                                    <label class="form-label">Catatan</label>
                                     <textarea
                                         v-model="note"
                                         class="form-control"
-                                        rows="2"
+                                        rows="4"
                                         placeholder="Masukkan catatan tambahan jika diperlukan"
                                     ></textarea>
                                 </div>
@@ -48,7 +46,7 @@
                                         type="submit"
                                         class="btn btn-primary"
                                     >
-                                        Ya, Tandai Telah Diproses
+                                        Ya, tandai telah diproses
                                     </button>
                                 </div>
                             </form>
@@ -92,26 +90,44 @@ export default {
                 this.errors.status = "Status pesanan harus dipilih.";
                 return;
             }
-            try {
-                await this.$inertia.post(
-                    this.route("orders.process", { id: this.orderId }),
-                    { status: this.processStatus, note: this.note },
-                    {
-                        onSuccess: () => {
-                            this.closeModal();
-                            this.$swal.fire({
-                                icon: "success",
-                                title: "Pesanan diproses!",
-                                text: "Status pesanan berhasil diperbarui.",
-                            });
-                        },
-                        onError: (err) => {
-                            this.errors = err;
-                        },
-                    }
-                );
-            } catch (e) {
-                this.errors.general = "Terjadi kesalahan, silakan coba lagi.";
+
+            this.closeModal();
+
+            // Tambahkan konfirmasi SweetAlert sebelum melanjutkan
+            const result = await this.$swal.fire({
+                text: "Sebelum melanjutkan pastikan kembali pesanan sudah diproses sesuai dengan rincian pesanan !",
+                icon: "info",
+                showCancelButton: true,
+                confirmButtonColor: "#3085d6",
+                cancelButtonColor: "#d33",
+                confirmButtonText: "Ya, lanjutkan",
+                cancelButtonText: "Batalkan",
+            });
+
+            // Hanya lanjutkan jika user mengkonfirmasi
+            if (result.isConfirmed) {
+                try {
+                    await this.$inertia.post(
+                        this.route("orders.process", { id: this.orderId }),
+                        { status: this.processStatus, note: this.note },
+                        {
+                            onSuccess: () => {
+                                this.closeModal();
+                                this.$swal.fire({
+                                    icon: "success",
+                                    title: "Pesanan diproses!",
+                                    text: "Status pesanan berhasil diperbarui.",
+                                });
+                            },
+                            onError: (err) => {
+                                this.errors = err;
+                            },
+                        }
+                    );
+                } catch (e) {
+                    this.errors.general =
+                        "Terjadi kesalahan, silakan coba lagi.";
+                }
             }
         },
     },

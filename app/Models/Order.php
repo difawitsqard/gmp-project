@@ -99,11 +99,41 @@ class Order extends Model
             });
         });
 
-        // filter by created_at
+        // filter by created_at date range
         $query->when(request()->filled('created') ?? false, function ($query) {
-            $s = request()->created;
-            $date = date('Y-m-d', strtotime(urldecode($s)));
-            $query->whereDate('created_at', $date);
+            $created = request()->created;
+
+            if (is_array($created) && count($created) >= 2) {
+                // Date range filter
+                $startDate = date('Y-m-d', strtotime($created[0]));
+                $endDate = date('Y-m-d', strtotime($created[1]));
+
+                // Pastikan end date tidak melebihi hari ini
+                $today = date('Y-m-d');
+                if ($endDate > $today) {
+                    $endDate = $today;
+                }
+
+                // Pastikan start date tidak melebihi end date
+                if ($startDate > $endDate) {
+                    $startDate = $endDate;
+                }
+
+                $query->whereDate('created_at', '>=', $startDate)
+                    ->whereDate('created_at', '<=', $endDate);
+            } else {
+                // Single date filter (fallback)
+                $date = is_array($created) ? $created[0] : $created;
+                $date = date('Y-m-d', strtotime(urldecode($date)));
+
+                // Pastikan tanggal tidak melebihi hari ini
+                $today = date('Y-m-d');
+                if ($date > $today) {
+                    $date = $today;
+                }
+
+                $query->whereDate('created_at', $date);
+            }
         });
     }
 

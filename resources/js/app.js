@@ -1,6 +1,4 @@
 import "./bootstrap";
-import "../css/app.css";
-import "../css/vue-multiselect.css";
 import * as helpers from "@/utils/helpers";
 
 import { isPreloading, skipNextPreload } from "./stores/preload";
@@ -18,7 +16,8 @@ import Vue3Autocounter from "vue3-autocounter";
 import VueApexCharts from "vue3-apexcharts";
 import VueSelect from "vue3-select-component";
 import VueMultiSelect from "vue-multiselect";
-import DatePicker from "vue3-datepicker";
+//import DatePicker from "vue3-datepicker";
+import DatePicker from "@vuepic/vue-datepicker";
 import StarRating from "vue-star-rating";
 import Antd from "ant-design-vue";
 import VueFeather from "vue-feather";
@@ -41,10 +40,12 @@ import SideSettings from "@/Layouts/side-settings.vue";
 
 /********* Breadcrumb component**********/
 import Breadcrumb from "@/components/breadcrumb/layout-breadcrumb.vue";
+import CollapseHeaderToggle from "@/components/CollapseHeaderToggle.vue";
 
 import "@fontsource/montserrat";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
+import "@vuepic/vue-datepicker/dist/main.css";
 import "boxicons/css/boxicons.min.css";
 import "sweetalert2/dist/sweetalert2.min.css";
 import "pe7-icon/dist/dist/pe-icon-7-stroke.css";
@@ -53,6 +54,9 @@ import "weathericons/css/weather-icons.css";
 import "ionicons-npm/css/ionicons.css";
 import "@/assets/css/feather.css";
 import "@/assets/css/style.css";
+
+import "../css/app.css";
+import "../css/vue-multiselect.css";
 
 const appName = import.meta.env.VITE_APP_NAME || "Laravel";
 
@@ -95,6 +99,7 @@ createInertiaApp({
         app.component("settings-sidebar", Settings_Sidebar);
         app.component("horizontal-sidebar", Horizontal_Sidebar);
         app.component("side-settings", SideSettings);
+        app.component("collapse-header-toggle", CollapseHeaderToggle);
 
         /********* Breadcrumb component**********/
         app.component("layout-breadcrumb", Breadcrumb);

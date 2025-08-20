@@ -12,12 +12,13 @@
                 >
                     <i class="fas fa-shield-check text-secondary me-3"></i>
                     <div>
-                        <span class="fw-semibold"
+                        Kriteria data untuk hasil prediksi terbaik
+                        <!-- <span class="fw-semibold"
                             >Tips Mendapatkan Prediksi yang Akurat</span
                         >
                         <small class="d-block text-muted"
                             >Kriteria data untuk hasil prediksi terbaik</small
-                        >
+                        > -->
                     </div>
                 </button>
             </h2>

@@ -88,15 +88,8 @@
                 </template>
 
                 <template v-else-if="column.key === 'type'">
-                    <span
-                        class="badge"
-                        :class="
-                            record.type === 'in' ? 'bg-success' : 'bg-danger'
-                        "
-                    >
-                        {{
-                            record.type === "in" ? "Penambahan" : "Pengurangan"
-                        }}
+                    <span class="badge" :class="getTypeBadgeClass(record)">
+                        {{ getTypeLabel(record) }}
                     </span>
                 </template>
 
@@ -110,13 +103,21 @@
                 </template>
 
                 <template v-else-if="column.key === 'note'">
+                    <div v-if="isFromOrder(record)">
+                        <Link
+                            :href="route('orders.show', record.source.uuid)"
+                            class="text-primary text-decoration-underline"
+                        >
+                            #{{ record.source.uuid }}
+                        </Link>
+                    </div>
                     <a
+                        v-else-if="record.note"
                         href="javascript:void(0);"
                         class="view-note"
                         data-bs-toggle="modal"
                         data-bs-target="#vieNoteModal"
                         @click="prepareNoteModal(record.note)"
-                        v-if="record.note"
                     >
                         Lihat Catatan
                     </a>
@@ -258,7 +259,7 @@ export default {
                     sorter: false,
                 },
                 {
-                    title: "Catatan",
+                    title: "Catatan/Referensi",
                     dataIndex: "note",
                     key: "note",
                     sorter: false,
@@ -338,7 +339,7 @@ export default {
                     params.product_id = this.productId;
                 }
                 const res = await axios.get(this.apiUrl, { params });
-                this.transactions = res.data; // <-- perbaiki di sini
+                this.transactions = res.data;
             } catch (e) {
                 // handle error
             } finally {
@@ -362,6 +363,22 @@ export default {
         },
         prepareNoteModal(note) {
             this.noteText = note || "Tidak ada catatan.";
+        },
+        isFromOrder(record) {
+            console.log(record.source); // Debugging line to check source type and source
+            return record.source_type === "App\\Models\\Order" && record.source;
+        },
+        getTypeLabel(record) {
+            if (this.isFromOrder(record)) {
+                return "Terjual";
+            }
+            return record.type === "in" ? "Penambahan" : "Pengurangan";
+        },
+        getTypeBadgeClass(record) {
+            if (this.isFromOrder(record)) {
+                return "bg-warning text-dark";
+            }
+            return record.type === "in" ? "bg-success" : "bg-danger";
         },
     },
     mounted() {
