@@ -40,10 +40,29 @@ class ForecastProductJob implements ShouldQueue
             $forecast = $nixtla->forecast($this->seriesChunk, $this->options);
 
             foreach ($forecast as $productId => $forecastData) {
+                // $forecastData format: ['2025-01-06' => '-81.72002', ...]
+                // Jadikan angka, clamp <1 => 0, dan (opsional) bulatkan.
+                $filtered = array_map(function ($v) {
+                    $x = is_numeric($v) ? (float)$v : 0.0;
+
+                    // Handle NaN/Inf jika ada
+                    if (!is_finite($x)) {
+                        $x = 0.0;
+                    }
+
+                    // Kriteria kamu: di bawah 1 ATAU minus => 0
+                    $x = ($x < 1) ? 0.0 : $x;
+
+                    // Jika butuh integer unit, aktifkan pembulatan:
+                    // $x = (float) round($x);   // atau (int) round($x);
+
+                    return $x; // biarkan numeric agar JSON menyimpan angka, bukan string
+                }, $forecastData ?? []);
+
                 \App\Models\ForecastResult::create([
                     'forecast_id' => $this->forecastId,
                     'product_id' => $productId,
-                    'predictions' => $forecastData ? json_encode($forecastData) : json_encode([]),
+                    'predictions' => json_encode($filtered, JSON_UNESCAPED_UNICODE),
                 ]);
             }
 
