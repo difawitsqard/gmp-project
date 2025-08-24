@@ -7680,12 +7680,31 @@ td.ant-table-column-sort {
     border: 1px solid #0d6efd;
 }
 
+.chart-container1 {
+    position: relative;
+    height: 350px;
+}
+
+.chart-container2 {
+    position: relative;
+    height: 138px;
+}
+
 .dash-count .dash-counts h4 {
     color: #fff;
 }
 
 .dash-count .dash-counts h5 {
     color: #fff;
+}
+
+.dash-count {
+    transition: all 0.3s ease;
+}
+
+.dash-count:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .datatableIndex .ant-pagination {

@@ -147,7 +147,7 @@
                                             @click="addProduct(product)"
                                         >
                                             <div
-                                                class="product-info default-cover card pt-3 h-100"
+                                                class="product-info default-cover card pt-3 h-100 ribbone-card"
                                                 :class="{
                                                     active: form.addedProducts.some(
                                                         (p) =>
@@ -155,6 +155,14 @@
                                                     ),
                                                 }"
                                             >
+                                                <div
+                                                    class="ribbone ribbone-top-left text-primary"
+                                                    v-if="product.qty < 1"
+                                                >
+                                                    <span class="bg-danger"
+                                                        >Habis</span
+                                                    >
+                                                </div>
                                                 <!-- buat seperti footer disini ada rincian produk tombol -->
                                                 <div
                                                     class="d-flex justify-content-between align-items-center mb-3"
@@ -832,7 +840,7 @@ export default {
     computed: {
         subtotal() {
             return this.form.addedProducts.reduce(
-                (total, product) => total + product.qty * product.price,
+                (total, product) => total + product.qty * Number(product.price),
                 0
             );
         },

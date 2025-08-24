@@ -332,7 +332,7 @@ class OrderController extends Controller
      */
     public function show(string $uuid)
     {
-        $order = Order::with('items.product')->where('uuid', $uuid)->firstOrFail();
+        $order = Order::with('items.product', 'uplink', 'processedBy')->where('uuid', $uuid)->firstOrFail();
         $order->load('items.product.category', 'items.product.unit', 'latestPayment', 'taxes');
 
         //$midtransService = new MidtransService();

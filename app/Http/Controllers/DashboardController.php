@@ -60,14 +60,18 @@ class DashboardController extends Controller
     {
         // Penghasilan bulan ini
         $currentMonth = Carbon::now()->format('Y-m');
-        $monthlyEarnings = Order::whereRaw("DATE_FORMAT(created_at, '%Y-%m') = ?", [$currentMonth])
-            ->where('status', 'completed')
-            ->sum('total');
 
-        // pesanan selesai bulan ini
-        $completedOrders = Order::whereRaw("DATE_FORMAT(created_at, '%Y-%m') = ?", [$currentMonth])
-            ->where('status', 'completed')
-            ->count();
+        // Get daily order data for the current month
+        $orderDailyData = Order::select(
+            DB::raw('DATE(created_at) as date'),
+            DB::raw('COUNT(*) as total_orders'),
+            DB::raw('SUM(total) as total_revenue')
+        )
+            ->whereRaw("DATE_FORMAT(created_at, '%Y-%m') = ?", [$currentMonth])
+            ->whereIn('status', ['completed', 'waiting_processing'])
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->orderBy('date')
+            ->get();
 
         $counts = [
             'totalCustomers' => User::whereHas('roles', function ($query) {
@@ -79,8 +83,7 @@ class DashboardController extends Controller
             })->count(),
             'pendingConfirmation' => Order::where('status', 'waiting_confirmation')->count(),
             'completedOrders' => Order::where('status', 'completed')->count(),
-            'monthlyEarnings' => $monthlyEarnings,
-            'monthlyCompletedOrders' => $completedOrders
+            'orderDailyCurrentMonth' => $orderDailyData,
         ];
 
         return inertia(
@@ -90,7 +93,6 @@ class DashboardController extends Controller
             ]
         );
     }
-
     private function dashboardManajerStok()
     {
         // 5 produk terlaris

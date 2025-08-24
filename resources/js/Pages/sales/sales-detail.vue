@@ -142,6 +142,26 @@
                                                     )
                                                 }}
                                             </span>
+
+                                            <template v-if="order.uplink">
+                                                <span class="col-6 mb-1"
+                                                    >Dibuat Oleh Admin</span
+                                                >
+                                                <span class="col-6 mb-1">
+                                                    {{ order.uplink.name }}
+                                                </span>
+                                            </template>
+
+                                            <template v-if="order.processed_by">
+                                                <span class="col-6 mb-1"
+                                                    >Diproses Oleh</span
+                                                >
+                                                <span class="col-6 mb-1">
+                                                    {{
+                                                        order.processed_by.name
+                                                    }}
+                                                </span>
+                                            </template>
                                         </div>
                                     </div>
                                     <div

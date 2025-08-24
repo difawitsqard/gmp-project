@@ -8,6 +8,7 @@ use App\Jobs\SendPaymentEmailJob;
 use App\Services\MidtransService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -18,9 +19,12 @@ class ProcessPaymentJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    // retry dan backoff
+    public $tries = 3;
+    public $backoff = [30, 60, 120];
+
     protected $midtransUuid;
     protected $notification;
-    protected $midtransService;
 
     /**
      * Create a new job instance.
@@ -36,6 +40,32 @@ class ProcessPaymentJob implements ShouldQueue
      */
     public function handle(MidtransService $midtransService)
     {
+        // Generate ID unik untuk notifikasi
+        $transactionId = $this->notification->transaction_id ?? null;
+        $orderStatus = $this->notification->transaction_status ?? 'unknown';
+
+        // Jika tidak ada transaction_id, gunakan kombinasi order_id dan status
+        $notificationId = $transactionId
+            ? "midtrans-{$transactionId}-{$orderStatus}"
+            : "midtrans-{$this->midtransUuid}-{$orderStatus}";
+
+        // Periksa apakah notifikasi ini sudah pernah diproses
+        // Cache::add() hanya berhasil jika key belum ada
+        $isFirstProcess = Cache::add($notificationId, true, 10080); // TTL 7 hari (menit)
+
+        if (!$isFirstProcess) {
+            Log::info("Notifikasi pembayaran sudah diproses: {$notificationId}, status: {$orderStatus}");
+            return;
+        }
+
+        // Log untuk audit trail
+        Log::info("Memproses notifikasi pembayaran", [
+            'notification_id' => $notificationId,
+            'order_id' => $this->midtransUuid,
+            'status' => $orderStatus
+        ]);
+
+        // Proses pembayaran (kode yang sudah ada)
         DB::beginTransaction();
         try {
             $order = Order::whereHas('payments', function ($q) {
@@ -90,7 +120,15 @@ class ProcessPaymentJob implements ShouldQueue
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("ProcessPaymentJob error for {$this->midtransUuid}: " . $e->getMessage());
+
+            if ($this->attempts() >= $this->tries) {
+                Log::error("Kegagalan final untuk {$notificationId}: " . $e->getMessage());
+            } else {
+                // Jika masih ada retry, hapus dari cache agar bisa dicoba lagi
+                Cache::forget($notificationId);
+                Log::warning("Gagal memproses {$notificationId}, akan dicoba lagi: " . $e->getMessage());
+            }
+
             throw $e;
         }
     }
@@ -237,7 +275,7 @@ class ProcessPaymentJob implements ShouldQueue
                 foreach ($otherOrders as $otherOrder) {
                     $otherOrder->update([
                         'status' => 'cancelled',
-                        'note' => 'Stok produk habis, pesanan dibatalkan'
+                        'note' => "'Beberapa produk habis pada pesanan ini, pesanan anda dibatalkan'"
                     ]);
 
                     if ($otherOrder->latestPayment) {

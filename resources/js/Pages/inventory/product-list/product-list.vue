@@ -208,6 +208,16 @@
                                     </div>
                                 </template>
 
+                                <template
+                                    v-else-if="column.key === 'total_sold'"
+                                >
+                                    {{ record.total_sold ?? 0 }}
+                                    {{
+                                        record.unit.short_name ??
+                                        record.unit.name
+                                    }}
+                                </template>
+
                                 <template v-else-if="column.key === 'qty'">
                                     <div
                                         class="fw-bold"
@@ -386,6 +396,12 @@ export default {
                 {
                     title: "SKU",
                     dataIndex: "sku",
+                    sorter: false,
+                },
+                {
+                    title: "Terjual",
+                    dataIndex: "total_sold",
+                    key: "total_sold",
                     sorter: false,
                 },
                 {

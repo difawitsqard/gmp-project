@@ -48,3 +48,13 @@ export function timeAgo(dateString) {
 export function formatDateRange(startDate, endDate, format = "D MMMM YYYY") {
     return `${formatDate(startDate, format)} - ${formatDate(endDate, format)}`;
 }
+
+// helper untuk membuat nama jadi singkat kalo terlalu panjang
+// contoh Bajragin Koko Prayoga => Bajragin K. P.
+export function abbreviateName(name) {
+    const parts = name.split(" ");
+    if (parts.length > 2) {
+        return `${parts[0]} ${parts[1].charAt(0)}. ${parts[2].charAt(0)}.`;
+    }
+    return name;
+}

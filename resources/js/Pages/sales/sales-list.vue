@@ -337,6 +337,12 @@ export default {
                     dataIndex: "name",
                     key: "name",
                     sorter: true,
+                    customRender: ({ text }) => {
+                        if (text && text.length > 15) {
+                            return this.$helpers.abbreviateName(text);
+                        }
+                        return text;
+                    },
                 },
                 {
                     title: "Tanggal",

@@ -119,6 +119,16 @@ class Product extends Model
         ]);
     }
 
+    public function scopeWithTotalSold($query)
+    {
+        return $query->withSum(['orderItems as total_sold' => function ($query) {
+            $query->whereHas('order', function ($q) {
+                $q->where('status', 'waiting_processing')
+                    ->orWhere('status', 'completed');
+            });
+        }], 'quantity');
+    }
+
     //scope
     public function scopeFilter($query)
     {
@@ -198,11 +208,10 @@ class Product extends Model
             } elseif ($sort === 'latest') {
                 $query->orderBy('created_at', 'asc');
             } elseif ($sort === 'bestseller') {
-                // Sorting berdasarkan total quantity terjual
-                $query->leftJoin('order_items', 'products.id', '=', 'order_items.product_id')
-                    ->select('products.*', DB::raw('COALESCE(SUM(order_items.quantity),0) as total_sold'))
-                    ->groupBy('products.id')
-                    ->orderByDesc('total_sold');
+                // First ensure we have the total_sold data
+                $query->withTotalSold();
+                // Then order by it (using the optimized calculation)
+                $query->orderByDesc('total_sold');
             } elseif ($sort === 'highest_price') {
                 // harga tertinggi
                 $query->orderBy('price', 'desc');

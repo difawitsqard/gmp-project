@@ -42,12 +42,26 @@
                                         <h4>Deskripsi</h4>
                                         <div
                                             class="p-2"
-                                            v-html="product.description"
+                                            v-html="
+                                                product.description
+                                                    ? product.description
+                                                    : 'Tidak ada deskripsi'
+                                            "
                                         ></div>
                                     </li>
                                     <li>
                                         <h4>SKU</h4>
                                         <h6>{{ product.sku }}</h6>
+                                    </li>
+                                    <li>
+                                        <h4>Terjual</h4>
+                                        <h6>
+                                            {{ product.total_sold }}
+                                            {{
+                                                product.unit.short_name ??
+                                                product.unit.name
+                                            }}
+                                        </h6>
                                     </li>
                                     <li>
                                         <h4>Kategori</h4>
