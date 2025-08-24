@@ -4,9 +4,10 @@ namespace Database\Seeders;
 
 use App\Models\Unit;
 use App\Models\Product;
+use Illuminate\Support\Carbon;
 use App\Models\ProductCategory;
-use App\Models\StockTransaction;
 use Illuminate\Database\Seeder;
+use App\Models\StockTransaction;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 
@@ -48,8 +49,11 @@ class ProductSeeder extends Seeder
             ->map(function ($row, $i) use ($categoryMap, $unitMap, $unitShortNames, $randomDateTime) {
                 $kategori = strtoupper(trim($row['D'] ?? ''));
                 $nama_barang = trim($row['E'] ?? '');
+                $tanggal = trim($row['B'] ?? '');
                 $rawSatuan = strtoupper(trim($row['G'] ?? ''));
                 $hargaStr = trim($row['H'] ?? '');
+
+                $orderDate = Carbon::parse($tanggal);
 
                 // Bersihkan harga dari simbol
                 $harga = (int) preg_replace('/[^0-9]/', '', $hargaStr) / 100;
@@ -82,8 +86,8 @@ class ProductSeeder extends Seeder
                     'unit_id' => $unitMap[$satuan],
                     'price' => $harga,
                     //'tax' => 11,
-                    'created_at' => $randomDateTime,
-                    'updated_at' => $randomDateTime,
+                    'created_at' =>           $orderDate,
+                    'updated_at' =>            $orderDate,
                 ];
             })
             ->filter()

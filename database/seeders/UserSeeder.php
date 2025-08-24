@@ -14,6 +14,13 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
+        $startDate = \Carbon\Carbon::create(2025, 7, 24, 0, 0, 0); // July 24, 2025 at 00:00:00
+        $endDate = \Carbon\Carbon::create(2025, 7, 29, 0, 0, 0); // July 29, 2025 at 00:00:00
+
+        $randomDateTime = \Carbon\Carbon::createFromTimestamp(
+            rand($startDate->timestamp, $endDate->timestamp)
+        );
+
         $roles = Role::pluck('name');
 
         foreach ($roles as $roleName) {
@@ -21,6 +28,8 @@ class UserSeeder extends Seeder
             $user = User::factory()->create([
                 'name' => $roleName . ' User',
                 'email' => strtolower(str_replace(' ', '', $roleName)) . '@example.com',
+                'created_at' => $randomDateTime,
+                'updated_at' => $randomDateTime,
             ]);
 
             // Assign role ke user
@@ -56,6 +65,8 @@ class UserSeeder extends Seeder
                 'password' => $userData['password'],
                 'phone' => null,
                 'address' => null,
+                'created_at' => $randomDateTime,
+                'updated_at' => $randomDateTime,
             ]);
             $user->assignRole($userData['role']);
         }

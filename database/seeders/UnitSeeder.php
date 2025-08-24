@@ -5,40 +5,39 @@ namespace Database\Seeders;
 use App\Models\Unit;
 use Illuminate\Database\Seeder;
 use PhpOffice\PhpSpreadsheet\IOFactory;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Support\Carbon;
 
 class UnitSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $path = storage_path('import/DATA_PENJUALAN_2024.xlsx');
         $spreadsheet = IOFactory::load($path);
         $sheet = $spreadsheet->getSheetByName('DATA');
-        $rows = $sheet->toArray(null, true, true, true); // gunakan kolom huruf
+        $rows = $sheet->toArray(null, true, true, true);
 
-        $units = collect($rows)
-            ->skip(1) // skip header
-            ->pluck('G') // kolom G = UoM
-            ->filter()
-            ->map(fn($v) => strtoupper(trim($v))) // normalisasi kode satuan
-            ->unique()
-            ->map(function ($code) {
+        // Ambil unit dan tanggal pertama kali muncul (G = unit, B = tanggal)
+        $unitDates = collect($rows)
+            ->skip(1)
+            ->filter(fn($row) => !empty($row['G']) && !empty($row['B']))
+            ->groupBy(function ($row) {
+                return strtoupper(trim($row['G']));
+            })
+            ->map(function ($items, $code) {
+                $firstDate = collect($items)->pluck('B')->sort()->first();
                 return [
-                    'name' => ucfirst(strtolower($code)),  // hasilkan nama otomatis dari kode
+                    'name' => ucfirst(strtolower($code)),
                     'short_name' => $code,
                     'status' => true,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'created_at' => \Carbon\Carbon::parse($firstDate),
+                    'updated_at' => \Carbon\Carbon::parse($firstDate),
                 ];
             })
             ->values()
             ->toArray();
 
-        Unit::insert($units);
+        Unit::insert($unitDates);
 
-        echo count($units) . " unit berhasil diimport langsung dari Excel.\n";
+        echo count($unitDates) . " unit berhasil diimport langsung dari Excel.\n";
     }
 }
