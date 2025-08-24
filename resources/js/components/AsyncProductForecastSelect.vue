@@ -44,11 +44,7 @@
                         <!-- Forecast Eligibility Badge -->
                         <span
                             v-if="option.forecast_eligibility"
-                            :class="
-                                getForecastEligibilityBadgeClass(
-                                    option.forecast_eligibility
-                                )
-                            "
+                            class="forecast-eligibility-badge badge-ratio"
                         >
                             Data Tidak Nol
                             {{ option.forecast_eligibility.non_zero_ratio }}%
@@ -74,36 +70,43 @@
                         <small>{{ option.forecast_eligibility.reason }}</small>
                     </div>
                 </div>
-
-                <!-- Quality Score Indicator -->
-                <div
-                    v-if="option.forecast_eligibility"
-                    class="quality-indicator"
+                <!-- TOMBOL LIHAT CHART -->
+                <button
+                    class="btn btn-sm btn-outline-secondary mt-2"
+                    type="button"
+                    @click.stop="openChart(option)"
                 >
-                    <div class="quality-score">
-                        {{ option.forecast_eligibility.data_quality_score }}%
-                    </div>
-                    <div class="quality-bar">
-                        <div
-                            class="quality-fill"
-                            :style="{
-                                width:
-                                    option.forecast_eligibility
-                                        .data_quality_score + '%',
-                                backgroundColor: getQualityColor(
-                                    option.forecast_eligibility
-                                        .data_quality_score
-                                ),
-                            }"
-                        ></div>
-                    </div>
-                </div>
+                    <i class="fas fa-chart-line me-1"></i> Lihat Data
+                </button>
             </div>
         </template>
     </vue-multiselect>
+
+    <teleport to="body">
+        <TimeSeriesChartModal
+            v-if="showChartModal"
+            :key="
+                chartProductId +
+                '-' +
+                startDate +
+                '-' +
+                endDate +
+                '-' +
+                frequency
+            "
+            :show="showChartModal"
+            :product-id="chartProductId"
+            :product-name="chartProductName"
+            :start-date="startDate"
+            :end-date="endDate"
+            :frequency="frequency"
+            @close="showChartModal = false"
+        />
+    </teleport>
 </template>
 
 <script>
+import TimeSeriesChartModal from "./modal/TimeSeriesChartModal.vue";
 import { debounce } from "lodash";
 
 export default {
@@ -130,8 +133,19 @@ export default {
             default: () => [],
         },
     },
+    emits: [
+        "update:modelValue",
+        "update:startDate",
+        "update:endDate",
+        "update:frequency",
+    ],
+    components: { TimeSeriesChartModal },
     data() {
         return {
+            showChartModal: false,
+            chartProductId: null,
+            chartProductName: "",
+
             selected: this.modelValue,
             options: [],
             isLoading: false,
@@ -139,6 +153,7 @@ export default {
             lastQuery: "",
             hasMorePages: true,
             placeholderImage: "/uploads/images/placeholder-image.webp",
+            isReverting: false,
         };
     },
     watch: {
@@ -148,13 +163,43 @@ export default {
         selected(val) {
             this.$emit("update:modelValue", val);
         },
-        startDate() {
-            this.resetAndSearch();
+        // Remove the duplicate simple handlers and only keep the confirmation ones
+        startDate(newDate, oldDate) {
+            // Skip if we're in the process of reverting
+            if (this.isReverting) return;
+
+            // Only confirm if there are selected products and the date actually changed
+            if (
+                this.selected &&
+                this.selected.length > 0 &&
+                this.datesAreDifferent(newDate, oldDate)
+            ) {
+                this.confirmDateChange("tanggal mulai", newDate, oldDate);
+            } else {
+                this.resetAndSearch();
+            }
+            this.previousStartDate = newDate;
         },
-        endDate() {
-            this.resetAndSearch();
+        endDate(newDate, oldDate) {
+            // Skip if we're in the process of reverting
+            if (this.isReverting) return;
+
+            // Only confirm if there are selected products and the date actually changed
+            if (
+                this.selected &&
+                this.selected.length > 0 &&
+                this.datesAreDifferent(newDate, oldDate)
+            ) {
+                this.confirmDateChange("tanggal akhir", newDate, oldDate);
+            } else {
+                this.resetAndSearch();
+            }
+            this.previousEndDate = newDate;
         },
         frequency(newFrequency, oldFrequency) {
+            // Skip if we're in the process of reverting
+            if (this.isReverting) return;
+
             // Jika ada produk yang sudah dipilih dan frequency berubah
             if (
                 this.selected &&
@@ -176,10 +221,85 @@ export default {
         }
     },
     methods: {
+        // Check if dates are actually different (to avoid unnecessary resets)
+        datesAreDifferent(date1, date2) {
+            if (!date1 && !date2) return false;
+            if (!date1 || !date2) return true;
+
+            // Convert to string format for comparison
+            const d1 = new Date(date1).toISOString().split("T")[0];
+            const d2 = new Date(date2).toISOString().split("T")[0];
+
+            return d1 !== d2;
+        },
+
+        // Format date for display in confirmation dialog
+        formatDateForDisplay(date) {
+            if (!date) return "tidak ada";
+
+            const d = new Date(date);
+            return d.toLocaleDateString("id-ID", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+            });
+        },
+
+        // Confirmation dialog for date changes
+        async confirmDateChange(dateType, newDate, oldDate) {
+            const formattedOldDate = this.formatDateForDisplay(oldDate);
+            const formattedNewDate = this.formatDateForDisplay(newDate);
+
+            const result = await Swal.fire({
+                title: `Konfirmasi Perubahan ${dateType}`,
+                html: `<p>Anda telah mengubah ${dateType} dari <strong>${formattedOldDate}</strong> menjadi <strong>${formattedNewDate}</strong>.</p>
+                       <p>${this.selected.length} produk yang sudah dipilih akan dihapus karena data yang relevan berubah.</p>
+                       <p>Apakah Anda yakin ingin melanjutkan?</p>`,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#dc3545",
+                cancelButtonColor: "#6c757d",
+                confirmButtonText: "Ya, Lanjutkan",
+                cancelButtonText: "Batal",
+            });
+
+            if (result.isConfirmed) {
+                // User confirmed - clear selections and apply new date
+                this.selected = [];
+                this.$emit("update:modelValue", []);
+                this.resetAndSearch();
+            } else {
+                // User cancelled - revert date change and SET isReverting FIRST
+                this.isReverting = true;
+
+                if (dateType === "tanggal mulai") {
+                    this.$emit("update:startDate", oldDate);
+                } else {
+                    this.$emit("update:endDate", oldDate);
+                }
+
+                // Reset the reverting flag after the component has updated
+                this.$nextTick(() => {
+                    this.isReverting = false;
+                });
+            }
+        },
+
         async confirmFrequencyChange(newFrequency, oldFrequency) {
+            const frequencyLabels = {
+                D: "Harian",
+                W: "Mingguan",
+                M: "Bulanan",
+            };
+
+            const oldLabel = frequencyLabels[oldFrequency] || oldFrequency;
+            const newLabel = frequencyLabels[newFrequency] || newFrequency;
+
             const result = await Swal.fire({
                 title: "Konfirmasi Perubahan Frekuensi",
-                text: `${this.selected.length} produk yang sudah dipilih akan dihapus. Apakah Anda yakin ingin melanjutkan?`,
+                html: `<p>Anda telah mengubah frekuensi dari <strong>${oldLabel}</strong> menjadi <strong>${newLabel}</strong>.</p>
+                       <p>${this.selected.length} produk yang sudah dipilih akan dihapus karena data yang relevan berubah.</p>
+                       <p>Apakah Anda yakin ingin melanjutkan?</p>`,
                 icon: "warning",
                 showCancelButton: true,
                 confirmButtonColor: "#dc3545",
@@ -195,7 +315,13 @@ export default {
                 this.applyFrequencyChange(newFrequency);
             } else {
                 // User cancelled - revert frequency
+                this.isReverting = true;
                 this.$emit("update:frequency", oldFrequency);
+
+                // Reset the reverting flag after the component has updated
+                this.$nextTick(() => {
+                    this.isReverting = false;
+                });
             }
         },
 
@@ -408,9 +534,9 @@ export default {
 
             const eligibility = option.forecast_eligibility;
             let tooltip = "";
-            tooltip += `Score Kualitas: ${eligibility.data_quality_score}%\n`;
+            // tooltip += `Score Kualitas: ${eligibility.data_quality_score}%\n`;
             tooltip += `Data Points: ${eligibility.data_points}\n`;
-            tooltip += `Rasio Data Valid: ${eligibility.non_zero_ratio}%\n`;
+            tooltip += `Data Tidak Nol: ${eligibility.non_zero_ratio}%\n`;
 
             if (eligibility.days_since_last_data < 9999) {
                 tooltip += `Hari Sejak Data Terakhir: ${eligibility.days_since_last_data}`;
@@ -421,6 +547,12 @@ export default {
             }
 
             return tooltip;
+        },
+
+        openChart(option) {
+            this.chartProductId = option.id;
+            this.chartProductName = `${option.name} (${option.sku})`;
+            this.showChartModal = true;
         },
     },
 };
@@ -502,6 +634,11 @@ export default {
 .badge-silver {
     background-color: #c0c0c0;
     color: #222;
+}
+
+.badge-ratio {
+    background-color: #6c757d;
+    color: white;
 }
 
 .badge-bronze {
@@ -597,5 +734,11 @@ export default {
 
 .multiselect__option--disabled .forecast-eligibility-badge {
     opacity: 0.8;
+}
+
+.btn-outline-primary {
+    padding: 2px 10px;
+    font-size: 12px;
+    line-height: 1.2;
 }
 </style>

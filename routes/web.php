@@ -54,6 +54,7 @@ Route::middleware([
         ->only(['index', 'store'])->middleware('role:Staff Gudang|Manajer Stok');
 
     Route::get('/products/search', [ProductController::class, 'search'])->name('products.search');
+    Route::get('/products/{id}/time-series-chart', [ProductController::class, 'timeSeriesChart'])->name('products.time-series-chart');
     Route::resource('products', ProductController::class)
         ->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
 
@@ -90,3 +91,56 @@ Route::get('/test-email', function () {
         'message' => 'Test email sent successfully.',
     ])->setStatusCode(200);
 })->name('test.email');
+
+Route::get('/email-preview/{type?}', function ($type = 'success') {
+    // Ambil order sample dari database
+    $order = App\Models\Order::with(['items.product.category', 'latestPayment', 'taxes'])->first();
+
+    $order = false;
+
+    // Jika tidak ada order, buat data dummy
+    if (!$order) {
+        $order = (object) [
+            'name' => 'John Doe',
+            'uuid' => 'ORD123456789',
+            'created_at' => now(),
+            'shipping_method' => 'pickup',
+            'sub_total' => 75000,
+            'shipping_fee' => 12500,
+            'total' => 87500,
+            'items' => collect([
+                (object) [
+                    'quantity' => 2,
+                    'price' => 25000,
+                    'subtotal' => 50000,
+                    'product' => (object) [
+                        'name' => 'Produk Sample',
+                        'category' => (object) ['name' => 'Kategori Sample']
+                    ]
+                ],
+                (object) [
+                    'quantity' => 1,
+                    'price' => 25000,
+                    'subtotal' => 25000,
+                    'product' => (object) [
+                        'name' => 'Produk Lainnya',
+                        'category' => (object) ['name' => 'Kategori Lain']
+                    ]
+                ]
+            ]),
+            'latestPayment' => (object) [
+                'paid_at' => now(),
+                'expired_at' => now()->addMinutes(30),
+                'payment_type' => 'qris',
+                'status' => 'paid'
+            ],
+            'note' => 'Silakan hubungi kami jika ada pertanyaan.',
+            'taxes' => collect()
+        ];
+    }
+
+    return view('emails.payment-notification', [
+        'order' => $order,
+        'type' => $type
+    ]);
+})->name('email.preview');

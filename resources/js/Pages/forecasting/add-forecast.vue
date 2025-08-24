@@ -13,24 +13,22 @@
                         </h6>
                     </div>
                 </div>
-                <div class="d-flex align-items-center">
-                    <ul class="table-top-head">
-                        <li>
-                            <a
-                                data-bs-toggle="tooltip"
-                                data-bs-placement="top"
-                                title="Refresh"
-                                ><i
-                                    data-feather="rotate-ccw"
-                                    class="feather-rotate-ccw"
-                                ></i
-                            ></a>
-                        </li>
-                        <li>
-                            <collapse-header-toggle />
-                        </li>
-                    </ul>
-                </div>
+                <ul class="table-top-head d-flex align-items-center">
+                    <li>
+                        <collapse-header-toggle />
+                    </li>
+                    <li>
+                        <Link
+                            :href="route('forecasting.index')"
+                            class="btn btn-secondary"
+                            ><vue-feather
+                                type="arrow-left"
+                                class="me-2"
+                            ></vue-feather
+                            >Riwayat Prediksi</Link
+                        >
+                    </li>
+                </ul>
             </div>
 
             <ValidationExplanationCard />
@@ -55,21 +53,6 @@
                                             ></vue-feather>
                                         </div>
                                         <div class="w-100">
-                                            <div
-                                                class="fw-semibold d-flex justify-content-between"
-                                            >
-                                                <h5 class="mb-1 text-info">
-                                                    Informasi
-                                                </h5>
-                                                <button
-                                                    type="button"
-                                                    class="btn-close p-0"
-                                                    data-bs-dismiss="alert"
-                                                    aria-label="Close"
-                                                >
-                                                    <i class="fas fa-xmark"></i>
-                                                </button>
-                                            </div>
                                             <div class="fs-12 op-8 mb-1">
                                                 <ul>
                                                     <li>
@@ -94,6 +77,16 @@
                                                         bulan ke depan.
                                                     </li>
                                                 </ul>
+                                                <div class="mt-2 text-dark">
+                                                    <strong>Catatan</strong>
+                                                    Hasil prediksi digunakan
+                                                    sebagai alat ukur atau
+                                                    referensi, dan tidak
+                                                    dijadikan acuan 100%. Selalu
+                                                    lakukan pengecekan dan
+                                                    pertimbangan tambahan
+                                                    sebelum mengambil keputusan.
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -105,6 +98,7 @@
                                         type="text"
                                         class="form-control"
                                         placeholder="e.g Prediksi Stok Bulan Ini"
+                                        :class="{ 'is-invalid': errors.name }"
                                         v-model="form.name"
                                     />
                                     <div
@@ -212,11 +206,14 @@
                                                                     'is-invalid':
                                                                         errors.startDate,
                                                                 }"
+                                                                :max-date="
+                                                                    maxDate
+                                                                "
                                                                 :enable-time-picker="
                                                                     false
                                                                 "
-                                                                :lower-limit="
-                                                                    minDate
+                                                                :min-date="
+                                                                    form.startDate
                                                                 "
                                                             />
                                                             <div
@@ -251,6 +248,9 @@
                                                                     'is-invalid':
                                                                         errors.endDate,
                                                                 }"
+                                                                :max-date="
+                                                                    maxDate
+                                                                "
                                                                 :enable-time-picker="
                                                                     false
                                                                 "
@@ -283,10 +283,10 @@
                                                                 :frequency="
                                                                     form.frequency
                                                                 "
-                                                                :start-date="
+                                                                v-model:start-date="
                                                                     form.startDate
                                                                 "
-                                                                :end-date="
+                                                                v-model:end-date="
                                                                     form.endDate
                                                                 "
                                                                 :class="{
@@ -439,7 +439,7 @@
 
 <script>
 import AsyncProductForecastSelect from "@/components/AsyncProductForecastSelect.vue";
-import { Head, Link, useForm } from "@inertiajs/vue3";
+import { Head, Link } from "@inertiajs/vue3";
 import { getAllForecastFrequencies } from "@/constants/forecastFrequency";
 import ValidationExplanationCard from "./ValidationExplanationCard.vue";
 
@@ -448,6 +448,7 @@ export default {
         AsyncProductForecastSelect,
         Head,
         ValidationExplanationCard,
+        Link,
     },
     props: {
         initialData: {
@@ -481,63 +482,8 @@ export default {
             },
             ChooseFrequency: getAllForecastFrequencies(),
             minDate: minDate,
+            maxDate: now,
         };
-    },
-    watch: {
-        // "form.products": {
-        //     handler(newVal) {
-        //         const lastAdded = newVal.at(-1);
-        //         if (!lastAdded) return;
-        //         const found = this.form.products.find(
-        //             (p) => p.id === lastAdded.id
-        //         );
-        //         const frequencyKey =
-        //             this.form.frequency === "M"
-        //                 ? "month"
-        //                 : this.form.frequency === "W"
-        //                 ? "week"
-        //                 : "day";
-        //         const totalPoints =
-        //             found?.timeSeriesOrderItems?.[frequencyKey] ?? 0;
-        //         if (totalPoints < 13) {
-        //             Swal.fire({
-        //                 icon: "error",
-        //                 title: "Gagal",
-        //                 text: `Produk "${found?.name}" hanya memiliki ${totalPoints} titik data ${frequencyKey}, minimal 13 diperlukan.`,
-        //                 confirmButtonClass: "btn btn-danger",
-        //             });
-        //             // Hapus item yang baru ditambahkan
-        //             this.form.products = newVal.slice(0, -1);
-        //         }
-        //     },
-        //     deep: true,
-        // },
-        // "form.frequency": {
-        //     handler(newFrequency) {
-        //         // Validasi ulang semua produk berdasarkan frekuensi baru
-        //         this.form.products = this.form.products.filter((product) => {
-        //             const frequencyKey =
-        //                 newFrequency === "M"
-        //                     ? "month"
-        //                     : newFrequency === "W"
-        //                     ? "week"
-        //                     : "day";
-        //             const totalPoints =
-        //                 product?.timeSeriesOrderItems?.[frequencyKey] ?? 0;
-        //             if (totalPoints < 13) {
-        //                 Swal.fire({
-        //                     icon: "error",
-        //                     title: "Produk Tidak Valid",
-        //                     text: `Produk "${product.name}" hanya memiliki ${totalPoints} titik data ${frequencyKey}, minimal 13 diperlukan.`,
-        //                     confirmButtonClass: "btn btn-danger",
-        //                 });
-        //                 return false; // Hapus produk dari daftar
-        //             }
-        //             return true; // Pertahankan produk dalam daftar
-        //         });
-        //     },
-        //     immediate: true,
-        // },
     },
     methods: {
         submitForm() {
@@ -546,47 +492,7 @@ export default {
                     console.log("Form submitted successfully!");
                 },
                 onError: (errors) => {
-                    const invalidNames = Object.entries(errors)
-                        .map(([key]) => {
-                            const match = key.match(/^products\.(\d+)\.id$/);
-                            return match
-                                ? this.form.products[parseInt(match[1])]?.name
-                                : null;
-                        })
-                        .filter(Boolean);
-
-                    // 2. Tawarkan untuk hapus produk yang tidak valid
-                    Swal.fire({
-                        icon: "warning",
-                        title: "Beberapa produk tidak valid!",
-                        html: `Beberapa produk tidak dapat diprediksi karena memiliki data historis (time series) yang tidak memenuhi syarat, seperti terlalu banyak nilai nol atau jarak antar transaksi yang terlalu jauh.<br><br>
-
-                        <b>Produk berikut tidak valid:</b>
-                        <ul style="text-align: left; margin-top: 10px;">
-                            ${invalidNames
-                                .map((name) => `<li>${name}</li>`)
-                                .join("")}
-                        </ul>
-
-                        <div style="margin-top: 15px;">
-                            <i>Rekomendasi:</i><br>
-                            Coba ubah frekuensi analisis menjadi <b>mingguan</b> atau <b>bulanan</b> agar pola historis lebih cocok dan stabil untuk diprediksi.
-                        </div>
-                        `,
-                        showCancelButton: true,
-                        confirmButtonText: "Hapus Produk",
-                        cancelButtonText: "Batal",
-                        confirmButtonClass: "btn btn-danger",
-                        cancelButtonClass: "btn btn-secondary ml-1",
-                        buttonsStyling: false,
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            // Hapus produk yang tidak valid
-                            this.form.products = this.form.products.filter(
-                                (p) => !invalidNames.includes(p.name)
-                            );
-                        }
-                    });
+                    this.errors = errors;
                 },
             });
         },

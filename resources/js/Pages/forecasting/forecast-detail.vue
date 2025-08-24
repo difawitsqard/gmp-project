@@ -14,33 +14,58 @@
                 </div>
                 <ul class="table-top-head">
                     <li>
+                        <a
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                            title="Refresh"
+                            @click="refreshData"
+                        >
+                            <vue-feather
+                                type="rotate-ccw"
+                                class="rotate-ccw"
+                            ></vue-feather>
+                        </a>
+                    </li>
+                    <li>
                         <collapse-header-toggle />
                     </li>
+                    <li>
+                        <Link
+                            :href="route('forecasting.index')"
+                            class="btn btn-secondary"
+                            ><vue-feather
+                                type="arrow-left"
+                                class="me-2"
+                            ></vue-feather
+                            >Riwayat Prediksi</Link
+                        >
+                    </li>
                 </ul>
-                <div class="page-btn"></div>
             </div>
 
-            <div class="card">
+            <div class="card mb-3">
                 <div class="card-body">
                     <div class="forecast-details">
                         <h5 class="mb-3">
-                            {{ formatDate(forecast.created_at) }}
+                            {{ forecast.name }}
                         </h5>
 
                         <div class="mb-1">
                             <div class="d-flex">
-                                <strong class="me-2">Frekuensi</strong>
-                                <span>{{
-                                    getForecastFrequencyLabel(
-                                        forecast.frequency
-                                    )
-                                }}</span>
+                                <strong class="me-2">Horizon</strong>
+                                <span>{{ forecast.horizon }} Periode</span>
                             </div>
                         </div>
                         <div class="mb-1">
                             <div class="d-flex">
-                                <strong class="me-2">Horizon</strong>
-                                <span>{{ forecast.horizon }} periode</span>
+                                <strong class="me-2">Frekuensi</strong>
+                                <span>
+                                    {{
+                                        getForecastFrequencyLabel(
+                                            forecast.frequency
+                                        )
+                                    }}
+                                </span>
                             </div>
                         </div>
                         <div class="mb-1">
@@ -53,6 +78,18 @@
                                         formatDate(forecast.input_end_date)
                                     }}</span
                                 >
+                            </div>
+                        </div>
+
+                        <div class="mb-1">
+                            <div class="d-flex">
+                                <strong class="me-2">Dibuat</strong>
+                                <span>{{
+                                    formatDate(
+                                        forecast.created_at,
+                                        "DD MMMM YYYY HH:mm"
+                                    )
+                                }}</span>
                             </div>
                         </div>
                         <div class="mb-1">
@@ -74,7 +111,10 @@
             </div>
 
             <!-- Tampilkan chart jika produk dipilih -->
-            <div class="card" v-if="selectedProductId">
+            <div
+                class="card"
+                v-if="selectedProductId && forecast.status == 'done'"
+            >
                 <div
                     class="card-header d-flex justify-content-between align-items-center"
                 >
@@ -259,7 +299,7 @@ export default {
                 (r) => r.product_id == productId
             );
             if (result && result.product) {
-                return result.product.name;
+                return `${result.product.name} (${result.product.sku})`;
             }
             return `Produk #${productId}`;
         },
@@ -272,15 +312,18 @@ export default {
                 preserveScroll: true,
             });
         },
+        refreshData() {
+            skipPreloadNextRequest();
+            this.$inertia.reload({
+                only: ["forecast", "selectedProductId", "timeSeriesData"],
+            });
+        },
     },
     mounted() {
         // Auto refresh jika status processing/pending
         if (["processing", "pending"].includes(this.forecast.status)) {
             this.autoRefreshInterval = setInterval(() => {
-                skipPreloadNextRequest();
-                router.reload({
-                    only: ["forecast", "selectedProductId", "timeSeriesData"],
-                });
+                this.refreshData();
             }, 5000); // refresh setiap 5 detik
         }
     },
@@ -374,6 +417,7 @@ export default {
                 chart: {
                     id: `forecast-${this.productId}`,
                     type: "line",
+                    fontFamily: "Montserrat",
                     animations: { enabled: true },
                     toolbar: { show: true },
                     zoom: { enabled: true },

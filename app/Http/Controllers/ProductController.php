@@ -45,7 +45,8 @@ class ProductController extends Controller
 
         $products = Product::filter()
             ->sorting()
-            ->with(['category', 'unit'])
+            ->WithTotalSold()
+            ->with(['category', 'unit', 'images'])
             ->paginate($perPage);
         $products->appends(['search' => $request->search]);
 
@@ -127,7 +128,7 @@ class ProductController extends Controller
      */
     public function show(string $id)
     {
-        $product = Product::find($id);
+        $product = Product::withTotalSold()->find($id);
 
         if (!$product) {
             if (request()->expectsJson()) {
@@ -344,6 +345,28 @@ class ProductController extends Controller
         });
 
         return response()->json($products);
+    }
+
+    /**
+     * Metode untuk menampilkan chart time series berdasarkan produk id dan rentang tanggal
+     */
+    public function TimeSeriesChart(Request $request, $productId)
+    {
+        $product = Product::findOrFail($productId);
+
+        $frequency = $request->input('frequency', 'D');
+        $startDate = $request->input('start_date') ? Carbon::parse($request->input('start_date')) : Carbon::now()->subYear();
+        $endDate = $request->input('end_date') ? Carbon::parse($request->input('end_date')) : Carbon::now();
+
+        $controller = app(\App\Http\Controllers\ForecastController::class);
+        $timeSeriesData = $controller->getTimeSeriesData(
+            $productId,
+            $frequency,
+            $startDate,
+            $endDate
+        );
+
+        return response()->json($timeSeriesData);
     }
 
     /**

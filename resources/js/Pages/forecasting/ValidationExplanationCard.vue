@@ -1,5 +1,5 @@
 <template>
-    <div class="accordion accordion-info mb-3" id="accordionPrimaryExample">
+    <div class="accordion accordion-info mb-2" id="accordionPrimaryExample">
         <div class="accordion-item">
             <h2 class="accordion-header" id="headingPrimaryOne">
                 <button
@@ -11,7 +11,9 @@
                     aria-controls="collapsePrimaryOne"
                 >
                     <i class="fas fa-shield-check text-secondary me-3"></i>
+
                     <div>
+                        <i class="fas fa-lightbulb me-2"></i>
                         Kriteria data untuk hasil prediksi terbaik
                         <!-- <span class="fw-semibold"
                             >Tips Mendapatkan Prediksi yang Akurat</span
@@ -33,14 +35,15 @@
                         <h6 class="text-dark">Kenapa Kualitas Data Penting?</h6>
                         <p class="mt-2">
                             Prediksi bekerja paling baik dengan data penjualan
-                            yang **konsisten**. Terlalu banyak periode kosong
-                            (nilai 0) akan menurunkan akurasi.
+                            yang <b>konsisten</b>. Terlalu banyak periode kosong
+                            (nilai 0) dapat menurunkan akurasi.
                         </p>
                     </div>
 
                     <h6 class="mb-3">
-                        <i class="fas fa-clipboard-check me-2"></i>Kriteria
-                        Utama
+                        <i class="fas fa-clipboard-check me-1"></i>
+                        Sistem akan membantu anda dalam menilai kualitas data,
+                        berikut merupakan Kriteria utama
                     </h6>
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
@@ -48,8 +51,7 @@
                                 <h6 class="text-dark">Minimal 13 Periode</h6>
                                 <p class="text-muted mt-2 mb-0">
                                     Dibutuhkan setidaknya 13 titik data
-                                    penjualan (misal: 13 hari untuk frekuensi
-                                    harian) untuk mengenali pola.
+                                    penjualan untuk mengenali pola.
                                 </p>
                             </div>
                         </div>
@@ -68,60 +70,74 @@
                                 <h6 class="text-dark">Jeda Maksimal</h6>
                                 <p class="text-muted mt-2">
                                     Tidak boleh ada jeda penjualan terlalu lama.
-                                    (Contoh: 30 hari berturut-turut tanpa
-                                    penjualan akan dianggap terlalu kosong.)
+                                    (Contoh: Frekuensi harian dan 30 hari
+                                    berturut-turut tanpa penjualan akan dianggap
+                                    terlalu kosong.)
                                 </p>
-                                <!-- <div
-                                    class="d-flex justify-content-between mb-1"
-                                >
-                                    <span>Harian</span>
-                                    <strong>Maks 30 hari</strong>
-                                </div>
-                                <div
-                                    class="d-flex justify-content-between mb-1"
-                                >
-                                    <span>Mingguan</span>
-                                    <strong>Maks 8 minggu</strong>
-                                </div>
-                                <div class="d-flex justify-content-between">
-                                    <span>Bulanan</span>
-                                    <strong>Maks 3 bulan</strong>
-                                </div> -->
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded h-100">
+                                <h6 class="text-dark">
+                                    Data Tidak Flat/Monoton
+                                </h6>
+                                <p class="text-muted mt-2 mb-0">
+                                    Data tidak boleh terlalu datar atau monoton.
+                                    Jika 90% data memiliki nilai yang sama, maka
+                                    data dianggap terlalu datar untuk prediksi.
+                                </p>
                             </div>
                         </div>
                     </div>
 
                     <h6 class="mb-3">
-                        <i class="fas fa-star me-2"></i>Skor Kualitas Data
+                        <i class="fas fa-star me-1"></i>
+                        Tips Memilih Produk dengan Kualitas Data Terbaik
                     </h6>
-                    <ul class="list-group list-group-flush">
-                        <li
-                            class="list-group-item d-flex justify-content-between align-items-center small ps-0"
+
+                    <!-- Add Non-Zero Ratio Explanation -->
+                    <div class="alert alert-light border mb-2">
+                        <p>
+                            Untuk membantu anda dalam melihat produk dengan
+                            kualitas terbaik, sistem akan menampilkan informasi
+                            Non-Zero Ratio (Data tidak Nol) dan keterangan
+                            tambahan jika data tidak memenuhi syarat pada setiap
+                            produk
+                        </p>
+                    </div>
+
+                    <div class="alert alert-info border mb-3">
+                        <p>
+                            Non-Zero Ratio (Data tidak Nol) adalah persentase
+                            periode yang memiliki data penjualan (tidak nol).
+                            Semakin tinggi rasio ini, maka kemungkinan data
+                            untuk prediksi akan lebih baik.
+                        </p>
+                    </div>
+
+                    <!-- Technology Partners Section -->
+
+                    <!-- <div class="d-flex flex-column align-items-center mt-4">
+                        <h4 class="text-dark mb-3 text-center">
+                            Teknologi Pendukung
+                        </h4>
+                        <div
+                            class="d-flex gap-3 justify-content-center align-items-center mb-2"
                         >
-                            80-100% Data Terisi
-                            <span class="badge bg-success">Sangat Baik</span>
-                        </li>
-                        <li
-                            class="list-group-item d-flex justify-content-between align-items-center small ps-0"
-                        >
-                            60-79% Data Terisi
-                            <span class="badge bg-info">Baik</span>
-                        </li>
-                        <li
-                            class="list-group-item d-flex justify-content-between align-items-center small ps-0"
-                        >
-                            40-59% Data Terisi
-                            <span class="badge bg-warning text-dark"
-                                >Cukup</span
-                            >
-                        </li>
-                        <li
-                            class="list-group-item d-flex justify-content-between align-items-center small ps-0"
-                        >
-                            0-39% Data Terisi
-                            <span class="badge bg-danger">Kurang</span>
-                        </li>
-                    </ul>
+                            <img
+                                src="https://www.nixtla.io/nixtla-logo.svg"
+                                alt="Nixtla"
+                                height="32"
+                                style="max-width: 120px"
+                            />
+                            <img
+                                src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg"
+                                alt="OpenAI"
+                                height="32"
+                                style="max-width: 120px"
+                            />
+                        </div>
+                    </div> -->
                 </div>
             </div>
         </div>

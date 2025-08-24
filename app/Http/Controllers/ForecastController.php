@@ -98,6 +98,15 @@ class ForecastController extends Controller
             'includeConfidenceIntervals' => 'boolean',
         ]);
 
+        // dd($validatedData);
+
+        // dd($this->getTimeSeriesData(
+        //     $validatedData['products'][0]['id'],
+        //     $validatedData['frequency'],
+        //     Carbon::parse($validatedData['startDate']),
+        //     Carbon::parse($validatedData['endDate'])
+        // ));
+
         // $result = $this->generateTimeSeriesFromRequest($request);
         // dd($result);
 
@@ -463,20 +472,23 @@ class ForecastController extends Controller
         // Tentukan format grouping dan select berdasarkan frequency
         switch ($frequency) {
             case 'W':
+                // Format untuk awal minggu 2024-08-01, 2024-08-08, dst
                 $dateFormat = "DATE(DATE_SUB(orders.created_at, INTERVAL WEEKDAY(orders.created_at) DAY))";
                 $groupBy = DB::raw($dateFormat);
                 break;
             case 'M':
+                // Format untuk awal bulan 2024-01-01, 2024-02-01, dst 
                 $dateFormat = "DATE_FORMAT(orders.created_at, '%Y-%m-01')";
                 $groupBy = DB::raw($dateFormat);
                 break;
             default: // 'D'
+                // Format untuk harian 2024-08-01, 2024-08-02, dst
                 $dateFormat = "DATE(orders.created_at)";
                 $groupBy = DB::raw($dateFormat);
                 break;
         }
 
-        // Query yang diperbaiki
+        // Ambil data order items
         $orderItems = OrderItem::select(
             'product_id',
             DB::raw("({$dateFormat}) as period"),
@@ -484,6 +496,10 @@ class ForecastController extends Controller
         )
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->where('order_items.product_id', $productId)
+            ->where(function ($query) {
+                $query->where('orders.status', 'waiting_processing')
+                    ->orWhere('orders.status', 'completed');
+            })
             ->whereBetween('orders.created_at', [
                 $startDate->startOfDay(),
                 $endDate->endOfDay()
