@@ -41,6 +41,7 @@ class DatabaseSeeder extends Seeder
             ProductCategorySeeder::class,
             ProductSeeder::class,
             OrderSeeder::class,
+            OrderSeeder2::class,
         ]);
     }
 }

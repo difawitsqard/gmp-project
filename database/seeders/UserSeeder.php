@@ -26,5 +26,43 @@ class UserSeeder extends Seeder
             // Assign role ke user
             $user->assignRole($roleName);
         }
+
+        // create user
+        $users = [
+            [
+                'name' => 'Neni Nur Fitriani',
+                'email' => 'neni.nf03@gmail.com',
+                'password' => bcrypt('pass123'),
+                'role' => 'Admin'
+            ],
+            [
+                'name' => 'Hendri Trisnadi',
+                'email' => 'hendritr1s@gmail.com',
+                'password' => bcrypt('pass123'),
+                'role' => 'Manajer Stok'
+            ],
+            [
+                'name' => 'Debi Yulianti',
+                'email' => 'debi.gmp17@gmail.com',
+                'password' => bcrypt('pass123'),
+                'role' => 'Staff Gudang'
+            ],
+        ];
+
+        foreach ($users as $userData) {
+            $user = User::factory()->create([
+                'name' => $userData['name'],
+                'email' => $userData['email'],
+                'password' => $userData['password'],
+                'phone' => null,
+                'address' => null,
+            ]);
+            $user->assignRole($userData['role']);
+        }
+
+        // factory
+        User::factory()->count(18)->create()->each(function ($user) {
+            $user->assignRole('Pelanggan');
+        });
     }
 }

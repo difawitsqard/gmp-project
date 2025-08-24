@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Unit;
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\StockTransaction;
 use Illuminate\Database\Seeder;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -16,6 +17,14 @@ class ProductSeeder extends Seeder
      */
     public function run(): void
     {
+
+        $startDate = \Carbon\Carbon::create(2025, 6, 1, 0, 0, 0); // June 1, 2025 at 00:00:00
+        $endDate = \Carbon\Carbon::create(2025, 6, 24, 0, 0, 0); // Current date and time
+
+        $randomDateTime = \Carbon\Carbon::createFromTimestamp(
+            rand($startDate->timestamp, $endDate->timestamp)
+        );
+
 
         $path = storage_path('import/DATA_PENJUALAN_2024.xlsx');
         $spreadsheet = IOFactory::load($path);
@@ -36,7 +45,7 @@ class ProductSeeder extends Seeder
         $unitShortNames = array_keys($unitMap);
         $products = collect($rows)
             ->skip(1)
-            ->map(function ($row, $i) use ($categoryMap, $unitMap, $unitShortNames) {
+            ->map(function ($row, $i) use ($categoryMap, $unitMap, $unitShortNames, $randomDateTime) {
                 $kategori = strtoupper(trim($row['D'] ?? ''));
                 $nama_barang = trim($row['E'] ?? '');
                 $rawSatuan = strtoupper(trim($row['G'] ?? ''));
@@ -67,14 +76,14 @@ class ProductSeeder extends Seeder
                 return [
                     'product_categories_id' => $categoryMap[$kategori],
                     'name' => $nama_barang,
-                    'sku' => 'SKU' . str_pad($i + 1, 5, '0', STR_PAD_LEFT),
-                    'qty' => rand(1, 100),
-                    'min_stock' => rand(1, 15),
+                    'sku' => 'SKU' . strtoupper(substr(str_shuffle('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 6)),
+                    'qty' =>  rand(0, 150),
+                    'min_stock' => rand(1, 30),
                     'unit_id' => $unitMap[$satuan],
                     'price' => $harga,
                     //'tax' => 11,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'created_at' => $randomDateTime,
+                    'updated_at' => $randomDateTime,
                 ];
             })
             ->filter()
@@ -84,8 +93,30 @@ class ProductSeeder extends Seeder
             ->values()
             ->toArray();
 
-
+        // Insert products into the database
         Product::insert($products);
+
+        // inisialisasi stock
+        foreach ($products as $product) {
+            $productModel = Product::where('sku', $product['sku'])->first();
+            if ($productModel) {
+                // Create stock transaction with proper fields
+                StockTransaction::create([
+                    'product_id' => $productModel->id,
+                    'type' => 'in', // Incoming stock
+                    'qty' =>  $productModel->qty,
+                    'stock_before' => 0, // Initial stock is 0
+                    'stock_after' => $productModel->qty, // After adding initial stock
+                    'source_type' => null,
+                    'source_id' => null,
+                    'created_by' => null, // No user created this (system)
+                    'note' => "Stok awal produk {$productModel->name} ({$productModel->sku})",
+                    'batch_reference' => "INITIAL-STOCK-{$productModel->id}",
+                    'created_at' => $productModel->created_at,
+                    'updated_at' => $productModel->updated_at
+                ]);
+            }
+        }
 
         echo count($products) . " produk berhasil diimport dari Excel.\n";
     }
