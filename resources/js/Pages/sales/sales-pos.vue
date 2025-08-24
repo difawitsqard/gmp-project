@@ -621,24 +621,25 @@
                                                     }}
                                                 </td>
                                             </tr>
-                                            <tr v-if="serviceFee">
-                                                <td>Biaya Layanan</td>
-                                                <td class="text-end">
-                                                    Rp.
-                                                    {{
-                                                        $helpers.formatRupiah(
-                                                            serviceFee
-                                                        )
-                                                    }}
+                                            <tr
+                                                v-for="tax in taxes"
+                                                :key="tax.id"
+                                            >
+                                                <td>
+                                                    {{ tax.name }}
+                                                    <template
+                                                        v-if="tax.percent"
+                                                    >
+                                                        ( {{ tax.percent }}% )
+                                                    </template>
                                                 </td>
-                                            </tr>
-                                            <tr v-if="ppn">
-                                                <td>PPN (11%)</td>
                                                 <td class="text-end">
                                                     Rp.
                                                     {{
                                                         $helpers.formatRupiah(
-                                                            ppn
+                                                            taxesAmountMap[
+                                                                tax.id
+                                                            ] || 0
                                                         )
                                                     }}
                                                 </td>
@@ -654,9 +655,7 @@
                                                     Rp.
                                                     {{
                                                         $helpers.formatRupiah(
-                                                            Number(
-                                                                form.shipping_fee
-                                                            )
+                                                            shippingFeeNumeric
                                                         )
                                                     }}
                                                 </td>
@@ -809,39 +808,52 @@ export default {
     computed: {
         subtotal() {
             return this.form.addedProducts.reduce(
-                (total, product) => total + product.qty * Number(product.price),
+                (total, product) =>
+                    total +
+                    (Number(product.qty) || 0) *
+                        this.normalizeCurrencyToInt(product.price),
                 0
             );
         },
-        serviceFee() {
-            // Misal cari tax dengan nama "Biaya Layanan"
-            const fee = Array.isArray(this.taxes)
-                ? this.taxes.find(
-                      (t) => t.name && t.name.toLowerCase().includes("layanan")
-                  )
-                : null;
-            return fee && fee.fixed_amount ? Number(fee.fixed_amount) : 0;
+
+        // Hitung nominal tiap tax, sesuai aturan backend:
+        // - percent: dari subtotal saja
+        // - fixed_amount: nilai tetap (mis. Biaya Layanan)
+        taxesAmountMap() {
+            const map = {};
+            if (Array.isArray(this.taxes)) {
+                for (const t of this.taxes) {
+                    if (t?.percent !== undefined && t?.percent !== null) {
+                        const rate = this.normalizePercentToRate(t.percent);
+                        // pakai pembulatan ke rupiah; jika backend pakai floor, ganti Math.round -> Math.floor
+                        map[t.id] = Math.round(this.subtotal * rate);
+                    } else {
+                        map[t.id] = this.normalizeCurrencyToInt(
+                            t?.fixed_amount
+                        );
+                    }
+                }
+            }
+            return map;
         },
-        ppn() {
-            // Misal cari tax dengan percent (PPN)
-            const ppnTax = Array.isArray(this.taxes)
-                ? this.taxes.find((t) => t.percent)
-                : null;
-            // PPN dihitung dari subtotal + serviceFee
-            return ppnTax && ppnTax.percent
-                ? ((this.subtotal + this.serviceFee) * ppnTax.percent) / 100
-                : 0;
-        },
-        total() {
-            return (
-                this.subtotal +
-                this.serviceFee +
-                this.ppn +
-                (this.form.shipping_method === "delivery"
-                    ? Number(this.form.shipping_fee) || 0
-                    : 0)
+
+        taxesTotal() {
+            return Object.values(this.taxesAmountMap).reduce(
+                (a, b) => a + b,
+                0
             );
         },
+
+        shippingFeeNumeric() {
+            return this.form.shipping_method === "delivery"
+                ? this.normalizeCurrencyToInt(this.form.shipping_fee)
+                : 0;
+        },
+
+        total() {
+            return this.subtotal + this.taxesTotal + this.shippingFeeNumeric;
+        },
+
         totalProducts() {
             return this.form.addedProducts.reduce(
                 (total, product) => total + product.qty,
@@ -924,6 +936,27 @@ export default {
             this.filters.per_page = newPerPage;
             this.filters.page = 1;
             this.fetch();
+        },
+
+        // "Rp 5.000" / "5.000" / 5000 -> 5000 (integer)
+        normalizeCurrencyToInt(v) {
+            if (v === null || v === undefined) return 0;
+            const digits = String(v).replace(/[^\d-]/g, "");
+            return parseInt(digits || "0", 10);
+        },
+
+        // 11 / "11" / "11%" / 0.11 -> 0.11
+        normalizePercentToRate(p) {
+            if (p === null || p === undefined) return 0;
+            let s = String(p)
+                .trim()
+                .toLowerCase()
+                .replace("%", "")
+                .replace(",", ".");
+            let n = Number(s);
+            if (isNaN(n)) return 0;
+            if (n > 1) return n / 100; // 11 -> 0.11
+            return n; // 0.11 -> 0.11
         },
 
         addProduct(product) {
