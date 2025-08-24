@@ -20,8 +20,8 @@ class OpenAIService
 
     // Kirim ke OpenAI
     $response = OpenAI::chat()->create([
-      // 'model' => 'gpt-4o',
-      'model' => 'gpt-3.5-turbo',
+      'model' => 'gpt-4o',
+      // 'model' => 'gpt-3.5-turbo',
       'messages' => [
         ['role' => 'system', 'content' => $this->getSystemPrompt()],
         ['role' => 'user', 'content' => $prompt],
