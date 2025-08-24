@@ -621,29 +621,24 @@
                                                     }}
                                                 </td>
                                             </tr>
-                                            <tr
-                                                v-for="tax in taxes"
-                                                :key="tax.id"
-                                            >
-                                                <td>
-                                                    {{ tax.name }}
-                                                    <template
-                                                        v-if="tax.percent"
-                                                    >
-                                                        ( {{ tax.percent }}% )
-                                                    </template>
-                                                </td>
+                                            <tr v-if="serviceFee">
+                                                <td>Biaya Layanan</td>
                                                 <td class="text-end">
                                                     Rp.
                                                     {{
                                                         $helpers.formatRupiah(
-                                                            tax.percent
-                                                                ? (subtotal *
-                                                                      tax.percent) /
-                                                                      100
-                                                                : Number(
-                                                                      tax.fixed_amount
-                                                                  ) || 0
+                                                            serviceFee
+                                                        )
+                                                    }}
+                                                </td>
+                                            </tr>
+                                            <tr v-if="ppn">
+                                                <td>PPN (11%)</td>
+                                                <td class="text-end">
+                                                    Rp.
+                                                    {{
+                                                        $helpers.formatRupiah(
+                                                            ppn
                                                         )
                                                     }}
                                                 </td>
@@ -672,33 +667,7 @@
                                                     Rp.
                                                     {{
                                                         $helpers.formatRupiah(
-                                                            subtotal +
-                                                                (Array.isArray(
-                                                                    taxes
-                                                                )
-                                                                    ? taxes.reduce(
-                                                                          (
-                                                                              total,
-                                                                              tax
-                                                                          ) =>
-                                                                              total +
-                                                                              (tax.percent
-                                                                                  ? (subtotal *
-                                                                                        tax.percent) /
-                                                                                    100
-                                                                                  : Number(
-                                                                                        tax.fixed_amount
-                                                                                    ) ||
-                                                                                    0),
-                                                                          0
-                                                                      )
-                                                                    : 0) +
-                                                                (form.shipping_method ===
-                                                                "delivery"
-                                                                    ? Number(
-                                                                          form.shipping_fee
-                                                                      ) || 0
-                                                                    : 0)
+                                                            total
                                                         )
                                                     }}
                                                 </td>
@@ -842,6 +811,35 @@ export default {
             return this.form.addedProducts.reduce(
                 (total, product) => total + product.qty * Number(product.price),
                 0
+            );
+        },
+        serviceFee() {
+            // Misal cari tax dengan nama "Biaya Layanan"
+            const fee = Array.isArray(this.taxes)
+                ? this.taxes.find(
+                      (t) => t.name && t.name.toLowerCase().includes("layanan")
+                  )
+                : null;
+            return fee && fee.fixed_amount ? Number(fee.fixed_amount) : 0;
+        },
+        ppn() {
+            // Misal cari tax dengan percent (PPN)
+            const ppnTax = Array.isArray(this.taxes)
+                ? this.taxes.find((t) => t.percent)
+                : null;
+            // PPN dihitung dari subtotal + serviceFee
+            return ppnTax && ppnTax.percent
+                ? ((this.subtotal + this.serviceFee) * ppnTax.percent) / 100
+                : 0;
+        },
+        total() {
+            return (
+                this.subtotal +
+                this.serviceFee +
+                this.ppn +
+                (this.form.shipping_method === "delivery"
+                    ? Number(this.form.shipping_fee) || 0
+                    : 0)
             );
         },
         totalProducts() {
