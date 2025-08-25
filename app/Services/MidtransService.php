@@ -247,7 +247,7 @@ class MidtransService
                 'id' => $item->id,
                 'price' => $item->price,
                 'quantity' => $item->quantity,
-                'name' => $item->product->name ?? 'Product',
+                'name' => mb_substr($item->product->name ?? 'Product', 0, 50),
             ];
         })->toArray();
 

@@ -66,7 +66,7 @@ class NixtlaService
     $sizes = [];
     $lastTimestamps = [];
 
-    ksort($seriesGrouped);
+    ksort($seriesGrouped); // Urutkan UID berdasarkan kunci
 
     foreach ($seriesGrouped as $uid => $series) {
       ksort($series);
@@ -75,22 +75,26 @@ class NixtlaService
       $lastTimestamps[$uid] = Carbon::parse(array_key_last($series));
     }
 
+    // $y: Array gabungan semua nilai deret waktu dari seluruh UID, urut sesuai timestamp.
+    // $sizes: Array berisi jumlah data pada setiap UID, digunakan untuk membagi hasil prediksi.
+    // $lastTimestamps: Array berisi timestamp terakhir dari setiap UID (instance Carbon).
+
     $payload = [
       'series' => [
-        'y' => $y,
-        'sizes' => $sizes,
-        'X' => null,
-        'X_future' => null
+        'y' => $y,                // Nilai-nilai deret waktu (gabungan semua UID)
+        'sizes' => $sizes,        // Ukuran masing-masing deret waktu (per UID)
+        'X' => null,              // Fitur tambahan (tidak digunakan, null)
+        'X_future' => null        // Fitur masa depan (tidak digunakan, null)
       ],
-      'model' => $model,
-      'h' => $h,
-      'freq' => $freq,
-      'clean_ex_first' => true,
-      'level' => [80, 95],
-      'finetune_steps' => 3,
-      'finetune_depth' => 5,
-      'finetune_loss' => 'default',
-      'finetuned_model_id' => null,
+      'model' => $model,          // Nama model peramalan yang digunakan
+      'h' => $h,                  // Horizon peramalan (jumlah periode prediksi)
+      'freq' => $freq,            // Frekuensi data ('D' = harian, 'H' = jam, dst)
+      'clean_ex_first' => true,   // Membersihkan outlier sebelum prediksi
+      'level' => [80, 95],        // Interval kepercayaan prediksi (80% dan 95%)
+      'finetune_steps' => 3,      // Jumlah langkah fine-tuning (default 3)
+      'finetune_depth' => 5,      // Kedalaman fine-tuning (default 5)
+      'finetune_loss' => 'default', // Fungsi loss untuk fine-tuning
+      'finetuned_model_id' => null, // ID model hasil fine-tuning (jika ada)
     ];
 
     return [$payload, array_keys($seriesGrouped), $lastTimestamps];
